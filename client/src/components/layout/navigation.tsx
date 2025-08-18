@@ -1,8 +1,14 @@
 import { Link, useLocation, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { companyId } = useParams();
+  
+  const { data: company } = useQuery({
+    queryKey: ["/api/companies", companyId],
+    enabled: !!companyId,
+  });
 
   const getNavItems = () => {
     if (!companyId) {
@@ -27,10 +33,21 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <i className="fas fa-chart-pie text-white text-sm"></i>
+            <Link href="/">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center cursor-pointer hover:bg-primary-dark transition-colors">
+                <i className="fas fa-chart-pie text-white text-sm"></i>
+              </div>
+            </Link>
+            <div className="flex flex-col">
+              <Link href="/" className="text-xl font-semibold text-neutral-900 hover:text-primary transition-colors cursor-pointer">
+                CapTable Pro
+              </Link>
+              {companyId && company?.name && (
+                <span className="text-sm text-neutral-600">
+                  {company.name}
+                </span>
+              )}
             </div>
-            <h1 className="text-xl font-semibold text-neutral-900">CapTable Pro</h1>
           </div>
           
           <div className="hidden md:flex items-center space-x-1">

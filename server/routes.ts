@@ -724,6 +724,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Convertible Instruments (SAFE & Notes)
+  app.get("/api/companies/:companyId/convertibles", async (req, res) => {
+    try {
+      const convertibles = await storage.getConvertibleInstruments(req.params.companyId);
+      res.json(convertibles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch convertible instruments" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/convertibles", async (req, res) => {
+    try {
+      const validated = insertConvertibleInstrumentSchema.parse({
+        ...req.body,
+        companyId: req.params.companyId
+      });
+      const convertible = await storage.createConvertibleInstrument(validated);
+      res.status(201).json(convertible);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid convertible instrument data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create convertible instrument" });
+    }
+  });
+
+  // Equity Awards 
+  app.get("/api/companies/:companyId/equity-awards", async (req, res) => {
+    try {
+      const awards = await storage.getEquityAwards(req.params.companyId);
+      res.json(awards);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch equity awards" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/equity-awards", async (req, res) => {
+    try {
+      const validated = insertEquityAwardSchema.parse({
+        ...req.body,
+        companyId: req.params.companyId
+      });
+      const award = await storage.createEquityAward(validated);
+      res.status(201).json(award);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid equity award data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create equity award" });
+    }
+  });
+
   // Share ledger entries 
   app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
     try {

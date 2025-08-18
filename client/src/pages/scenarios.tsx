@@ -152,23 +152,16 @@ export default function ScenariosPage() {
     }
 
     try {
-      const response = await fetch(`/api/companies/${companyId}/rounds/model`, {
+      const response = await apiRequest(`/api/companies/${companyId}/rounds/model`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roundAmount: roundAmountValue,
-          premoney: premoneyValue,
+        body: {
+          roundAmount: parseFloat(roundAmountValue.toString().replace(/,/g, '')),
+          premoney: parseFloat(premoneyValue.toString().replace(/,/g, '')),
           investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
-        }),
+        },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to model round");
-      }
-
-      const results = await response.json();
+      const results = response;
       setModelingResults(results);
       
       toast({

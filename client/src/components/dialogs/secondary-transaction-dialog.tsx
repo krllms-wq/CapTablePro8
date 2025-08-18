@@ -59,7 +59,9 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
       }
 
       const transactionId = `secondary-${Date.now()}`;
-      const totalValue = parseFloat(data.pricePerShare) * parseInt(data.quantity);
+      const quantity = parseInt(data.quantity.replace(/,/g, ''));
+      const pricePerShare = parseFloat(data.pricePerShare.replace(/,/g, ''));
+      const totalValue = pricePerShare * quantity;
 
       // Create the secondary transaction by transferring shares
       // First, reduce shares from seller
@@ -68,7 +70,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
         body: {
           holderId: data.sellerId,
           classId: data.classId,
-          quantity: -parseInt(data.quantity),
+          quantity: -quantity,
           issueDate: data.transactionDate,
           consideration: totalValue,
           considerationType: "cash",
@@ -82,7 +84,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
         body: {
           holderId: buyerId,
           classId: data.classId,
-          quantity: parseInt(data.quantity),
+          quantity: quantity,
           issueDate: data.transactionDate,
           consideration: totalValue,
           considerationType: "cash",
@@ -175,7 +177,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                 <SelectValue placeholder="Select seller" />
               </SelectTrigger>
               <SelectContent>
-                {stakeholders?.map((stakeholder: any) => (
+                {stakeholders && Array.isArray(stakeholders) && stakeholders.map((stakeholder: any) => (
                   <SelectItem key={stakeholder.id} value={stakeholder.id}>
                     {stakeholder.name}
                   </SelectItem>
@@ -211,7 +213,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                   <SelectValue placeholder="Select buyer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stakeholders?.filter((s: any) => s.id !== formData.sellerId).map((stakeholder: any) => (
+                  {stakeholders && Array.isArray(stakeholders) && stakeholders.filter((s: any) => s.id !== formData.sellerId).map((stakeholder: any) => (
                     <SelectItem key={stakeholder.id} value={stakeholder.id}>
                       {stakeholder.name}
                     </SelectItem>
@@ -270,7 +272,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                 <SelectValue placeholder="Select security class" />
               </SelectTrigger>
               <SelectContent>
-                {securityClasses?.map((secClass: any) => (
+                {securityClasses && Array.isArray(securityClasses) && securityClasses.map((secClass: any) => (
                   <SelectItem key={secClass.id} value={secClass.id}>
                     {secClass.name}
                   </SelectItem>
@@ -284,20 +286,29 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
               <Label htmlFor="quantity">Number of Shares *</Label>
               <Input
                 id="quantity"
-                type="number"
+                type="text"
                 value={formData.quantity}
-                onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                placeholder="1000"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  const formatted = value ? parseInt(value).toLocaleString() : '';
+                  e.target.value = formatted;
+                  setFormData({...formData, quantity: value});
+                }}
+                placeholder="1,000"
               />
             </div>
             <div>
               <Label htmlFor="pricePerShare">Price per Share ($) *</Label>
               <Input
                 id="pricePerShare"
-                type="number"
-                step="0.01"
+                type="text"
                 value={formData.pricePerShare}
-                onChange={(e) => setFormData({...formData, pricePerShare: e.target.value})}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  const formatted = value ? parseFloat(value).toLocaleString() : '';
+                  e.target.value = formatted;
+                  setFormData({...formData, pricePerShare: value});
+                }}
                 placeholder="4.47"
               />
             </div>
