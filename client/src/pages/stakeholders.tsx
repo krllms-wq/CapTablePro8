@@ -40,7 +40,10 @@ export default function Stakeholders() {
 
   const updateStakeholderMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("PUT", `/api/companies/${companyId}/stakeholders/${editingStakeholder?.id}`, data);
+      return apiRequest(`/api/companies/${companyId}/stakeholders/${editingStakeholder?.id}`, {
+        method: "PUT",
+        body: data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
@@ -68,7 +71,9 @@ export default function Stakeholders() {
   const handleDeleteStakeholder = async (stakeholderId: string) => {
     if (confirm('Are you sure you want to delete this stakeholder?')) {
       try {
-        await apiRequest("DELETE", `/api/companies/${companyId}/stakeholders/${stakeholderId}`);
+        await apiRequest(`/api/companies/${companyId}/stakeholders/${stakeholderId}`, {
+          method: "DELETE"
+        });
         queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
         toast({
           title: "Success",

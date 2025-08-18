@@ -40,6 +40,7 @@ export interface IStorage {
   getStakeholders(companyId: string): Promise<Stakeholder[]>;
   getStakeholder(id: string): Promise<Stakeholder | undefined>;
   updateStakeholder(id: string, updates: Partial<InsertStakeholder>): Promise<Stakeholder | undefined>;
+  deleteStakeholder(id: string): Promise<void>;
 
   // Share Ledger Entries
   createShareLedgerEntry(entry: InsertShareLedgerEntry): Promise<ShareLedgerEntry>;
@@ -424,6 +425,10 @@ export class MemStorage implements IStorage {
     const updated = { ...stakeholder, ...updates };
     this.stakeholders.set(id, updated);
     return updated;
+  }
+
+  async deleteStakeholder(id: string): Promise<void> {
+    this.stakeholders.delete(id);
   }
 
   // Share Ledger Entries
@@ -811,6 +816,10 @@ export class DatabaseStorage implements IStorage {
   async updateStakeholder(id: string, updates: Partial<InsertStakeholder>): Promise<Stakeholder | undefined> {
     const [stakeholder] = await db.update(stakeholders).set(updates).where(eq(stakeholders.id, id)).returning();
     return stakeholder;
+  }
+
+  async deleteStakeholder(id: string): Promise<void> {
+    await db.delete(stakeholders).where(eq(stakeholders.id, id));
   }
 
   // Share Ledger Entries

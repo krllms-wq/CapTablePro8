@@ -354,6 +354,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
+    try {
+      const stakeholder = await storage.updateStakeholder(req.params.stakeholderId, req.body);
+      res.json(stakeholder);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update stakeholder" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
+    try {
+      await storage.deleteStakeholder(req.params.stakeholderId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete stakeholder" });
+    }
+  });
+
   // Share Ledger Entries
   app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
     try {
