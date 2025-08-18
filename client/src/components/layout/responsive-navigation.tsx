@@ -1,6 +1,7 @@
 import { Link, useLocation, useParams } from "wouter";
 import { AppShell } from "@/ui/components/AppShell";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useIsMobile, useIsDesktop } from "@/ui/hooks/useMedia";
 
 interface NavigationItem {
@@ -41,13 +42,13 @@ export default function ResponsiveNavigation({ children }: ResponsiveNavigationP
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo/Brand */}
-      <div className="p-4 border-b border-neutral-200">
+      <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <i className="fas fa-chart-pie text-white text-sm"></i>
           </div>
           {!isMobile && (
-            <h1 className="text-xl font-semibold text-neutral-900">CapTable Pro</h1>
+            <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">CapTable Pro</h1>
           )}
         </div>
       </div>
@@ -75,16 +76,19 @@ export default function ResponsiveNavigation({ children }: ResponsiveNavigationP
         </div>
       </nav>
       
-      {/* User section */}
-      <div className="p-4 border-t border-neutral-200">
+      {/* Theme and User section */}
+      <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="flex items-center justify-between mb-3">
+          <ThemeToggle />
+        </div>
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-semibold">JD</span>
           </div>
           {!isMobile && (
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-neutral-900 truncate">John Doe</div>
-              <div className="text-xs text-neutral-500 truncate">john@company.com</div>
+              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">John Doe</div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">john@company.com</div>
             </div>
           )}
         </div>
@@ -94,11 +98,14 @@ export default function ResponsiveNavigation({ children }: ResponsiveNavigationP
 
   // Header content for mobile
   const headerContent = isMobile ? (
-    <div className="flex items-center space-x-3">
-      <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-        <i className="fas fa-chart-pie text-white text-xs"></i>
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center space-x-3">
+        <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+          <i className="fas fa-chart-pie text-white text-xs"></i>
+        </div>
+        <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">CapTable Pro</h1>
       </div>
-      <h1 className="text-lg font-semibold text-neutral-900">CapTable Pro</h1>
+      <ThemeToggle />
     </div>
   ) : null;
 

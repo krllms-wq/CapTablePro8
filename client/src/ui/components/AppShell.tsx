@@ -19,9 +19,9 @@ export function AppShell({ sidebar, children, header }: AppShellProps) {
   // Mobile layout (xs/sm)
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-neutral-50">
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
         {/* Mobile header */}
-        <header className="bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
           <Button
             variant="ghost"
             size="sm"
@@ -60,9 +60,9 @@ export function AppShell({ sidebar, children, header }: AppShellProps) {
   // Tablet layout (md)
   if (isTablet) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex">
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex">
         {/* Compact sidebar for tablet */}
-        <aside className="w-16 bg-white border-r border-neutral-200 flex flex-col">
+        <aside className="w-16 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex flex-col">
           <div className="p-2">
             <Button
               variant="ghost"
@@ -106,16 +106,16 @@ export function AppShell({ sidebar, children, header }: AppShellProps) {
   // Desktop layout (lg/xl) - preserve existing layout
   if (isDesktop) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex">
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex">
         {/* Full sidebar for desktop - preserve existing */}
-        <aside className="w-64 bg-white border-r border-neutral-200">
+        <aside className="w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700">
           {sidebar}
         </aside>
 
         {/* Desktop content - preserve existing */}
         <div className="flex-1 flex flex-col">
           {header && (
-            <header className="bg-white border-b border-neutral-200 px-6 py-4">
+            <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
               {header}
             </header>
           )}

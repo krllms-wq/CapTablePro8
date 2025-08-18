@@ -116,3 +116,63 @@
     padding: 1.5rem; /* Preserve desktop padding */
   }
 }
+
+/* Mobile-first improvements for iPhone */
+@media (max-width: 768px) {
+  /* Better mobile cards */
+  .mobile-card {
+    @apply rounded-lg border border-neutral-200 bg-white shadow-sm;
+    margin-bottom: 1rem;
+  }
+  
+  /* Mobile-friendly buttons */
+  .mobile-button {
+    @apply min-h-[44px] px-4 py-2 text-base;
+    touch-action: manipulation;
+  }
+  
+  /* Mobile table scroll */
+  .mobile-table-scroll {
+    @apply -mx-4 px-4 overflow-x-auto;
+    scroll-snap-type: x mandatory;
+  }
+  
+  /* Improved mobile typography */
+  .mobile-heading {
+    @apply text-xl font-semibold leading-tight;
+  }
+  
+  .mobile-subheading {
+    @apply text-base font-medium;
+  }
+  
+  .mobile-body {
+    @apply text-sm leading-relaxed;
+  }
+}
+
+/* Dark mode improvements for mobile */
+@media (max-width: 768px) {
+  .dark .mobile-card {
+    @apply bg-neutral-800 border-neutral-700;
+  }
+}
+
+/* Enhanced scroll behavior for mobile */
+.mobile-scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS-specific improvements */
+@supports (-webkit-touch-callout: none) {
+  .ios-safe-area {
+    padding-top: constant(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .ios-safe-area-bottom {
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
