@@ -224,6 +224,14 @@ export const insertShareLedgerEntrySchema = createInsertSchema(shareLedgerEntrie
   createdAt: true,
 }).extend({
   issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  quantity: z.union([
+    z.number(),
+    z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
+  ]).pipe(z.number().int().positive()),
+  consideration: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()).optional(),
 });
 
 export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
@@ -232,6 +240,14 @@ export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
 }).extend({
   grantDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
   vestingStartDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  quantityGranted: z.union([
+    z.number(),
+    z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
+  ]).pipe(z.number().int().positive()),
+  strikePrice: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()).optional(),
 });
 
 export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleInstruments).omit({
@@ -240,6 +256,18 @@ export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleI
 }).extend({
   issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
   maturityDate: z.union([z.date(), z.string().transform(str => new Date(str))]).optional(),
+  principal: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()).optional(),
+  valuationCap: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()).optional(),
+  discountRate: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str) / 100) // Convert percentage to decimal
+  ]).pipe(z.number().min(0).max(1)).optional(),
 });
 
 export const insertRoundSchema = createInsertSchema(rounds).omit({

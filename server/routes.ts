@@ -384,16 +384,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/share-ledger", async (req, res) => {
     try {
+      // Validate stakeholder exists
+      const stakeholder = await storage.getStakeholder(req.body.holderId);
+      if (!stakeholder) {
+        return res.status(400).json({ error: "Stakeholder not found" });
+      }
+
+      // Validate security class exists
+      const securityClass = await storage.getSecurityClass(req.body.classId);
+      if (!securityClass) {
+        return res.status(400).json({ error: "Security class not found" });
+      }
+
       const validated = insertShareLedgerEntrySchema.parse({
         ...req.body,
         companyId: req.params.companyId
       });
+      
       const entry = await storage.createShareLedgerEntry(validated);
       res.status(201).json(entry);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid share ledger entry data", details: error.errors });
       }
+      console.error("Share ledger entry creation error:", error);
       res.status(500).json({ error: "Failed to create share ledger entry" });
     }
   });
