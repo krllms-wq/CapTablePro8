@@ -78,6 +78,7 @@ const founderSchema = z.object({
   email: z.string().email("Valid email is required"),
   title: z.string().min(1, "Title is required"),
   shares: z.coerce.number().min(1, "Shares must be greater than 0"),
+  percentage: z.coerce.number().min(0.01).max(100, "Percentage must be between 0.01 and 100"),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
@@ -97,6 +98,7 @@ export default function CompanySetup() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [founders, setFounders] = useState<FounderFormData[]>([]);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [authorizedShares, setAuthorizedShares] = useState(10000000);
 
   const steps: SetupStep[] = [
     {
@@ -147,25 +149,65 @@ export default function CompanySetup() {
       email: "",
       title: "",
       shares: 1000000,
+      percentage: 10,
     },
   });
 
+  // Watch form values for percentage/shares calculation
+  const watchedShares = founderForm.watch("shares");
+  const watchedPercentage = founderForm.watch("percentage");
+
+  // Helper functions for percentage/shares conversion
+  const calculatePercentage = (shares: number) => {
+    return (shares / authorizedShares) * 100;
+  };
+
+  const calculateShares = (percentage: number) => {
+    return Math.round((percentage / 100) * authorizedShares);
+  };
+
+  // Update percentage when shares change
+  const handleSharesChange = (shares: number) => {
+    const percentage = calculatePercentage(shares);
+    founderForm.setValue("percentage", percentage, { shouldValidate: true });
+  };
+
+  // Update shares when percentage changes
+  const handlePercentageChange = (percentage: number) => {
+    const shares = calculateShares(percentage);
+    founderForm.setValue("shares", shares, { shouldValidate: true });
+  };
+
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
-      return apiRequest("POST", "/api/companies", {
-        name: data.name,
-        description: data.description,
-        country: data.country,
-        incorporationDate: data.incorporationDate,
-        authorizedShares: data.authorizedShares,
+      const response = await fetch("/api/companies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          country: data.country,
+          incorporationDate: data.incorporationDate,
+          authorizedShares: data.authorizedShares,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return await response.json();
     },
-    onSuccess: (data: { id: string }) => {
+    onSuccess: (data: { id: string; authorizedShares: number }) => {
       setCompanyId(data.id);
+      setAuthorizedShares(data.authorizedShares);
       setCurrentStep(1);
       toast({
         title: "Success",
-        description: "Company created successfully",
+        description: "Company created and saved successfully",
       });
     },
     onError: (error: any) => {
@@ -468,15 +510,38 @@ export default function CompanySetup() {
                       />
                     </div>
 
+                    <FormField
+                      control={founderForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., CEO, CTO" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={founderForm.control}
-                        name="title"
+                        name="shares"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title</FormLabel>
+                            <FormLabel>Initial Shares</FormLabel>
                             <FormControl>
-                              <Input placeholder="e.g., CEO, CTO" {...field} />
+                              <Input
+                                type="number"
+                                placeholder="1000000"
+                                {...field}
+                                onChange={(e) => {
+                                  const shares = parseInt(e.target.value) || 0;
+                                  field.onChange(shares);
+                                  handleSharesChange(shares);
+                                }}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -485,15 +550,21 @@ export default function CompanySetup() {
 
                       <FormField
                         control={founderForm.control}
-                        name="shares"
+                        name="percentage"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Initial Shares</FormLabel>
+                            <FormLabel>Ownership %</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="e.g., 5000000" 
-                                {...field} 
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="10.00"
+                                {...field}
+                                onChange={(e) => {
+                                  const percentage = parseFloat(e.target.value) || 0;
+                                  field.onChange(percentage);
+                                  handlePercentageChange(percentage);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -523,6 +594,7 @@ export default function CompanySetup() {
                           </div>
                           <div className="text-right">
                             <div className="font-medium">{founder.shares.toLocaleString()} shares</div>
+                            <div className="text-sm text-neutral-600">{founder.percentage.toFixed(2)}% ownership</div>
                           </div>
                         </div>
                       ))}
