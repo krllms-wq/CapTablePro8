@@ -9,7 +9,11 @@ import Navigation from "@/components/layout/navigation";
 import type { Stakeholder } from "@shared/schema";
 
 export default function Stakeholders() {
-  const companyId = "cc5ebdde-1683-434a-8292-ca7fe00dd4ee"; // Using the correct company ID
+  // Get the actual company ID from the companies list
+  const { data: companies } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies"],
+  });
+  const companyId = companies?.[0]?.id;
 
   const { data: stakeholders, isLoading } = useQuery<Stakeholder[]>({
     queryKey: ["/api/companies", companyId, "stakeholders"],

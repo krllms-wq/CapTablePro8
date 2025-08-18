@@ -33,6 +33,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import type { SecurityClass } from "@shared/schema";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const modelRoundSchema = z.object({
   name: z.string().min(1, "Round name is required"),
@@ -67,6 +68,12 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
 
   const { data: securityClasses } = useQuery<SecurityClass[]>({
     queryKey: ["/api/companies", companyId, "security-classes"],
+    enabled: !!companyId && open,
+  });
+
+  // Get current cap table for display
+  const { data: capTableData } = useQuery({
+    queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId && open,
   });
 
@@ -280,6 +287,43 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
               </div>
             </form>
           </Form>
+
+          {/* Current Cap Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Cap Table</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {capTableData?.capTable ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Stakeholder</TableHead>
+                      <TableHead>Security Class</TableHead>
+                      <TableHead>Shares</TableHead>
+                      <TableHead>Ownership %</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {capTableData.capTable.map((row: any, index: number) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{row.stakeholder?.name || 'Unknown'}</TableCell>
+                        <TableCell>{row.securityClass?.name || 'Unknown'}</TableCell>
+                        <TableCell>{row.shares?.toLocaleString() || 0}</TableCell>
+                        <TableCell>{((row.ownership || 0) * 100).toFixed(2)}%</TableCell>
+                        <TableCell>{formatCurrency(row.value || 0)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No cap table data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Projection Results */}
           {projection && (

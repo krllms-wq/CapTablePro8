@@ -401,6 +401,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new funding round
+  app.post("/api/companies/:companyId/rounds", async (req, res) => {
+    try {
+      const { name, roundType, raiseAmount, preMoneyValuation, pricePerShare, newSecurityClassId } = req.body;
+      
+      if (!name || !roundType || !raiseAmount) {
+        return res.status(400).json({ error: "Missing required fields: name, roundType, raiseAmount" });
+      }
+
+      // Create a new funding round entry (simplified implementation)
+      const roundId = globalThis.crypto.randomUUID();
+      const round = {
+        id: roundId,
+        companyId: req.params.companyId,
+        name,
+        roundType,
+        raiseAmount: parseFloat(raiseAmount),
+        preMoneyValuation: preMoneyValuation ? parseFloat(preMoneyValuation) : undefined,
+        pricePerShare: pricePerShare ? parseFloat(pricePerShare) : undefined,
+        securityClassId: newSecurityClassId,
+        closedAt: new Date().toISOString(),
+      };
+
+      // In a real app, this would create the round and associated transactions
+      console.log("Creating round:", round);
+      
+      res.json({ success: true, roundId });
+    } catch (error) {
+      console.error("Error creating round:", error);
+      res.status(500).json({ error: "Failed to create round" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

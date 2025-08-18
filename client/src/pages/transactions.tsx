@@ -25,7 +25,11 @@ interface Transaction {
 }
 
 export default function Transactions() {
-  const companyId = "cc5ebdde-1683-434a-8292-ca7fe00dd4ee";
+  // Get the actual company ID from the companies list
+  const { data: companies } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies"],
+  });
+  const companyId = companies?.[0]?.id;
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
 
