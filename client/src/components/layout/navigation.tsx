@@ -6,6 +6,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/", label: "Cap Table", icon: "fas fa-table" },
     { path: "/stakeholders", label: "Stakeholders", icon: "fas fa-users" },
+    { path: "/transactions", label: "Transactions", icon: "fas fa-file-text" },
     { path: "/equity-awards", label: "Equity Awards", icon: "fas fa-gift" },
     { path: "/scenarios", label: "Scenarios", icon: "fas fa-exchange-alt" },
   ];

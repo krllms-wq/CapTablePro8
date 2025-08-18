@@ -303,7 +303,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">New Shares Issued</div>
-                    <div className="text-2xl font-bold">{projection.newShares.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{projection.newShares?.toLocaleString() || 0}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Dilution</div>
@@ -312,7 +312,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                   {projection.optionPoolShares && (
                     <div>
                       <div className="text-sm font-medium text-muted-foreground">Option Pool Shares</div>
-                      <div className="text-2xl font-bold">{projection.optionPoolShares.toLocaleString()}</div>
+                      <div className="text-2xl font-bold">{projection.optionPoolShares?.toLocaleString() || 0}</div>
                     </div>
                   )}
                 </div>

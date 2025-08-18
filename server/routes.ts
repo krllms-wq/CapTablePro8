@@ -390,6 +390,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Share ledger entries 
+  app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
+    try {
+      const entries = await storage.getShareLedgerEntries(req.params.companyId);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching share ledger:", error);
+      res.status(500).json({ error: "Failed to fetch share ledger" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
