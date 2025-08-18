@@ -6,6 +6,21 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ## Recent Changes (August 2025)
 
+✅ **COMPLETE MOBILE-OPTIMIZED LANDING PAGE REDESIGN (August 18, 2025)**
+  - **Mobile-First Design**: Completely redesigned landing page with dedicated mobile and desktop layouts
+  - **Russian Localization**: Full translation to Russian for better user experience
+  - **Interactive Demo Screenshots**: Generated and integrated 3 professional demo interface screenshots showing desktop dashboard, mobile interface, and funding round modeling
+  - **Detailed Feature Descriptions**: Expanded functionality explanations covering all major features:
+    - Stakeholder management with centralized database
+    - Funding round modeling with dilution calculations
+    - Share tracking with all instrument types (common shares, options, SAFEs, convertibles)
+    - Transaction history with full audit trail
+    - Compliance tools and regulatory reporting
+    - Mobile access with responsive design
+  - **Enhanced Visual Design**: Professional gradient backgrounds, feature cards with icons, before/after comparisons
+  - **Touch-Friendly Interface**: 44px minimum touch targets, improved mobile form layouts, optimized spacing
+  - **Dark Mode Support**: Full dark theme integration across all landing page sections
+
 ✅ **COMPREHENSIVE UX/UI ENHANCEMENT SUITE COMPLETED (August 18, 2025)**
   - **Motion Utilities**: Implemented accessibility-aware motion system respecting prefers-reduced-motion user settings
   - **Enhanced Toast System**: Created ARIA-compliant notifications with success/info/warn/error variants, auto-dismiss, and duplicate prevention
