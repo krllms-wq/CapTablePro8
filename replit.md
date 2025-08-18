@@ -4,7 +4,7 @@
 
 This is a comprehensive capitalization table (cap table) web application designed for startups and investors to model, maintain, and share company ownership structures throughout the business lifecycle. The application supports complex equity instruments including common shares, preferred shares, options, RSUs, warrants, SAFEs, and convertible notes. Built with a modern tech stack, it provides real-time calculations, scenario modeling, and role-based access control for different stakeholder types.
 
-## Recent Changes (January 2025)
+## Recent Changes (August 2025)
 
 ✓ **Dual-Mode Cap Table Implementation**: Added Current/Historical toggle for cap table viewing
   - Current mode: Shows investment amounts per stakeholder with shares and ownership percentages
@@ -35,6 +35,14 @@ This is a comprehensive capitalization table (cap table) web application designe
   - Fixed Model Round button to properly navigate to scenarios page
   - Enhanced transaction action buttons with proper routing
   - Streamlined cap table header layout for better usability
+
+✓ **Scenario Management System**: Complete implementation of save/load scenario functionality
+  - Added scenarios database table with proper relationships to companies
+  - Created save scenario dialog with name and description fields
+  - Implemented scenario list component with full CRUD operations (create, read, update, delete)
+  - Added "Show/Hide Saved Scenarios" toggle positioned at top of page when activated
+  - Removed all debug console output from round modeling functionality
+  - Enabled loading of saved scenarios with automatic form population
 
 ## User Preferences
 

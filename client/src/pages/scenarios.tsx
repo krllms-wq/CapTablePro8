@@ -102,12 +102,6 @@ export default function Scenarios() {
       const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
       const premoneyVal = parseFormattedNumber(premoney);
       
-      console.log('Making API call with data:', {
-        roundAmount: totalInvestment,
-        premoney: premoneyVal,
-        investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
-      });
-      
       const response = await apiRequest("POST", `/api/companies/${companyId}/rounds/model`, {
         roundAmount: totalInvestment,
         premoney: premoneyVal,
@@ -115,11 +109,9 @@ export default function Scenarios() {
       });
       
       const data = await response.json();
-      console.log('API response data:', data);
       return data;
     },
     onSuccess: (data: any) => {
-      console.log('Modeling results received:', data);
       setModelingResults(data);
       toast({
         title: "Round modeled successfully",
@@ -178,6 +170,26 @@ export default function Scenarios() {
               </Button>
             </div>
           </div>
+
+          {/* Saved Scenarios Panel - Show at top when toggled */}
+          {showSavedScenarios && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-neutral-900">Saved Scenarios</h2>
+              
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+                <div className="px-6 py-4 border-b border-neutral-200">
+                  <h3 className="text-lg font-semibold text-neutral-900">Your Scenarios</h3>
+                  <p className="text-sm text-neutral-500">Load previously saved round modeling scenarios</p>
+                </div>
+                <div className="p-6">
+                  <ScenarioList 
+                    companyId={companyId!} 
+                    onLoadScenario={loadScenario}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Input Panel */}
@@ -448,26 +460,6 @@ export default function Scenarios() {
                       })()}
                     </tbody>
                   </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Saved Scenarios Panel */}
-          {showSavedScenarios && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-neutral-900">Saved Scenarios</h2>
-              
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-                <div className="px-6 py-4 border-b border-neutral-200">
-                  <h3 className="text-lg font-semibold text-neutral-900">Your Scenarios</h3>
-                  <p className="text-sm text-neutral-500">Load previously saved round modeling scenarios</p>
-                </div>
-                <div className="p-6">
-                  <ScenarioList 
-                    companyId={companyId!} 
-                    onLoadScenario={loadScenario}
-                  />
                 </div>
               </div>
             </div>
