@@ -512,9 +512,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalShares += entry.quantity;
       });
 
-      // Add option pool
-      const optionPoolSize = 742850; // 15% of fully diluted
-      const fullyDilutedShares = totalShares + optionPoolSize + equityAwards.reduce((sum, award) => 
+      // Calculate fully diluted shares (no automatic option pool)
+      const fullyDilutedShares = totalShares + equityAwards.reduce((sum, award) => 
         sum + (award.quantityGranted - award.quantityExercised - award.quantityCanceled), 0);
 
       // Build cap table rows
@@ -563,22 +562,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // Add option pool
-      const optionPoolOwnership = (optionPoolSize / fullyDilutedShares) * 100;
-      capTableRows.push({
-        stakeholder: { name: "Employee Option Pool", title: "Available for grants", type: "pool" },
-        securityClass: { name: "Options Pool" },
-        shares: optionPoolSize,
-        ownership: optionPoolOwnership,
-        value: optionPoolSize * 4.47,
-        isPool: true
-      });
-
       const stats = {
         totalShares,
         fullyDilutedShares,
         currentValuation: fullyDilutedShares * 4.47,
-        optionPoolAvailable: optionPoolSize
+        optionPoolAvailable: 0
       };
 
       res.json({

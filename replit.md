@@ -6,8 +6,10 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ## Recent Changes (August 2025)
 
-✅ **AUTHENTICATION & SYSTEM FIXES COMPLETED (August 18, 2025)**
+✅ **AUTHENTICATION & DATA FIXES COMPLETED (August 18, 2025)**
   - **Critical Authentication Fix**: Fixed company creation "Authentication required" error by replacing raw fetch() with apiRequest() in company-setup.tsx
+  - **Dummy Data Removal**: Removed automatic employee option pool creation for new companies (was creating 742,850 share dummy pool)
+  - **Historical Cap Table Fix**: Fixed to only show date columns when actual transactions occurred instead of hardcoded dates
   - **Frontend Token Handling**: Improved authentication flow with query cache invalidation and localStorage synchronization
   - **Database Schema**: Fixed firstName/lastName nullable constraints, registration now handles name parsing correctly
   - **Performance Optimization**: API response times 45-235ms, handles 10+ concurrent requests, added query caching (5min stale time) 

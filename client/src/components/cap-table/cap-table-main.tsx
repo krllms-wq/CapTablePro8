@@ -15,6 +15,7 @@ interface CapTableRow {
   value: number;
   isOption?: boolean;
   isPool?: boolean;
+  issueDate?: string;
 }
 
 interface CapTableMainProps {
@@ -22,11 +23,24 @@ interface CapTableMainProps {
   isLoading: boolean;
 }
 
-// Historical Cap Table Component
+// Historical Cap Table Component  
 function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
-  const historicalDates = ["Jan 2024", "Apr 2024", "Jul 2024", "Oct 2024", "Dec 2024"];
+  // Extract actual transaction dates from the cap table data
+  const transactionDates = capTable
+    .filter(row => row.issueDate) // Only rows with issue dates
+    .map(row => new Date(row.issueDate!))
+    .sort((a, b) => a.getTime() - b.getTime())
+    .map(date => date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }));
   
-  // Group stakeholders for historical view
+  // Remove duplicates and keep only unique months
+  const uniqueDates = Array.from(new Set(transactionDates));
+  
+  // If no transactions, show current month only
+  const historicalDates = uniqueDates.length > 0 
+    ? uniqueDates 
+    : [new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' })];
+  
+  // Group stakeholders for historical view based on actual transactions
   const stakeholderHistory = capTable.reduce((acc, row) => {
     if (!acc[row.stakeholder.name]) {
       acc[row.stakeholder.name] = {
@@ -35,12 +49,10 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
       };
     }
     
-    // Simulate historical ownership changes
-    historicalDates.forEach((date, index) => {
-      const baseOwnership = row.ownership;
-      const variation = (Math.random() - 0.5) * 0.05;
-      const historicalOwnership = Math.max(0, baseOwnership + (variation * (historicalDates.length - index - 1)));
-      acc[row.stakeholder.name].history[date] = historicalOwnership;
+    // Calculate ownership for each actual transaction date
+    historicalDates.forEach((date) => {
+      // For now, show current ownership for all dates (can be enhanced with actual historical calculation)
+      acc[row.stakeholder.name].history[date] = row.ownership;
     });
     
     return acc;
