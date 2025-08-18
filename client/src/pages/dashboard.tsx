@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useParams } from "wouter";
 import Navigation from "@/components/layout/navigation";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
@@ -11,17 +12,10 @@ import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import type { Company } from "@shared/schema";
 
 export default function Dashboard() {
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const { companyId } = useParams();
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
   const [showTransactionMenu, setShowTransactionMenu] = useState(false);
-
-  const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
-  });
-
-  const defaultCompany = companies?.[0];
-  const companyId = selectedCompanyId || defaultCompany?.id;
 
   const { data: company } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -33,12 +27,11 @@ export default function Dashboard() {
     enabled: !!companyId,
   });
 
-  if (companiesLoading) {
+  if (!companyId) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading companies...</p>
+          <p className="text-neutral-600">No company selected</p>
         </div>
       </div>
     );

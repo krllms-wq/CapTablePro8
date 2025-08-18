@@ -291,8 +291,11 @@ export default function CompanySetup() {
   };
 
   const finishSetup = () => {
-    // Redirect to main app
-    window.location.href = "/";
+    if (companyId) {
+      window.location.href = `/companies/${companyId}`;
+    } else {
+      window.location.href = "/";
+    }
   };
 
   return (
