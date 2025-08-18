@@ -228,7 +228,7 @@ export default function CompanySetup() {
       console.log("Company ID:", companyId);
       
       // Create stakeholder
-      const response = await fetch(`/api/companies/${companyId}/stakeholders`, {
+      const stakeholderResponse = await fetch(`/api/companies/${companyId}/stakeholders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -241,15 +241,50 @@ export default function CompanySetup() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!stakeholderResponse.ok) {
+        const errorData = await stakeholderResponse.json();
         console.error("API error:", errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(errorData.error || `HTTP ${stakeholderResponse.status}`);
       }
 
-      const stakeholder = await response.json();
+      const stakeholder = await stakeholderResponse.json();
       console.log("Created stakeholder:", stakeholder);
-      return stakeholder;
+
+      // Get security classes to find the common stock class ID
+      const securityClassesResponse = await fetch(`/api/companies/${companyId}/security-classes`);
+      const securityClasses = await securityClassesResponse.json();
+      const commonStockClass = securityClasses.find((sc: any) => sc.type === "common");
+      
+      if (!commonStockClass) {
+        throw new Error("No common stock security class found");
+      }
+
+      // Create share ledger entry for the founder
+      const shareResponse = await fetch(`/api/companies/${companyId}/share-ledger`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          holderId: stakeholder.id,
+          classId: commonStockClass.id,
+          quantity: data.shares,
+          transactionType: "issuance",
+          date: new Date().toISOString(),
+          pricePerShare: "0.01", // Nominal value for founder shares
+        }),
+      });
+
+      if (!shareResponse.ok) {
+        const errorData = await shareResponse.json();
+        console.error("Share ledger API error:", errorData);
+        throw new Error(errorData.error || `HTTP ${shareResponse.status}`);
+      }
+
+      const shareLedgerEntry = await shareResponse.json();
+      console.log("Created share ledger entry:", shareLedgerEntry);
+      
+      return { stakeholder, shareLedgerEntry };
     },
     onSuccess: (stakeholder) => {
       const newFounder = founderForm.getValues();
@@ -538,11 +573,18 @@ export default function CompanySetup() {
                               <Input
                                 type="number"
                                 placeholder="1000000"
-                                {...field}
+                                value={field.value === 0 ? '' : field.value}
                                 onChange={(e) => {
-                                  const shares = parseInt(e.target.value) || 0;
-                                  field.onChange(shares);
-                                  handleSharesChange(shares);
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    field.onChange(0);
+                                    return;
+                                  }
+                                  const shares = parseInt(value);
+                                  if (!isNaN(shares)) {
+                                    field.onChange(shares);
+                                    handleSharesChange(shares);
+                                  }
                                 }}
                               />
                             </FormControl>
