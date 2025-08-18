@@ -21,7 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import ResponsiveNavigation from "@/components/layout/responsive-navigation";
+import Navigation from "@/components/layout/navigation";
 
 export default function StakeholdersPage() {
   const { companyId } = useParams();
@@ -131,8 +131,9 @@ export default function StakeholdersPage() {
 
   if (isLoading) {
     return (
-      <ResponsiveNavigation>
-        <div className="max-w-7xl mx-auto responsive-padding">
+      <div className="min-h-screen bg-neutral-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
@@ -146,12 +147,12 @@ export default function StakeholdersPage() {
             </div>
           </div>
         </div>
-      </ResponsiveNavigation>
+      </div>
     );
   }
 
   const stakeholderData = Array.isArray(stakeholders) ? stakeholders.map((stakeholder: any) => {
-    const capTable = capTableData?.capTable || [];
+    const capTable = Array.isArray(capTableData) ? capTableData : (capTableData?.capTable || []);
     const ownership = Array.isArray(capTable) ? capTable.find((row: any) => 
       row.stakeholder?.name === stakeholder.name
     ) : null;
@@ -164,8 +165,9 @@ export default function StakeholdersPage() {
   }) : [];
 
   return (
-    <ResponsiveNavigation>
-      <div className="max-w-7xl mx-auto responsive-padding">
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
@@ -413,6 +415,6 @@ export default function StakeholdersPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </ResponsiveNavigation>
+    </div>
   );
 }

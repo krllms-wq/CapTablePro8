@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "wouter";
-import ResponsiveNavigation from "@/components/layout/responsive-navigation";
+import Navigation from "@/components/layout/navigation";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
@@ -10,7 +10,6 @@ import QuickActions from "@/components/cap-table/quick-actions";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import type { Company } from "@shared/schema";
-import { Plus, Download } from "lucide-react";
 
 export default function Dashboard() {
   const { companyId } = useParams();
@@ -49,52 +48,50 @@ export default function Dashboard() {
   }
 
   return (
-    <ResponsiveNavigation>
-      <div className="max-w-7xl mx-auto responsive-padding">
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Company Header */}
-        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4 lg:p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 mb-6">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-neutral-900 dark:text-neutral-100">{company.name}</h2>
-              <p className="text-neutral-600 dark:text-neutral-400 mt-1">{company.description}</p>
+              <h2 className="text-2xl font-bold text-neutral-900">{company.name}</h2>
+              <p className="text-neutral-600 mt-1">{company.description}</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex space-x-3">
               <div className="relative">
                 <button 
                   onClick={() => setShowTransactionMenu(!showTransactionMenu)}
-                  className="w-full sm:w-auto touch-target px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center justify-center"
+                  className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Transaction
+                  <i className="fas fa-plus mr-2"></i>New Transaction
                 </button>
                 {showTransactionMenu && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-10">
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 z-10">
                     <button
                       onClick={() => {
                         setShowIssueShares(true);
                         setShowTransactionMenu(false);
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 first:rounded-t-lg text-neutral-900 dark:text-neutral-100"
+                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 first:rounded-t-lg"
                     >
-                      <Plus className="h-4 w-4 mr-2 text-primary inline" />
-                      Issue Shares
+                      <i className="fas fa-plus-circle mr-2 text-primary"></i>Issue Shares
                     </button>
                     <button
                       onClick={() => {
                         setShowGrantOptions(true);
                         setShowTransactionMenu(false);
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700 last:rounded-b-lg text-neutral-900 dark:text-neutral-100"
+                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 last:rounded-b-lg"
                     >
-                      <Plus className="h-4 w-4 mr-2 text-secondary inline" />
-                      Grant Options
+                      <i className="fas fa-gift mr-2 text-secondary"></i>Grant Options
                     </button>
                   </div>
                 )}
               </div>
-              <button className="w-full sm:w-auto touch-target px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors flex items-center justify-center">
-                <Download className="h-4 w-4 mr-2" />
-                Export
+              <button className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors">
+                <i className="fas fa-download mr-2"></i>Export
               </button>
             </div>
           </div>
@@ -134,6 +131,6 @@ export default function Dashboard() {
         onOpenChange={setShowGrantOptions}
         companyId={companyId!}
       />
-    </ResponsiveNavigation>
+    </div>
   );
 }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatNumber, formatDate } from "@/lib/formatters";
-import ResponsiveNavigation from "@/components/layout/responsive-navigation";
+import Navigation from "@/components/layout/navigation";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import { SafeAgreementDialog } from "@/components/dialogs/safe-agreement-dialog";
@@ -45,13 +45,14 @@ export default function TransactionsPage() {
 
   const isLoading = ledgerLoading || equityLoading || convertiblesLoading;
 
-  const stakeholderMap = new Map((stakeholders || []).map((s: any) => [s.id, s.name]));
-  const securityClassMap = new Map((securityClasses || []).map((sc: any) => [sc.id, sc.name]));
+  const stakeholderMap = new Map(stakeholders?.map((s: any) => [s.id, s.name]) || []);
+  const securityClassMap = new Map(securityClasses?.map((sc: any) => [sc.id, sc.name]) || []);
 
   if (isLoading) {
     return (
-      <ResponsiveNavigation>
-        <div className="max-w-7xl mx-auto responsive-padding">
+      <div className="min-h-screen bg-neutral-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
@@ -65,7 +66,7 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-      </ResponsiveNavigation>
+      </div>
     );
   }
 
@@ -154,8 +155,9 @@ export default function TransactionsPage() {
   };
 
   return (
-    <ResponsiveNavigation>
-      <div className="max-w-7xl mx-auto responsive-padding">
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
@@ -281,6 +283,6 @@ export default function TransactionsPage() {
         open={selectedTransactionType === "secondary"}
         onOpenChange={() => setSelectedTransactionType(null)}
       />
-    </ResponsiveNavigation>
+    </div>
   );
 }
