@@ -6,6 +6,13 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ## Recent Changes (August 2025)
 
+✅ **CRITICAL BUG FIXES COMPLETED (August 18, 2025)**
+  - **Database Storage Implementation**: Switched from in-memory storage to persistent PostgreSQL database
+  - **User Company Access Fixed**: Users can now see companies they create (was critical blocker)
+  - **Schema Validation Fixed**: All date fields now properly handle string-to-Date conversion
+  - **Authentication System**: Fully functional user registration, login, and profile management
+  - **API Endpoints Verified**: All major endpoints tested and working (companies, stakeholders, equity awards, scenarios)
+  
 ✓ **Dual-Mode Cap Table Implementation**: Added Current/Historical toggle for cap table viewing
   - Current mode: Shows investment amounts per stakeholder with shares and ownership percentages
   - Historical mode: Displays stakeholders in rows with ownership changes across time periods

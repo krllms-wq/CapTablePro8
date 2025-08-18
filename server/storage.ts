@@ -13,7 +13,14 @@ import {
   type UserCompanyAccess, type InsertUserCompanyAccess,
   type CapTableShare, type InsertCapTableShare
 } from "@shared/schema";
+import { 
+  companies, securityClasses, stakeholders, shareLedgerEntries, equityAwards,
+  convertibleInstruments, rounds, corporateActions, auditLogs, scenarios, users,
+  userCompanyAccess, capTableShares
+} from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Companies
@@ -745,4 +752,248 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // Companies
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const [company] = await db.insert(companies).values(insertCompany).returning();
+    return company;
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(companies);
+  }
+
+  async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
+    const [company] = await db.update(companies).set(updates).where(eq(companies.id, id)).returning();
+    return company;
+  }
+
+  // Security Classes
+  async createSecurityClass(insertSecurityClass: InsertSecurityClass): Promise<SecurityClass> {
+    const [securityClass] = await db.insert(securityClasses).values(insertSecurityClass).returning();
+    return securityClass;
+  }
+
+  async getSecurityClasses(companyId: string): Promise<SecurityClass[]> {
+    return await db.select().from(securityClasses).where(eq(securityClasses.companyId, companyId));
+  }
+
+  async getSecurityClass(id: string): Promise<SecurityClass | undefined> {
+    const [securityClass] = await db.select().from(securityClasses).where(eq(securityClasses.id, id));
+    return securityClass;
+  }
+
+  async updateSecurityClass(id: string, updates: Partial<InsertSecurityClass>): Promise<SecurityClass | undefined> {
+    const [securityClass] = await db.update(securityClasses).set(updates).where(eq(securityClasses.id, id)).returning();
+    return securityClass;
+  }
+
+  // Stakeholders
+  async createStakeholder(insertStakeholder: InsertStakeholder): Promise<Stakeholder> {
+    const [stakeholder] = await db.insert(stakeholders).values(insertStakeholder).returning();
+    return stakeholder;
+  }
+
+  async getStakeholders(companyId: string): Promise<Stakeholder[]> {
+    return await db.select().from(stakeholders).where(eq(stakeholders.companyId, companyId));
+  }
+
+  async getStakeholder(id: string): Promise<Stakeholder | undefined> {
+    const [stakeholder] = await db.select().from(stakeholders).where(eq(stakeholders.id, id));
+    return stakeholder;
+  }
+
+  async updateStakeholder(id: string, updates: Partial<InsertStakeholder>): Promise<Stakeholder | undefined> {
+    const [stakeholder] = await db.update(stakeholders).set(updates).where(eq(stakeholders.id, id)).returning();
+    return stakeholder;
+  }
+
+  // Share Ledger Entries
+  async createShareLedgerEntry(insertEntry: InsertShareLedgerEntry): Promise<ShareLedgerEntry> {
+    const [entry] = await db.insert(shareLedgerEntries).values(insertEntry).returning();
+    return entry;
+  }
+
+  async getShareLedgerEntries(companyId: string): Promise<ShareLedgerEntry[]> {
+    return await db.select().from(shareLedgerEntries).where(eq(shareLedgerEntries.companyId, companyId));
+  }
+
+  async getShareLedgerEntry(id: string): Promise<ShareLedgerEntry | undefined> {
+    const [entry] = await db.select().from(shareLedgerEntries).where(eq(shareLedgerEntries.id, id));
+    return entry;
+  }
+
+  // Equity Awards
+  async createEquityAward(insertAward: InsertEquityAward): Promise<EquityAward> {
+    const [award] = await db.insert(equityAwards).values(insertAward).returning();
+    return award;
+  }
+
+  async getEquityAwards(companyId: string): Promise<EquityAward[]> {
+    return await db.select().from(equityAwards).where(eq(equityAwards.companyId, companyId));
+  }
+
+  async getEquityAward(id: string): Promise<EquityAward | undefined> {
+    const [award] = await db.select().from(equityAwards).where(eq(equityAwards.id, id));
+    return award;
+  }
+
+  async updateEquityAward(id: string, updates: Partial<InsertEquityAward>): Promise<EquityAward | undefined> {
+    const [award] = await db.update(equityAwards).set(updates).where(eq(equityAwards.id, id)).returning();
+    return award;
+  }
+
+  // Convertible Instruments
+  async createConvertibleInstrument(insertInstrument: InsertConvertibleInstrument): Promise<ConvertibleInstrument> {
+    const [instrument] = await db.insert(convertibleInstruments).values(insertInstrument).returning();
+    return instrument;
+  }
+
+  async getConvertibleInstruments(companyId: string): Promise<ConvertibleInstrument[]> {
+    return await db.select().from(convertibleInstruments).where(eq(convertibleInstruments.companyId, companyId));
+  }
+
+  async getConvertibleInstrument(id: string): Promise<ConvertibleInstrument | undefined> {
+    const [instrument] = await db.select().from(convertibleInstruments).where(eq(convertibleInstruments.id, id));
+    return instrument;
+  }
+
+  // Rounds
+  async createRound(insertRound: InsertRound): Promise<Round> {
+    const [round] = await db.insert(rounds).values(insertRound).returning();
+    return round;
+  }
+
+  async getRounds(companyId: string): Promise<Round[]> {
+    return await db.select().from(rounds).where(eq(rounds.companyId, companyId));
+  }
+
+  async getRound(id: string): Promise<Round | undefined> {
+    const [round] = await db.select().from(rounds).where(eq(rounds.id, id));
+    return round;
+  }
+
+  // Corporate Actions
+  async createCorporateAction(insertAction: InsertCorporateAction): Promise<CorporateAction> {
+    const [action] = await db.insert(corporateActions).values(insertAction).returning();
+    return action;
+  }
+
+  async getCorporateActions(companyId: string): Promise<CorporateAction[]> {
+    return await db.select().from(corporateActions).where(eq(corporateActions.companyId, companyId));
+  }
+
+  // Audit Logs
+  async createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog> {
+    const [auditLog] = await db.insert(auditLogs).values({
+      ...log,
+      id: randomUUID(),
+      timestamp: new Date()
+    }).returning();
+    return auditLog;
+  }
+
+  async getAuditLogs(companyId: string): Promise<AuditLog[]> {
+    return await db.select().from(auditLogs).where(eq(auditLogs.companyId, companyId));
+  }
+
+  // Scenarios
+  async createScenario(insertScenario: InsertScenario): Promise<Scenario> {
+    const [scenario] = await db.insert(scenarios).values(insertScenario).returning();
+    return scenario;
+  }
+
+  async getScenarios(companyId: string): Promise<Scenario[]> {
+    return await db.select().from(scenarios).where(eq(scenarios.companyId, companyId));
+  }
+
+  async getScenario(id: string): Promise<Scenario | undefined> {
+    const [scenario] = await db.select().from(scenarios).where(eq(scenarios.id, id));
+    return scenario;
+  }
+
+  async updateScenario(id: string, updates: Partial<InsertScenario>): Promise<Scenario | undefined> {
+    const [scenario] = await db.update(scenarios).set(updates).where(eq(scenarios.id, id)).returning();
+    return scenario;
+  }
+
+  async deleteScenario(id: string): Promise<void> {
+    await db.delete(scenarios).where(eq(scenarios.id, id));
+  }
+
+  // Users
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  // User Company Access
+  async createUserCompanyAccess(insertAccess: InsertUserCompanyAccess): Promise<UserCompanyAccess> {
+    const [access] = await db.insert(userCompanyAccess).values(insertAccess).returning();
+    return access;
+  }
+
+  async getUserCompanyAccess(userId: string, companyId: string): Promise<UserCompanyAccess | undefined> {
+    const [access] = await db.select()
+      .from(userCompanyAccess)
+      .where(and(eq(userCompanyAccess.userId, userId), eq(userCompanyAccess.companyId, companyId)));
+    return access;
+  }
+
+  async getUserCompanies(userId: string): Promise<Company[]> {
+    const result = await db.select({
+      company: companies
+    })
+    .from(userCompanyAccess)
+    .innerJoin(companies, eq(userCompanyAccess.companyId, companies.id))
+    .where(eq(userCompanyAccess.userId, userId));
+    
+    return result.map(row => row.company);
+  }
+
+  async getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]> {
+    return await db.select().from(userCompanyAccess).where(eq(userCompanyAccess.companyId, companyId));
+  }
+
+  // Cap Table Sharing
+  async createCapTableShare(insertShare: InsertCapTableShare): Promise<CapTableShare> {
+    const [share] = await db.insert(capTableShares).values(insertShare).returning();
+    return share;
+  }
+
+  async getCapTableShare(token: string): Promise<CapTableShare | undefined> {
+    const [share] = await db.select().from(capTableShares).where(eq(capTableShares.shareToken, token));
+    return share;
+  }
+
+  async updateCapTableShare(id: string, updates: Partial<InsertCapTableShare>): Promise<CapTableShare | undefined> {
+    const [share] = await db.update(capTableShares).set(updates).where(eq(capTableShares.id, id)).returning();
+    return share;
+  }
+
+  async deleteCapTableShare(id: string): Promise<void> {
+    await db.delete(capTableShares).where(eq(capTableShares.id, id));
+  }
+}
+
+export const storage = new DatabaseStorage();
