@@ -253,7 +253,7 @@ export default function CompanySetup() {
       // Get security classes to find the common stock class ID
       const securityClassesResponse = await fetch(`/api/companies/${companyId}/security-classes`);
       const securityClasses = await securityClassesResponse.json();
-      const commonStockClass = securityClasses.find((sc: any) => sc.type === "common");
+      const commonStockClass = securityClasses.find((sc: any) => sc.name === "Common Stock");
       
       if (!commonStockClass) {
         throw new Error("No common stock security class found");
