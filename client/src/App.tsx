@@ -1,7 +1,9 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
+import { EnhancedToaster } from "@/components/ui/enhanced-toast";
+import { GlobalErrorBoundary } from "@/components/ui/global-error-boundary";
+import { SkipLink } from "@/components/ui/skip-link";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
@@ -18,6 +20,9 @@ import Scenarios from "@/pages/scenarios";
 import Profile from "@/pages/profile";
 import CapTableShare from "@/pages/cap-table-share";
 import NotFound from "@/pages/not-found";
+import Error404 from "@/pages/error-404";
+import Error500 from "@/pages/error-500";
+import UXShowcase from "@/pages/ux-showcase";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -55,7 +60,9 @@ function Router() {
           <Route path="/companies/:companyId/scenarios" component={Scenarios} />
           <Route path="/setup" component={CompanySetup} />
           <Route path="/profile" component={Profile} />
-          <Route component={NotFound} />
+          <Route path="/ux-showcase" component={UXShowcase} />
+          <Route path="/error-500" component={Error500} />
+          <Route component={Error404} />
         </>
       )}
     </Switch>
@@ -65,10 +72,13 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <GlobalErrorBoundary>
+        <TooltipProvider>
+          <SkipLink href="#main-content">Skip to main content</SkipLink>
+          <EnhancedToaster />
+          <Router />
+        </TooltipProvider>
+      </GlobalErrorBoundary>
     </QueryClientProvider>
   );
 }

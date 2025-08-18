@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { HelpBubble } from "@/components/ui/help-bubble";
 import { Label } from "@/components/ui/label";
+import { EnhancedInput, EnhancedDatePicker, StickyFormFooter, FormSection } from "@/components/ui/enhanced-form";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

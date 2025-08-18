@@ -2,6 +2,8 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { AutoBreadcrumbs } from '@/components/ui/breadcrumbs';
+import { MobileNavProvider } from '@/components/ui/mobile-nav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -72,9 +74,10 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
   const ThemeIcon = getThemeIcon();
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Header */}
-      <header className="sticky top-0 z-fixed bg-surface border-b border-border">
+    <MobileNavProvider>
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
         <div className="flex h-16 items-center gap-4 px-4 lg:px-6">
           {/* Mobile menu button */}
           <Button
@@ -93,22 +96,9 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
           </Link>
 
           {/* Breadcrumbs */}
-          {breadcrumbs && breadcrumbs.length > 0 && (
-            <nav className="hidden md:flex items-center space-x-1 text-sm text-text-muted">
-              {breadcrumbs.map((crumb, index) => (
-                <div key={index} className="flex items-center">
-                  {index > 0 && <ChevronRight className="h-4 w-4 mx-1" />}
-                  {crumb.href ? (
-                    <Link href={crumb.href} className="hover:text-text">
-                      {crumb.label}
-                    </Link>
-                  ) : (
-                    <span className="text-text">{crumb.label}</span>
-                  )}
-                </div>
-              ))}
-            </nav>
-          )}
+          <div className="hidden md:flex flex-1">
+            <AutoBreadcrumbs className="ml-4" />
+          </div>
 
           {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 max-w-sm ml-auto">
@@ -219,10 +209,11 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
         )}
 
         {/* Main content */}
-        <main className="flex-1 md:pl-0">
+        <main id="main-content" className="flex-1 md:pl-0">
           {children}
         </main>
       </div>
     </div>
+    </MobileNavProvider>
   );
 }
