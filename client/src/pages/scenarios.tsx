@@ -105,6 +105,7 @@ export default function Scenarios() {
       });
     },
     onSuccess: (data: any) => {
+      console.log('Modeling results received:', data);
       setModelingResults(data);
       toast({
         title: "Round modeled successfully",
@@ -257,13 +258,13 @@ export default function Scenarios() {
                       <div className="bg-green-50 rounded-lg p-4">
                         <div className="text-sm text-green-700 font-medium">Total Raised</div>
                         <div className="text-xl font-semibold text-green-900">
-                          {formatCurrency(modelingResults.totalRaised)}
+                          {formatCurrency(modelingResults.totalRaised || 0)}
                         </div>
                       </div>
                       <div className="bg-blue-50 rounded-lg p-4">
                         <div className="text-sm text-blue-700 font-medium">Post-Money Valuation</div>
                         <div className="text-xl font-semibold text-blue-900">
-                          {formatCurrency(modelingResults.postMoneyValuation)}
+                          {formatCurrency(modelingResults.postMoneyValuation || 0)}
                         </div>
                       </div>
                     </div>
@@ -271,8 +272,12 @@ export default function Scenarios() {
                     <div className="bg-purple-50 rounded-lg p-4">
                       <div className="text-sm text-purple-700 font-medium">New Shares Issued</div>
                       <div className="text-xl font-semibold text-purple-900">
-                        {formatNumber(modelingResults.newShares)}
+                        {formatNumber(modelingResults.newShares || 0)}
                       </div>
+                    </div>
+
+                    <div className="text-sm text-neutral-600">
+                      Debug info: {JSON.stringify(modelingResults, null, 2)}
                     </div>
                   </div>
                 )}
