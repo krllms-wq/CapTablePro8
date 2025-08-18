@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { formatNumber, formatCurrency } from "@/lib/formatters";
-import Navigation from "@/components/layout/navigation";
+import ResponsiveNavigation from "@/components/layout/responsive-navigation";
+import { ResponsiveTable } from "@/ui/components/ResponsiveTable";
 
 export default function EquityAwards() {
   const { companyId } = useParams();
@@ -14,9 +15,8 @@ export default function EquityAwards() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <ResponsiveNavigation>
+        <div className="max-w-7xl mx-auto responsive-padding">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
@@ -30,14 +30,13 @@ export default function EquityAwards() {
             </div>
           </div>
         </div>
-      </div>
+      </ResponsiveNavigation>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <ResponsiveNavigation>
+      <div className="max-w-7xl mx-auto responsive-padding">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
@@ -142,6 +141,6 @@ export default function EquityAwards() {
           </div>
         </div>
       </div>
-    </div>
+    </ResponsiveNavigation>
   );
 }
