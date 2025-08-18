@@ -3,7 +3,7 @@ import { User } from "@shared/schema";
 import * as React from "react";
 
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/auth/me"],
     retry: false,
   });
@@ -20,10 +20,11 @@ export function useAuth() {
     user: user as User | undefined,
     isLoading,
     isAuthenticated: !!user,
+    refetch,
   };
 }
 
-export function logout() {
+export function logout(): void {
   localStorage.removeItem("auth_token");
   localStorage.removeItem("user");
   window.location.href = "/";

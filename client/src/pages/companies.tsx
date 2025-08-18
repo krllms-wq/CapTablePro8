@@ -28,7 +28,7 @@ export default function CompaniesPage() {
     });
   };
 
-  const filteredCompanies = companies.filter((company: Company) =>
+  const filteredCompanies = (companies as Company[]).filter((company: Company) =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );

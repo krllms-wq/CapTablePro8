@@ -34,8 +34,10 @@ export default function Landing() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/auth/login", data);
-      return await res.json();
+      return await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: data,
+      });
     },
     onSuccess: (data: any) => {
       localStorage.setItem("auth_token", data.token);
@@ -44,7 +46,8 @@ export default function Landing() {
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
-      setLocation("/companies");
+      // Force a full page reload to ensure auth state is properly updated
+      window.location.href = "/companies";
     },
     onError: (error: any) => {
       toast({
@@ -57,8 +60,10 @@ export default function Landing() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: { email: string; password: string; firstName: string; lastName: string }) => {
-      const res = await apiRequest("POST", "/api/auth/register", data);
-      return await res.json();
+      return await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: data,
+      });
     },
     onSuccess: (data: any) => {
       localStorage.setItem("auth_token", data.token);
@@ -67,7 +72,8 @@ export default function Landing() {
         title: "Account created!",
         description: "Welcome to CapTable Pro. Your account has been created successfully.",
       });
-      setLocation("/companies");
+      // Force a full page reload to ensure auth state is properly updated
+      window.location.href = "/companies";
     },
     onError: (error: any) => {
       toast({
