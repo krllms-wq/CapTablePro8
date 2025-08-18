@@ -1,20 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters";
-import { apiRequest } from "@/lib/queryClient";
-import Navigation from "@/components/layout/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { SaveScenarioDialog } from "@/components/scenarios/save-scenario-dialog";
-import { ScenarioList } from "@/components/scenarios/scenario-list";
-import type { Scenario } from "@shared/schema";
-
-interface Investor {
-  id: string;
-  name: string;
+// Enhanced scenarios page with comprehensive UX improvements
+export { default } from "@/components/enhanced-scenarios";
   investmentAmount: number;
 }
 

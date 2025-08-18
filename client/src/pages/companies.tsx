@@ -1,22 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { AppShell } from "@/components/layout/AppShell";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
-import { Building2, Plus, Search } from "lucide-react";
-import type { Company } from "@shared/schema";
-
-export default function CompaniesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
+// Enhanced companies page with comprehensive UX improvements
+export { default } from "@/components/enhanced-companies";
   const { user } = useAuth();
 
   const { data: companies = [], isLoading, error } = useQuery({

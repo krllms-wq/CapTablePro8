@@ -1,30 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import { Button } from "@/components/ui/button";
-import { formatNumber } from "@/lib/formatters";
-import Navigation from "@/components/layout/navigation";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-export default function Stakeholders() {
-  const { companyId } = useParams();
-  const { toast } = useToast();
+// Enhanced stakeholders page with comprehensive UX improvements
+export { default } from "@/components/enhanced-stakeholders-demo";
   const [editingStakeholder, setEditingStakeholder] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 

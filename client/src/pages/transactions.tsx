@@ -1,12 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
-import { formatNumber, formatCurrency } from "@/lib/formatters";
-import Navigation from "@/components/layout/navigation";
-
-export default function Transactions() {
-  const { companyId } = useParams();
+// Enhanced transactions page with comprehensive UX improvements
+export { default } from "@/components/enhanced-transactions";
 
   const { data: shareLedger, isLoading: ledgerLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "share-ledger"],

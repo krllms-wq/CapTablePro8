@@ -173,7 +173,7 @@ export default function EnhancedStakeholdersDemo() {
     });
   };
 
-  const stakeholderData = capTableData || [];
+  const stakeholderData = Array.isArray(capTableData) ? capTableData : [];
 
   if (isLoading) {
     return (
