@@ -7,6 +7,8 @@ import Dashboard from "@/pages/dashboard";
 import Stakeholders from "@/pages/stakeholders";
 import StakeholderDetail from "@/pages/stakeholder-detail";
 import Transactions from "@/pages/transactions";
+import TransactionDetail from "@/pages/transaction-detail";
+import TransactionEdit from "@/pages/transaction-edit";
 import CompanySetup from "@/pages/company-setup";
 import CompaniesPage from "@/pages/companies";
 import EquityAwards from "@/pages/equity-awards";
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/companies/:companyId/stakeholders" component={Stakeholders} />
       <Route path="/companies/:companyId/stakeholders/:stakeholderId" component={StakeholderDetail} />
       <Route path="/companies/:companyId/transactions" component={Transactions} />
+      <Route path="/companies/:companyId/transactions/:transactionId/edit" component={TransactionEdit} />
+      <Route path="/companies/:companyId/transactions/:transactionId" component={TransactionDetail} />
       <Route path="/companies/:companyId/equity-awards" component={EquityAwards} />
       <Route path="/companies/:companyId/scenarios" component={Scenarios} />
       <Route path="/setup" component={CompanySetup} />

@@ -98,16 +98,13 @@ export default function Scenarios() {
       const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
       const premoneyVal = parseFormattedNumber(premoney);
       
-      return apiRequest(`/api/companies/${companyId}/rounds/model`, {
-        method: "POST",
-        body: JSON.stringify({
-          roundAmount: totalInvestment,
-          premoney: premoneyVal,
-          investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
-        }),
+      return apiRequest("POST", `/api/companies/${companyId}/rounds/model`, {
+        roundAmount: totalInvestment,
+        premoney: premoneyVal,
+        investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setModelingResults(data);
       toast({
         title: "Round modeled successfully",
