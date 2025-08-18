@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 
@@ -293,7 +294,14 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                 name="strikePrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Strike Price ($) *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Strike Price ($) *
+                      <HelpBubble 
+                        term="Strike Price" 
+                        definition="The fixed price at which stock options can be exercised to purchase shares. Usually set at the fair market value when the options are granted."
+                        example="Options with $2 strike price allow purchase of shares at $2 each, regardless of current market value"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="1.00" {...field} />
                     </FormControl>
@@ -336,7 +344,14 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                 name="vestingCliff"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliff Period (months)</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Cliff Period (months)
+                      <HelpBubble 
+                        term="Cliff Vesting" 
+                        definition="The initial period during which no equity vests, followed by a large portion vesting all at once. Typically used to ensure employee commitment."
+                        example="1-year cliff means no options vest for 12 months, then 25% vests immediately"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="12" {...field} />
                     </FormControl>
@@ -349,7 +364,14 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                 name="vestingPeriod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total Vesting Period (months)</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Total Vesting Period (months)
+                      <HelpBubble 
+                        term="Vesting Schedule" 
+                        definition="The timeline over which stock options become exercisable. Common schedule is 4 years with 1-year cliff, then monthly vesting."
+                        example="48-month vesting: 25% after 1 year, then 1/48th (2.08%) every month"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="48" {...field} />
                     </FormControl>

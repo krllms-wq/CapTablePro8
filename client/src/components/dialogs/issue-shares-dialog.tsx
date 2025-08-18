@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { HelpBubble } from "@/components/ui/help-bubble";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -297,7 +298,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               name="holderId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stakeholder *</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    Stakeholder *
+                    <HelpBubble 
+                      term="Stakeholder" 
+                      definition="Any individual or entity that owns or has rights to equity in the company, including founders, employees, investors, and advisors."
+                      example="John Doe (founder), Acme Ventures (investor), or Jane Smith (employee with stock options)"
+                    />
+                  </FormLabel>
                   <Select 
                     onValueChange={(value) => {
                       field.onChange(value);
@@ -379,7 +387,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               name="classId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Security Class *</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    Security Class *
+                    <HelpBubble 
+                      term="Security Class" 
+                      definition="Different types of equity with varying rights and preferences. Common stock typically has voting rights, while preferred stock often has liquidation preferences and other protective provisions."
+                      example="Common Stock for founders and employees, Series A Preferred for investors"
+                    />
+                  </FormLabel>
                   <Select 
                     onValueChange={(value) => {
                       field.onChange(value);
@@ -475,7 +490,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Quantity *
+                      <HelpBubble 
+                        term="Share Quantity" 
+                        definition="The number of shares being issued to the stakeholder. This directly affects ownership percentage and dilution of existing shareholders."
+                        example="Issuing 100,000 shares out of 1,000,000 total gives the holder 10% ownership"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input 
                         type="text" 
@@ -501,7 +523,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 name="consideration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Consideration ($) *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Consideration ($) *
+                      <HelpBubble 
+                        term="Consideration" 
+                        definition="The value received in exchange for issuing shares, which can be cash, services, intellectual property, or other assets. This determines the price per share."
+                        example="$100,000 cash payment for 10,000 shares = $10 per share consideration"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input 
                         type="text" 

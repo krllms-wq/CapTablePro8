@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 
@@ -255,7 +256,14 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
               name="framework"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>SAFE Framework *</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    SAFE Framework *
+                    <HelpBubble 
+                      term="SAFE Framework" 
+                      definition="The specific version and structure of the Simple Agreement for Future Equity. Pre-money SAFEs give investors equity based on the pre-money valuation, while post-money SAFEs include the SAFE investment in the calculation."
+                      example="YC Pre-money SAFE is the most common framework used by early-stage startups"
+                    />
+                  </FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -279,7 +287,14 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
                 name="principal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Investment Amount ($) *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Investment Amount ($) *
+                      <HelpBubble 
+                        term="SAFE Investment Amount" 
+                        definition="The amount of money being invested through this SAFE agreement. This principal amount will convert to equity in a future financing round based on the valuation cap and discount terms."
+                        example="A $100,000 SAFE investment will convert to equity when the company raises its next round"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="100000" {...field} />
                     </FormControl>
@@ -308,7 +323,14 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
                 name="valuationCap"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valuation Cap ($)</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Valuation Cap ($)
+                      <HelpBubble 
+                        term="Valuation Cap" 
+                        definition="The maximum company valuation at which the SAFE will convert to equity. This protects early investors from excessive dilution if the company's valuation increases significantly."
+                        example="$5M cap means the SAFE converts as if the company is valued at $5M, even if the next round values it at $20M"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="Optional" {...field} />
                     </FormControl>
@@ -321,7 +343,14 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
                 name="discountRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Discount Rate (%)</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Discount Rate (%)
+                      <HelpBubble 
+                        term="Discount Rate" 
+                        definition="A percentage discount that SAFE holders receive on the price per share in the next financing round. This rewards early investors for taking additional risk."
+                        example="20% discount means paying $0.80 per share when new investors pay $1.00"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="e.g., 20" {...field} />
                     </FormControl>
