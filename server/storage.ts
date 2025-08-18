@@ -281,8 +281,14 @@ export class MemStorage implements IStorage {
   async createCompany(insertCompany: InsertCompany): Promise<Company> {
     const id = randomUUID();
     const company: Company = {
-      ...insertCompany,
       id,
+      name: insertCompany.name,
+      description: insertCompany.description ?? null,
+      country: insertCompany.country ?? "US",
+      currency: insertCompany.currency ?? "USD", 
+      parValue: insertCompany.parValue ?? "0.0001",
+      incorporationDate: insertCompany.incorporationDate,
+      authorizedShares: insertCompany.authorizedShares ?? 10000000,
       createdAt: new Date(),
     };
     this.companies.set(id, company);
@@ -310,8 +316,17 @@ export class MemStorage implements IStorage {
   async createSecurityClass(insertSecurityClass: InsertSecurityClass): Promise<SecurityClass> {
     const id = randomUUID();
     const securityClass: SecurityClass = {
-      ...insertSecurityClass,
       id,
+      companyId: insertSecurityClass.companyId,
+      name: insertSecurityClass.name,
+      seniorityTier: insertSecurityClass.seniorityTier ?? 0,
+      liquidationPreferenceMultiple: insertSecurityClass.liquidationPreferenceMultiple ?? "1.0",
+      participating: insertSecurityClass.participating ?? false,
+      participationCap: insertSecurityClass.participationCap ?? null,
+      dividendRate: insertSecurityClass.dividendRate ?? "0.0",
+      dividendType: insertSecurityClass.dividendType ?? "non-cumulative",
+      convertToCommonRatio: insertSecurityClass.convertToCommonRatio ?? "1.0",
+      votingRights: insertSecurityClass.votingRights ?? "1.0",
       createdAt: new Date(),
     };
     this.securityClasses.set(id, securityClass);
@@ -339,8 +354,14 @@ export class MemStorage implements IStorage {
   async createStakeholder(insertStakeholder: InsertStakeholder): Promise<Stakeholder> {
     const id = randomUUID();
     const stakeholder: Stakeholder = {
-      ...insertStakeholder,
       id,
+      companyId: insertStakeholder.companyId,
+      type: insertStakeholder.type,
+      name: insertStakeholder.name,
+      email: insertStakeholder.email ?? null,
+      title: insertStakeholder.title ?? null,
+      address: insertStakeholder.address ?? null,
+      taxFlags: insertStakeholder.taxFlags ?? null,
       createdAt: new Date(),
     };
     this.stakeholders.set(id, stakeholder);
@@ -368,8 +389,16 @@ export class MemStorage implements IStorage {
   async createShareLedgerEntry(insertEntry: InsertShareLedgerEntry): Promise<ShareLedgerEntry> {
     const id = randomUUID();
     const entry: ShareLedgerEntry = {
-      ...insertEntry,
       id,
+      companyId: insertEntry.companyId,
+      holderId: insertEntry.holderId,
+      classId: insertEntry.classId,
+      quantity: insertEntry.quantity,
+      issueDate: insertEntry.issueDate,
+      certificateNo: insertEntry.certificateNo ?? null,
+      consideration: insertEntry.consideration ?? null,
+      considerationType: insertEntry.considerationType ?? "cash",
+      sourceTransactionId: insertEntry.sourceTransactionId ?? null,
       createdAt: new Date(),
     };
     this.shareLedgerEntries.set(id, entry);
@@ -388,8 +417,23 @@ export class MemStorage implements IStorage {
   async createEquityAward(insertAward: InsertEquityAward): Promise<EquityAward> {
     const id = randomUUID();
     const award: EquityAward = {
-      ...insertAward,
       id,
+      companyId: insertAward.companyId,
+      holderId: insertAward.holderId,
+      type: insertAward.type,
+      planId: insertAward.planId ?? null,
+      grantDate: insertAward.grantDate,
+      strikePrice: insertAward.strikePrice ?? null,
+      quantityGranted: insertAward.quantityGranted,
+      quantityExercised: insertAward.quantityExercised ?? 0,
+      quantityCanceled: insertAward.quantityCanceled ?? 0,
+      earlyExerciseAllowed: insertAward.earlyExerciseAllowed ?? false,
+      vestingStartDate: insertAward.vestingStartDate,
+      vestingEndDate: insertAward.vestingEndDate,
+      cliffMonths: insertAward.cliffMonths,
+      totalMonths: insertAward.totalMonths,
+      accelerationProvisions: insertAward.accelerationProvisions ?? null,
+      iso100kLimitTracking: insertAward.iso100kLimitTracking ?? false,
       createdAt: new Date(),
     };
     this.equityAwards.set(id, award);
@@ -417,8 +461,22 @@ export class MemStorage implements IStorage {
   async createConvertibleInstrument(insertInstrument: InsertConvertibleInstrument): Promise<ConvertibleInstrument> {
     const id = randomUUID();
     const instrument: ConvertibleInstrument = {
-      ...insertInstrument,
       id,
+      companyId: insertInstrument.companyId,
+      holderId: insertInstrument.holderId,
+      type: insertInstrument.type,
+      framework: insertInstrument.framework,
+      issueDate: insertInstrument.issueDate,
+      principal: insertInstrument.principal ?? null,
+      interestRate: insertInstrument.interestRate ?? null,
+      compounding: insertInstrument.compounding ?? null,
+      maturityDate: insertInstrument.maturityDate ?? null,
+      discountRate: insertInstrument.discountRate ?? null,
+      valuationCap: insertInstrument.valuationCap ?? null,
+      nextRoundConversionRights: insertInstrument.nextRoundConversionRights ?? null,
+      liquidityConversionRights: insertInstrument.liquidityConversionRights ?? null,
+      liquidityRank: insertInstrument.liquidityRank ?? null,
+      postMoney: insertInstrument.postMoney ?? false,
       createdAt: new Date(),
     };
     this.convertibleInstruments.set(id, instrument);
@@ -437,8 +495,19 @@ export class MemStorage implements IStorage {
   async createRound(insertRound: InsertRound): Promise<Round> {
     const id = randomUUID();
     const round: Round = {
-      ...insertRound,
       id,
+      companyId: insertRound.companyId,
+      name: insertRound.name,
+      closeDate: insertRound.closeDate,
+      preMoneyValuation: insertRound.preMoneyValuation ?? null,
+      raiseAmount: insertRound.raiseAmount,
+      pricePerShare: insertRound.pricePerShare ?? null,
+      newSecurityClassId: insertRound.newSecurityClassId ?? null,
+      roundType: insertRound.roundType,
+      optionPoolIncrease: insertRound.optionPoolIncrease ?? null,
+      optionPoolTiming: insertRound.optionPoolTiming ?? null,
+      antiDilutionProvisions: insertRound.antiDilutionProvisions ?? null,
+      payToPlay: insertRound.payToPlay ?? false,
       createdAt: new Date(),
     };
     this.rounds.set(id, round);
@@ -457,8 +526,13 @@ export class MemStorage implements IStorage {
   async createCorporateAction(insertAction: InsertCorporateAction): Promise<CorporateAction> {
     const id = randomUUID();
     const action: CorporateAction = {
-      ...insertAction,
       id,
+      companyId: insertAction.companyId,
+      type: insertAction.type,
+      ratio: insertAction.ratio,
+      effectiveDate: insertAction.effectiveDate,
+      affectedClasses: insertAction.affectedClasses ?? null,
+      roundingPolicy: insertAction.roundingPolicy ?? "round-down",
       createdAt: new Date(),
     };
     this.corporateActions.set(id, action);

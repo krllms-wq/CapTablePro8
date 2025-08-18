@@ -74,19 +74,19 @@ export default function Dashboard() {
 
         {/* Stats */}
         <CapTableStats 
-          stats={capTableData?.stats} 
+          stats={capTableData?.stats || {}} 
           isLoading={capTableLoading} 
         />
 
         {/* Main Cap Table */}
         <CapTableMain 
-          capTable={capTableData?.capTable} 
+          capTable={capTableData?.capTable || []} 
           isLoading={capTableLoading}
         />
 
         {/* Charts and Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <OwnershipChart capTable={capTableData?.capTable} />
+          <OwnershipChart capTable={capTableData?.capTable || []} />
           <RecentActivity companyId={companyId!} />
         </div>
 

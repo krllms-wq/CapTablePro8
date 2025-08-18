@@ -269,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const capTableRows = [];
       
       // Add stakeholder holdings
-      for (const [holderId, classMap] of holdings) {
+      for (const [holderId, classMap] of Array.from(holdings.entries())) {
         const stakeholder = stakeholderMap.get(holderId);
         if (!stakeholder) continue;
 
@@ -346,6 +346,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(logs);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Round modeling
+  app.post("/api/companies/:id/rounds/model", async (req, res) => {
+    try {
+      const { raiseAmount, preMoneyValuation, pricePerShare, optionPoolIncrease } = req.body;
+      
+      // Simple round modeling calculation
+      const preMoneyVal = preMoneyValuation || 20000000;
+      const postMoneyVal = preMoneyVal + raiseAmount;
+      const calculatedPricePerShare = pricePerShare || preMoneyVal / 10000000; // Assuming 10M outstanding shares
+      const newShares = Math.round(raiseAmount / calculatedPricePerShare);
+      const dilution = (raiseAmount / postMoneyVal) * 100;
+      const optionPoolShares = optionPoolIncrease ? Math.round(newShares * (optionPoolIncrease / 100)) : 0;
+
+      res.json({
+        preMoneyValuation: preMoneyVal,
+        postMoneyValuation: postMoneyVal,
+        pricePerShare: calculatedPricePerShare,
+        newShares,
+        dilution,
+        optionPoolShares: optionPoolShares || undefined,
+      });
+    } catch (error) {
+      console.error("Error modeling round:", error);
+      res.status(500).json({ error: "Failed to model round" });
+    }
+  });
+
+  // Individual stakeholder endpoint
+  app.get("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
+    try {
+      const stakeholder = await storage.getStakeholder(req.params.stakeholderId);
+      if (!stakeholder || stakeholder.companyId !== req.params.companyId) {
+        return res.status(404).json({ error: "Stakeholder not found" });
+      }
+      res.json(stakeholder);
+    } catch (error) {
+      console.error("Error fetching stakeholder:", error);
+      res.status(500).json({ error: "Failed to fetch stakeholder" });
     }
   });
 

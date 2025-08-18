@@ -1,6 +1,7 @@
 import { useState } from "react";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
+import ModelRoundDialog from "@/components/dialogs/model-round-dialog";
 
 interface QuickActionsProps {
   companyId: string;
@@ -9,6 +10,7 @@ interface QuickActionsProps {
 export default function QuickActions({ companyId }: QuickActionsProps) {
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
+  const [showModelRound, setShowModelRound] = useState(false);
 
   const actionButtons = [
     {
@@ -30,10 +32,7 @@ export default function QuickActions({ companyId }: QuickActionsProps) {
       icon: "fas fa-chart-line",
       hoverColor: "hover:border-accent hover:bg-accent/5",
       hoverIconColor: "group-hover:text-accent",
-      onClick: () => {
-        // TODO: Implement round modeling
-        console.log("Model round clicked");
-      },
+      onClick: () => setShowModelRound(true),
     },
     {
       title: "Import Data",
@@ -78,6 +77,12 @@ export default function QuickActions({ companyId }: QuickActionsProps) {
       <GrantOptionsDialog
         open={showGrantOptions}
         onOpenChange={setShowGrantOptions}
+        companyId={companyId}
+      />
+
+      <ModelRoundDialog
+        open={showModelRound}
+        onOpenChange={setShowModelRound}
         companyId={companyId}
       />
     </>

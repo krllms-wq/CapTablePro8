@@ -33,12 +33,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { Stakeholder } from "@shared/schema";
 
 const grantOptionsSchema = z.object({
+  type: z.enum(["ISO", "NSO"]),
   holderId: z.string().min(1, "Please select a stakeholder"),
-  type: z.enum(["ISO", "NSO"], { required_error: "Please select option type" }),
-  quantityGranted: z.string().min(1, "Quantity is required").transform(val => parseInt(val)),
   strikePrice: z.string().min(0, "Strike price must be positive").transform(val => parseFloat(val)),
-  cliffMonths: z.string().transform(val => parseInt(val) || 12),
-  totalMonths: z.string().transform(val => parseInt(val) || 48),
+  quantityGranted: z.string().min(1, "Quantity is required").transform(val => parseInt(val)),
+  cliffMonths: z.string().min(0, "Cliff months must be positive").transform(val => parseInt(val)),
+  totalMonths: z.string().min(1, "Total months is required").transform(val => parseInt(val)),
 });
 
 type GrantOptionsFormData = z.infer<typeof grantOptionsSchema>;
@@ -60,10 +60,10 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
   const form = useForm<GrantOptionsFormData>({
     resolver: zodResolver(grantOptionsSchema),
     defaultValues: {
-      holderId: "",
       type: "ISO",
-      quantityGranted: "",
-      strikePrice: "",
+      holderId: "",
+      strikePrice: "0.01",
+      quantityGranted: "1000",
       cliffMonths: "12",
       totalMonths: "48",
     },
@@ -71,15 +71,19 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
 
   const mutation = useMutation({
     mutationFn: async (data: GrantOptionsFormData) => {
+      const grantDate = new Date();
+      const vestingStartDate = new Date(grantDate);
+      const vestingEndDate = new Date(grantDate);
+      vestingEndDate.setMonth(vestingEndDate.getMonth() + data.totalMonths);
+
       const payload = {
         ...data,
-        grantDate: new Date().toISOString(),
-        vestingStartDate: new Date().toISOString(),
+        grantDate: grantDate.toISOString(),
+        vestingStartDate: vestingStartDate.toISOString(),
+        vestingEndDate: vestingEndDate.toISOString(),
         quantityExercised: 0,
         quantityCanceled: 0,
         earlyExerciseAllowed: false,
-        cadence: "monthly",
-        postTerminationExerciseWindowDays: 90,
         iso100kLimitTracking: data.type === "ISO",
       };
       return apiRequest("POST", `/api/companies/${companyId}/equity-awards`, payload);
@@ -88,7 +92,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       toast({
         title: "Success",
-        description: "Options granted successfully",
+        description: "Stock options granted successfully",
       });
       form.reset();
       onOpenChange(false);
@@ -110,39 +114,14 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Grant Options</DialogTitle>
+          <DialogTitle>Grant Stock Options</DialogTitle>
           <DialogDescription>
-            Grant stock options to an employee or advisor. Standard vesting schedule is 4 years with 1 year cliff.
+            Create a new stock option grant for an employee or stakeholder.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="holderId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Recipient</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select recipient" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {stakeholders?.map((stakeholder) => (
-                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                          {stakeholder.name} {stakeholder.title && `(${stakeholder.title})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="type"
@@ -156,8 +135,33 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="ISO">ISO (Incentive Stock Option)</SelectItem>
-                      <SelectItem value="NSO">NSO (Non-Qualified Stock Option)</SelectItem>
+                      <SelectItem value="ISO">Incentive Stock Option (ISO)</SelectItem>
+                      <SelectItem value="NSO">Non-Qualified Stock Option (NSO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="holderId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stakeholder</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select stakeholder" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {stakeholders?.map((stakeholder) => (
+                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                          {stakeholder.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -170,9 +174,13 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
               name="quantityGranted"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Number of Options</FormLabel>
+                  <FormLabel>Quantity</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 50000" {...field} />
+                    <Input
+                      type="number"
+                      placeholder="Enter number of options"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -186,50 +194,56 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                 <FormItem>
                   <FormLabel>Strike Price ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="e.g., 4.47" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter strike price"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="cliffMonths"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliff (Months)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="12" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="cliffMonths"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliff Period (Months)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter cliff period in months"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="totalMonths"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Vesting (Months)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="48" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="totalMonths"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Vesting Period (Months)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter total vesting period"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={mutation.isPending}
-              >
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={mutation.isPending}>
