@@ -237,6 +237,9 @@ export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
 export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleInstruments).omit({
   id: true,
   createdAt: true,
+}).extend({
+  issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  maturityDate: z.union([z.date(), z.string().transform(str => new Date(str))]).optional(),
 });
 
 export const insertRoundSchema = createInsertSchema(rounds).omit({

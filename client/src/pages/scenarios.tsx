@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
+import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/layout/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Save } from "lucide-react";
 
 interface Investor {
   id: string;
@@ -36,6 +38,8 @@ export default function ScenariosPage() {
   ]);
   const [modelingResults, setModelingResults] = useState<ModelingResults | null>(null);
   const [showSavedScenarios, setShowSavedScenarios] = useState(false);
+  const [scenarioName, setScenarioName] = useState("");
+  const [scenarioDescription, setScenarioDescription] = useState("");
 
   const { data: company } = useQuery({
     queryKey: ["/api/companies", companyId],
@@ -45,6 +49,37 @@ export default function ScenariosPage() {
   const { data: capTable } = useQuery({
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId,
+  });
+
+  const { data: scenarios } = useQuery({
+    queryKey: ["/api/companies", companyId, "scenarios"],
+    enabled: !!companyId,
+  });
+
+  const saveScenarioMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/companies/${companyId}/scenarios`, {
+        method: "POST",
+        body: data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "scenarios"] });
+      toast({
+        title: "Success",
+        description: "Scenario saved successfully",
+        variant: "success",
+      });
+      setScenarioName("");
+      setScenarioDescription("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save scenario",
+        variant: "error",
+      });
+    }
   });
 
   // Format number input with commas
@@ -93,7 +128,7 @@ export default function ScenariosPage() {
     ));
   };
 
-  const runScenario = () => {
+  const runScenario = async () => {
     const roundAmountValue = parseFormattedNumber(roundAmount);
     const premoneyValue = parseFormattedNumber(premoney);
     
@@ -106,32 +141,76 @@ export default function ScenariosPage() {
       return;
     }
 
-    // Simple scenario modeling logic
-    const postMoney = premoneyValue + roundAmountValue;
     const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
     
-    if (totalInvestment !== roundAmountValue) {
+    if (Math.abs(totalInvestment - roundAmountValue) > 1) {
       toast({
         title: "Warning",
-        description: "Total investor amounts don't match round amount",
+        description: `Total investor amounts ($${formatNumber(totalInvestment)}) don't match round amount ($${formatNumber(roundAmountValue)})`,
         variant: "warn",
       });
     }
 
-    const results: ModelingResults = {
-      beforeCapTable: Array.isArray(capTable) ? capTable : [],
-      afterCapTable: [], // Would be calculated based on dilution
-      newShares: Math.round((roundAmountValue / postMoney) * 1000000), // Assuming 1M shares
-      totalRaised: roundAmountValue,
-      postMoneyValuation: postMoney,
-    };
+    try {
+      const response = await fetch(`/api/companies/${companyId}/rounds/model`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roundAmount: roundAmountValue,
+          premoney: premoneyValue,
+          investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
+        }),
+      });
 
-    setModelingResults(results);
-    toast({
-      title: "Scenario Complete",
-      description: "Modeling results are ready",
-      variant: "success",
+      if (!response.ok) {
+        throw new Error("Failed to model round");
+      }
+
+      const results = await response.json();
+      setModelingResults(results);
+      
+      toast({
+        title: "Scenario Complete",
+        description: "Modeling results are ready",
+        variant: "success",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to model round scenario",
+        variant: "error",
+      });
+    }
+  };
+
+  const saveScenario = () => {
+    if (!modelingResults || !scenarioName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a scenario name and run the scenario first",
+        variant: "error",
+      });
+      return;
+    }
+
+    saveScenarioMutation.mutate({
+      name: scenarioName.trim(),
+      description: scenarioDescription.trim() || null,
+      roundAmount: parseFormattedNumber(roundAmount),
+      premoney: parseFormattedNumber(premoney),
+      investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
     });
+  };
+
+  const loadScenario = (scenario: any) => {
+    setRoundAmount(formatNumberInput(scenario.roundAmount.toString()));
+    setPremoney(formatNumberInput(scenario.premoney.toString()));
+    setInvestors(scenario.investors.length > 0 ? scenario.investors : [{ id: "1", name: "", investmentAmount: 0 }]);
+    setScenarioName(scenario.name);
+    setScenarioDescription(scenario.description || "");
+    setShowSavedScenarios(false);
   };
 
   return (
@@ -145,6 +224,29 @@ export default function ScenariosPage() {
               {showSavedScenarios ? "New Scenario" : "Saved Scenarios"}
             </Button>
           </div>
+
+          {/* Current Cap Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Cap Table</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {capTable?.capTable ? (
+                <div className="space-y-2">
+                  {capTable.capTable.map((row: any, index: number) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>{row.stakeholder?.name}</span>
+                      <span>{row.ownership?.toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-neutral-500 py-4">
+                  <div className="text-sm">Loading cap table...</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {!showSavedScenarios ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -220,6 +322,37 @@ export default function ScenariosPage() {
                   <Button onClick={runScenario} className="w-full">
                     Run Scenario
                   </Button>
+
+                  {/* Save Scenario Section */}
+                  {modelingResults && (
+                    <div className="space-y-3 pt-4 border-t">
+                      <Label>Save Scenario</Label>
+                      <div>
+                        <Input
+                          placeholder="Scenario name"
+                          value={scenarioName}
+                          onChange={(e) => setScenarioName(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Textarea
+                          placeholder="Description (optional)"
+                          value={scenarioDescription}
+                          onChange={(e) => setScenarioDescription(e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <Button 
+                        onClick={saveScenario} 
+                        disabled={saveScenarioMutation.isPending || !scenarioName.trim()}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        Save Scenario
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -230,7 +363,7 @@ export default function ScenariosPage() {
                 </CardHeader>
                 <CardContent>
                   {modelingResults ? (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="text-sm text-neutral-500">Post-money Valuation</div>
@@ -246,11 +379,34 @@ export default function ScenariosPage() {
                         </div>
                       </div>
                       
-                      <div className="pt-4 border-t">
-                        <div className="text-sm text-neutral-500 mb-2">Cap Table Impact</div>
-                        <div className="text-sm text-neutral-600">
-                          Scenario modeling complete. The new investment would result in dilution 
-                          across existing shareholders based on the post-money valuation.
+                      {/* Before/After Comparison */}
+                      <div className="space-y-4">
+                        <div className="text-sm font-medium text-neutral-700">Cap Table Before & After</div>
+                        
+                        {/* Before */}
+                        <div>
+                          <div className="text-xs font-medium text-neutral-500 mb-2">BEFORE</div>
+                          <div className="space-y-1">
+                            {modelingResults.beforeCapTable?.map((row: any, index: number) => (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span>{row.stakeholder?.name}</span>
+                                <span>{row.ownership?.toFixed(1)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* After */}
+                        <div>
+                          <div className="text-xs font-medium text-neutral-500 mb-2">AFTER</div>
+                          <div className="space-y-1">
+                            {modelingResults.afterCapTable?.map((row: any, index: number) => (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span>{row.stakeholder?.name}</span>
+                                <span>{row.ownership?.toFixed(1)}%</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -271,12 +427,41 @@ export default function ScenariosPage() {
                 <CardTitle>Saved Scenarios</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center text-neutral-500 py-8">
-                  <div className="text-lg mb-2">No saved scenarios</div>
-                  <div className="text-sm">
-                    Create and save scenarios to compare different fundraising options
+                {scenarios && scenarios.length > 0 ? (
+                  <div className="space-y-3">
+                    {scenarios.map((scenario: any) => (
+                      <div key={scenario.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{scenario.name}</h4>
+                            {scenario.description && (
+                              <p className="text-sm text-neutral-600 mt-1">{scenario.description}</p>
+                            )}
+                            <div className="text-xs text-neutral-500 mt-2">
+                              Round: ${formatNumber(scenario.roundAmount)} | 
+                              Pre-money: ${formatNumber(scenario.premoney)} | 
+                              {scenario.investors.length} investor(s)
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => loadScenario(scenario)}
+                          >
+                            Load
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center text-neutral-500 py-8">
+                    <div className="text-lg mb-2">No saved scenarios</div>
+                    <div className="text-sm">
+                      Create and save scenarios to compare different fundraising options
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

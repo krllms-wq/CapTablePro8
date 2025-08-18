@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Plus } from "lucide-react";
 
 interface ConvertibleNoteDialogProps {
   open: boolean;
@@ -29,22 +30,48 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
     issueDate: new Date().toISOString().split('T')[0]
   });
 
+  const [showNewStakeholder, setShowNewStakeholder] = useState(false);
+  const [newStakeholder, setNewStakeholder] = useState({
+    name: "",
+    email: "",
+    type: "individual" as "individual" | "entity"
+  });
+
   const { data: stakeholders } = useQuery({
     queryKey: ["/api/companies", companyId, "stakeholders"],
     enabled: !!companyId,
   });
 
+  const createStakeholderMutation = useMutation({
+    mutationFn: async (stakeholderData: any) => {
+      return apiRequest(`/api/companies/${companyId}/stakeholders`, {
+        method: "POST",
+        body: stakeholderData
+      });
+    }
+  });
+
   const createNoteMutation = useMutation({
     mutationFn: async (data: any) => {
+      let holderId = data.holderId;
+      
+      // Create new stakeholder if needed
+      if (data.holderId === "new") {
+        const newStakeholderResult = await createStakeholderMutation.mutateAsync(newStakeholder);
+        holderId = newStakeholderResult.id;
+      }
+
       return apiRequest(`/api/companies/${companyId}/convertibles`, {
         method: "POST",
         body: {
-          ...data,
+          holderId,
           type: "note",
+          framework: "Standard Convertible Note",
           principal: parseFloat(data.principal) || 0,
           interestRate: parseFloat(data.interestRate) || 0,
           discountRate: parseFloat(data.discountRate) || 0,
-          valuationCap: parseFloat(data.valuationCap) || null,
+          valuationCap: data.valuationCap ? parseFloat(data.valuationCap) : null,
+          compounding: data.compounding,
           issueDate: new Date(data.issueDate),
           maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
         }
@@ -52,6 +79,7 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "convertibles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
       onOpenChange(false);
       setFormData({
@@ -64,6 +92,12 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
         compounding: "simple",
         issueDate: new Date().toISOString().split('T')[0]
       });
+      setNewStakeholder({
+        name: "",
+        email: "",
+        type: "individual"
+      });
+      setShowNewStakeholder(false);
       toast({
         title: "Success",
         description: "Convertible note created successfully",
@@ -81,6 +115,7 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.holderId || !formData.principal || !formData.interestRate) {
       toast({
         title: "Error",
@@ -89,6 +124,16 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
       });
       return;
     }
+
+    if (formData.holderId === "new" && !newStakeholder.name) {
+      toast({
+        title: "Error",
+        description: "Please enter stakeholder name",
+        variant: "error",
+      });
+      return;
+    }
+
     createNoteMutation.mutate(formData);
   };
 
@@ -104,12 +149,21 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
             <Label htmlFor="stakeholder">Stakeholder *</Label>
             <Select 
               value={formData.holderId} 
-              onValueChange={(value) => setFormData({...formData, holderId: value})}
+              onValueChange={(value) => {
+                setFormData({...formData, holderId: value});
+                setShowNewStakeholder(value === "new");
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select stakeholder" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="new">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add New Stakeholder
+                  </div>
+                </SelectItem>
                 {stakeholders?.map((stakeholder: any) => (
                   <SelectItem key={stakeholder.id} value={stakeholder.id}>
                     {stakeholder.name}
@@ -118,6 +172,48 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
               </SelectContent>
             </Select>
           </div>
+
+          {showNewStakeholder && (
+            <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+              <h4 className="font-medium text-sm">New Stakeholder Details</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="newStakeholderName">Name *</Label>
+                  <Input
+                    id="newStakeholderName"
+                    value={newStakeholder.name}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                    placeholder="Enter name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newStakeholderEmail">Email</Label>
+                  <Input
+                    id="newStakeholderEmail"
+                    type="email"
+                    value={newStakeholder.email}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                    placeholder="Enter email"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="newStakeholderType">Type</Label>
+                <Select 
+                  value={newStakeholder.type} 
+                  onValueChange={(value: "individual" | "entity") => setNewStakeholder({...newStakeholder, type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="entity">Entity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

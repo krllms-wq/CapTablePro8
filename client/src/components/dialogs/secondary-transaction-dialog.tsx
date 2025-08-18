@@ -58,6 +58,9 @@ export function SecondaryTransactionDialog({ open, onOpenChange }: SecondaryTran
         buyerId = newStakeholder.id;
       }
 
+      const transactionId = `secondary-${Date.now()}`;
+      const totalValue = parseFloat(data.pricePerShare) * parseInt(data.quantity);
+
       // Create the secondary transaction by transferring shares
       // First, reduce shares from seller
       const reduction = await apiRequest(`/api/companies/${companyId}/share-ledger`, {
@@ -67,9 +70,9 @@ export function SecondaryTransactionDialog({ open, onOpenChange }: SecondaryTran
           classId: data.classId,
           quantity: -parseInt(data.quantity),
           issueDate: new Date(data.transactionDate),
-          consideration: parseFloat(data.pricePerShare) * parseInt(data.quantity),
+          consideration: totalValue,
           considerationType: "cash",
-          sourceTransactionId: `secondary-${Date.now()}`
+          sourceTransactionId: transactionId
         }
       });
 
@@ -81,9 +84,9 @@ export function SecondaryTransactionDialog({ open, onOpenChange }: SecondaryTran
           classId: data.classId,
           quantity: parseInt(data.quantity),
           issueDate: new Date(data.transactionDate),
-          consideration: parseFloat(data.pricePerShare) * parseInt(data.quantity),
+          consideration: totalValue,
           considerationType: "cash",
-          sourceTransactionId: `secondary-${Date.now()}`
+          sourceTransactionId: transactionId
         }
       });
 
