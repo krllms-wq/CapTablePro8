@@ -146,6 +146,19 @@ export const auditLogs = pgTable("audit_logs", {
   timestamp: timestamp("timestamp").default(sql`now()`).notNull(),
 });
 
+// Scenarios table for saving round modeling scenarios
+export const scenarios = pgTable("scenarios", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  roundAmount: decimal("round_amount", { precision: 15, scale: 2 }).notNull(),
+  premoney: decimal("premoney", { precision: 15, scale: 2 }).notNull(),
+  investors: jsonb("investors").notNull(), // Array of investor objects
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+});
+
 // Insert schemas
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
@@ -189,6 +202,17 @@ export const insertCorporateActionSchema = createInsertSchema(corporateActions).
   createdAt: true,
 });
 
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertScenarioSchema = createInsertSchema(scenarios).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
@@ -215,3 +239,7 @@ export type CorporateAction = typeof corporateActions.$inferSelect;
 export type InsertCorporateAction = z.infer<typeof insertCorporateActionSchema>;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+
+export type Scenario = typeof scenarios.$inferSelect;
+export type InsertScenario = z.infer<typeof insertScenarioSchema>;

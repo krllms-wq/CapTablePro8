@@ -7,7 +7,8 @@ import {
   type ConvertibleInstrument, type InsertConvertibleInstrument,
   type Round, type InsertRound,
   type CorporateAction, type InsertCorporateAction,
-  type AuditLog
+  type AuditLog,
+  type Scenario, type InsertScenario
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -58,6 +59,13 @@ export interface IStorage {
   // Audit Logs
   createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog>;
   getAuditLogs(companyId: string): Promise<AuditLog[]>;
+
+  // Scenarios
+  createScenario(scenario: InsertScenario): Promise<Scenario>;
+  getScenarios(companyId: string): Promise<Scenario[]>;
+  getScenario(id: string): Promise<Scenario | undefined>;
+  updateScenario(id: string, updates: Partial<InsertScenario>): Promise<Scenario | undefined>;
+  deleteScenario(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -70,6 +78,7 @@ export class MemStorage implements IStorage {
   private rounds: Map<string, Round> = new Map();
   private corporateActions: Map<string, CorporateAction> = new Map();
   private auditLogs: Map<string, AuditLog> = new Map();
+  private scenarios: Map<string, Scenario> = new Map();
 
   constructor() {
     this.seedData();
@@ -557,6 +566,45 @@ export class MemStorage implements IStorage {
 
   async getAuditLogs(companyId: string): Promise<AuditLog[]> {
     return Array.from(this.auditLogs.values()).filter(l => l.companyId === companyId);
+  }
+
+  // Scenarios
+  async createScenario(insertScenario: InsertScenario): Promise<Scenario> {
+    const id = randomUUID();
+    const scenario: Scenario = {
+      id,
+      companyId: insertScenario.companyId,
+      name: insertScenario.name,
+      description: insertScenario.description ?? null,
+      roundAmount: insertScenario.roundAmount,
+      premoney: insertScenario.premoney,
+      investors: insertScenario.investors,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.scenarios.set(id, scenario);
+    return scenario;
+  }
+
+  async getScenarios(companyId: string): Promise<Scenario[]> {
+    return Array.from(this.scenarios.values()).filter(s => s.companyId === companyId);
+  }
+
+  async getScenario(id: string): Promise<Scenario | undefined> {
+    return this.scenarios.get(id);
+  }
+
+  async updateScenario(id: string, updates: Partial<InsertScenario>): Promise<Scenario | undefined> {
+    const scenario = this.scenarios.get(id);
+    if (!scenario) return undefined;
+    
+    const updated = { ...scenario, ...updates, updatedAt: new Date() };
+    this.scenarios.set(id, updated);
+    return updated;
+  }
+
+  async deleteScenario(id: string): Promise<void> {
+    this.scenarios.delete(id);
   }
 }
 

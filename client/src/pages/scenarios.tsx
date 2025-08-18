@@ -8,6 +8,9 @@ import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters
 import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/layout/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { SaveScenarioDialog } from "@/components/scenarios/save-scenario-dialog";
+import { ScenarioList } from "@/components/scenarios/scenario-list";
+import type { Scenario } from "@shared/schema";
 
 interface Investor {
   id: string;
@@ -34,6 +37,7 @@ export default function Scenarios() {
     { id: "1", name: "", investmentAmount: 0 }
   ]);
   const [modelingResults, setModelingResults] = useState<ModelingResults | null>(null);
+  const [showSavedScenarios, setShowSavedScenarios] = useState(false);
 
   const { data: company } = useQuery({
     queryKey: ["/api/companies", companyId],
@@ -133,6 +137,24 @@ export default function Scenarios() {
 
   const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
 
+  const loadScenario = (scenario: Scenario) => {
+    setPremoney(formatNumberInput(scenario.premoney));
+    setRoundAmount(formatNumberInput(scenario.roundAmount));
+    const scenarioInvestors = scenario.investors as Array<{ name: string; investmentAmount: number }>;
+    const formattedInvestors = scenarioInvestors.map((inv, index) => ({
+      id: (index + 1).toString(),
+      name: inv.name,
+      investmentAmount: inv.investmentAmount,
+    }));
+    setInvestors(formattedInvestors);
+    setShowSavedScenarios(false);
+    setModelingResults(null);
+    toast({
+      title: "Scenario loaded",
+      description: `"${scenario.name}" has been loaded`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <Navigation />
@@ -140,10 +162,21 @@ export default function Scenarios() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Funding Round Modeling</h1>
-            <Button onClick={() => setModelingResults(null)}>
-              <i className="fas fa-plus mr-2"></i>
-              New Scenario
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSavedScenarios(!showSavedScenarios)}>
+                <i className="fas fa-folder mr-2"></i>
+                {showSavedScenarios ? 'Hide' : 'Show'} Saved Scenarios
+              </Button>
+              <Button onClick={() => {
+                setModelingResults(null);
+                setPremoney("");
+                setRoundAmount("");
+                setInvestors([{ id: "1", name: "", investmentAmount: 0 }]);
+              }}>
+                <i className="fas fa-plus mr-2"></i>
+                New Scenario
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -286,8 +319,18 @@ export default function Scenarios() {
                       </div>
                     </div>
 
-                    <div className="text-sm text-neutral-600">
-                      Debug info: {JSON.stringify(modelingResults, null, 2)}
+                    <div className="flex justify-center">
+                      <SaveScenarioDialog
+                        companyId={companyId!}
+                        roundAmount={roundAmount}
+                        premoney={premoney}
+                        investors={investors}
+                      >
+                        <Button>
+                          <i className="fas fa-save mr-2"></i>
+                          Save Scenario
+                        </Button>
+                      </SaveScenarioDialog>
                     </div>
                   </div>
                 )}
@@ -405,6 +448,26 @@ export default function Scenarios() {
                       })()}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saved Scenarios Panel */}
+          {showSavedScenarios && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-neutral-900">Saved Scenarios</h2>
+              
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+                <div className="px-6 py-4 border-b border-neutral-200">
+                  <h3 className="text-lg font-semibold text-neutral-900">Your Scenarios</h3>
+                  <p className="text-sm text-neutral-500">Load previously saved round modeling scenarios</p>
+                </div>
+                <div className="p-6">
+                  <ScenarioList 
+                    companyId={companyId!} 
+                    onLoadScenario={loadScenario}
+                  />
                 </div>
               </div>
             </div>

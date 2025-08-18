@@ -510,6 +510,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Scenarios endpoints
+  app.get("/api/companies/:companyId/scenarios", async (req, res) => {
+    try {
+      const scenarios = await storage.getScenarios(req.params.companyId);
+      res.json(scenarios);
+    } catch (error) {
+      console.error("Error fetching scenarios:", error);
+      res.status(500).json({ error: "Failed to fetch scenarios" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/scenarios", async (req, res) => {
+    try {
+      const scenario = await storage.createScenario({
+        ...req.body,
+        companyId: req.params.companyId,
+      });
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error creating scenario:", error);
+      res.status(500).json({ error: "Failed to create scenario" });
+    }
+  });
+
+  app.get("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
+    try {
+      const scenario = await storage.getScenario(req.params.scenarioId);
+      if (!scenario || scenario.companyId !== req.params.companyId) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error fetching scenario:", error);
+      res.status(500).json({ error: "Failed to fetch scenario" });
+    }
+  });
+
+  app.put("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
+    try {
+      const scenario = await storage.updateScenario(req.params.scenarioId, req.body);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error updating scenario:", error);
+      res.status(500).json({ error: "Failed to update scenario" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
+    try {
+      await storage.deleteScenario(req.params.scenarioId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting scenario:", error);
+      res.status(500).json({ error: "Failed to delete scenario" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
