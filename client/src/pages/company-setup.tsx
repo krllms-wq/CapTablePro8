@@ -269,9 +269,11 @@ export default function CompanySetup() {
           holderId: stakeholder.id,
           classId: commonStockClass.id,
           quantity: data.shares,
-          transactionType: "issuance",
-          date: new Date().toISOString(),
-          pricePerShare: "0.01", // Nominal value for founder shares
+          issueDate: new Date().toISOString(),
+          certificateNo: `CS-${Date.now()}`,
+          consideration: "100.00",
+          considerationType: "cash",
+          sourceTransactionId: null,
         }),
       });
 
@@ -478,7 +480,30 @@ export default function CompanySetup() {
                         <FormItem>
                           <FormLabel>Incorporation Date</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select incorporation date" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {/* Generate recent years and months */}
+                                {Array.from({ length: 25 }, (_, i) => {
+                                  const year = new Date().getFullYear() - i;
+                                  return Array.from({ length: 12 }, (_, month) => {
+                                    const date = new Date(year, month, 1);
+                                    const dateStr = date.toISOString().split('T')[0];
+                                    const displayStr = date.toLocaleDateString('en-US', { 
+                                      year: 'numeric', 
+                                      month: 'long' 
+                                    });
+                                    return (
+                                      <SelectItem key={dateStr} value={dateStr}>
+                                        {displayStr}
+                                      </SelectItem>
+                                    );
+                                  });
+                                }).flat()}
+                              </SelectContent>
+                            </Select>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
