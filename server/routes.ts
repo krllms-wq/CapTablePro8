@@ -252,10 +252,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/companies", async (req, res) => {
+  app.post("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const validated = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany(validated);
+      
+      // Grant the creating user owner access to the company
+      await storage.createUserCompanyAccess({
+        userId: req.user!.id,
+        companyId: company.id,
+        role: "owner",
+        permissions: null,
+        invitedBy: req.user!.id,
+        invitedAt: new Date(),
+        acceptedAt: new Date(),
+      });
       
       // Automatically create a default Common Stock security class
       await storage.createSecurityClass({

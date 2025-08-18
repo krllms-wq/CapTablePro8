@@ -222,11 +222,16 @@ export const insertStakeholderSchema = createInsertSchema(stakeholders).omit({
 export const insertShareLedgerEntrySchema = createInsertSchema(shareLedgerEntries).omit({
   id: true,
   createdAt: true,
+}).extend({
+  issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
 });
 
 export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
   id: true,
   createdAt: true,
+}).extend({
+  grantDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  vestingStartDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
 });
 
 export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleInstruments).omit({

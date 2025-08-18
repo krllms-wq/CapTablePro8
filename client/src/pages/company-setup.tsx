@@ -138,7 +138,7 @@ export default function CompanySetup() {
       description: "",
       country: "US",
       incorporationDate: "",
-      authorizedShares: "10000000",
+      authorizedShares: 10000000,
     },
   });
 
