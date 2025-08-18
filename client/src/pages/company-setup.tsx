@@ -17,7 +17,7 @@ import { Building, Users, FileText, TrendingUp, CheckCircle } from "lucide-react
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
-  jurisdiction: z.string().min(1, "Jurisdiction is required"),
+  country: z.string().min(1, "Country is required"),
   incorporationDate: z.string().min(1, "Incorporation date is required"),
   authorizedShares: z.string().min(1, "Authorized shares is required").transform(val => parseInt(val)),
 });
@@ -82,7 +82,7 @@ export default function CompanySetup() {
     defaultValues: {
       name: "",
       description: "",
-      jurisdiction: "",
+      country: "",
       incorporationDate: "",
       authorizedShares: "",
     },
@@ -101,8 +101,11 @@ export default function CompanySetup() {
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
       return apiRequest("POST", "/api/companies", {
-        ...data,
-        incorporationDate: new Date(data.incorporationDate).toISOString(),
+        name: data.name,
+        description: data.description,
+        country: data.country,
+        incorporationDate: new Date(data.incorporationDate),
+        authorizedShares: data.authorizedShares,
       });
     },
     onSuccess: (data: { id: string }) => {
@@ -271,21 +274,21 @@ export default function CompanySetup() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={companyForm.control}
-                      name="jurisdiction"
+                      name="country"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Jurisdiction</FormLabel>
+                          <FormLabel>Country</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select jurisdiction" />
+                                <SelectValue placeholder="Select country" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Delaware">Delaware</SelectItem>
-                              <SelectItem value="California">California</SelectItem>
-                              <SelectItem value="New York">New York</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
+                              <SelectItem value="US">United States</SelectItem>
+                              <SelectItem value="CA">Canada</SelectItem>
+                              <SelectItem value="UK">United Kingdom</SelectItem>
+                              <SelectItem value="DE">Germany</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
