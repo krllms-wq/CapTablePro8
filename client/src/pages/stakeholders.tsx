@@ -28,6 +28,14 @@ export default function StakeholdersPage() {
   const { toast } = useToast();
   const [editingStakeholder, setEditingStakeholder] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newStakeholder, setNewStakeholder] = useState({
+    name: "",
+    email: "",
+    title: "",
+    type: "individual",
+    address: ""
+  });
 
   const { data: stakeholders, isLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "stakeholders"],
@@ -59,6 +67,37 @@ export default function StakeholdersPage() {
       toast({
         title: "Error",
         description: "Failed to update stakeholder",
+        variant: "error",
+      });
+    },
+  });
+
+  const createStakeholderMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/companies/${companyId}/stakeholders`, {
+        method: "POST",
+        body: data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+      setShowAddDialog(false);
+      setNewStakeholder({
+        name: "",
+        email: "",
+        title: "",
+        type: "individual",
+        address: ""
+      });
+      toast({
+        title: "Success",
+        description: "Stakeholder created successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create stakeholder",
         variant: "error",
       });
     },
@@ -132,7 +171,7 @@ export default function StakeholdersPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
-            <Button>
+            <Button onClick={() => setShowAddDialog(true)}>
               <i className="fas fa-plus mr-2"></i>
               Add Stakeholder
             </Button>
@@ -231,6 +270,83 @@ export default function StakeholdersPage() {
             </div>
           </div>
         </div>
+
+        {/* Add Stakeholder Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Stakeholder</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="add-name">Name</Label>
+                <Input
+                  id="add-name"
+                  value={newStakeholder.name}
+                  onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                  placeholder="Enter stakeholder name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="add-email">Email</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  value={newStakeholder.email}
+                  onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="add-title">Title</Label>
+                <Input
+                  id="add-title"
+                  value={newStakeholder.title}
+                  onChange={(e) => setNewStakeholder({...newStakeholder, title: e.target.value})}
+                  placeholder="Enter title or role"
+                />
+              </div>
+              <div>
+                <Label htmlFor="add-type">Type</Label>
+                <Select 
+                  value={newStakeholder.type} 
+                  onValueChange={(value) => setNewStakeholder({...newStakeholder, type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="entity">Entity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="add-address">Address (Optional)</Label>
+                <Input
+                  id="add-address"
+                  value={newStakeholder.address}
+                  onChange={(e) => setNewStakeholder({...newStakeholder, address: e.target.value})}
+                  placeholder="Enter address"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAddDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => createStakeholderMutation.mutate(newStakeholder)}
+                  disabled={createStakeholderMutation.isPending || !newStakeholder.name}
+                >
+                  {createStakeholderMutation.isPending ? "Creating..." : "Create Stakeholder"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Stakeholder Dialog */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

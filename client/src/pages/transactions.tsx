@@ -2,24 +2,51 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatNumber } from "@/lib/formatters";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatNumber, formatDate } from "@/lib/formatters";
 import Navigation from "@/components/layout/navigation";
+import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
+import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
+import { SafeAgreementDialog } from "@/components/dialogs/safe-agreement-dialog";
+import { ConvertibleNoteDialog } from "@/components/dialogs/convertible-note-dialog";
+import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
+import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield } from "lucide-react";
 
 export default function TransactionsPage() {
   const { companyId } = useParams();
+  const [selectedTransactionType, setSelectedTransactionType] = useState<string | null>(null);
 
   const { data: shareLedger, isLoading: ledgerLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "share-ledger"],
     enabled: !!companyId,
   });
 
-  const { data: auditLogs, isLoading: auditLoading } = useQuery({
-    queryKey: ["/api/companies", companyId, "audit-logs"],
+  const { data: equityAwards, isLoading: equityLoading } = useQuery({
+    queryKey: ["/api/companies", companyId, "equity-awards"],
     enabled: !!companyId,
   });
 
-  const isLoading = ledgerLoading || auditLoading;
+  const { data: convertibles, isLoading: convertiblesLoading } = useQuery({
+    queryKey: ["/api/companies", companyId, "convertibles"],
+    enabled: !!companyId,
+  });
+
+  const { data: stakeholders } = useQuery({
+    queryKey: ["/api/companies", companyId, "stakeholders"],
+    enabled: !!companyId,
+  });
+
+  const { data: securityClasses } = useQuery({
+    queryKey: ["/api/companies", companyId, "security-classes"],
+    enabled: !!companyId,
+  });
+
+  const isLoading = ledgerLoading || equityLoading || convertiblesLoading;
+
+  const stakeholderMap = new Map(stakeholders?.map((s: any) => [s.id, s.name]) || []);
+  const securityClassMap = new Map(securityClasses?.map((sc: any) => [sc.id, sc.name]) || []);
 
   if (isLoading) {
     return (
@@ -28,7 +55,7 @@ export default function TransactionsPage() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-neutral-900">Transaction History</h1>
+              <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
               <div className="animate-pulse space-y-4">
@@ -43,38 +70,89 @@ export default function TransactionsPage() {
     );
   }
 
-  const getTransactionIcon = (action?: string) => {
-    if (!action) return "fas fa-question";
-    if (action.includes("issue")) return "fas fa-plus text-green-500";
-    if (action.includes("transfer")) return "fas fa-exchange-alt text-blue-500";
-    if (action.includes("exercise")) return "fas fa-arrow-right text-orange-500";
-    if (action.includes("cancel")) return "fas fa-times text-red-500";
-    return "fas fa-file-alt text-neutral-500";
-  };
+  const transactionTypes = [
+    {
+      id: "shares",
+      name: "Issue Shares",
+      description: "Issue common or preferred shares",
+      icon: DollarSign,
+      color: "text-green-600"
+    },
+    {
+      id: "options",
+      name: "Grant Options",
+      description: "Grant stock options or RSUs",
+      icon: TrendingUp,
+      color: "text-blue-600"
+    },
+    {
+      id: "safe",
+      name: "SAFE Agreement",
+      description: "Issue SAFE (Simple Agreement for Future Equity)",
+      icon: Shield,
+      color: "text-purple-600"
+    },
+    {
+      id: "convertible",
+      name: "Convertible Note",
+      description: "Issue convertible debt instrument",
+      icon: FileText,
+      color: "text-orange-600"
+    },
+    {
+      id: "secondary",
+      name: "Secondary Transaction",
+      description: "Transfer shares between stakeholders",
+      icon: ArrowRightLeft,
+      color: "text-cyan-600"
+    }
+  ];
 
-  // Combine share ledger entries and audit logs into unified transaction view
-  const combinedTransactions = [
+  // Combine all transactions
+  const allTransactions = [
     ...(Array.isArray(shareLedger) ? shareLedger : []).map((entry: any) => ({
       id: entry.id,
-      type: "share_transaction",
-      action: entry.action,
-      description: `${entry.action} transaction`,
-      date: entry.transactionDate ? new Date(entry.transactionDate) : new Date(),
-      amount: entry.quantity,
-      pricePerShare: entry.pricePerShare,
-      value: entry.quantity * parseFloat(entry.pricePerShare || "0"),
+      type: "Share Transaction",
+      description: `${entry.quantity > 0 ? 'Issued' : 'Transferred'} ${Math.abs(entry.quantity)} shares`,
+      stakeholder: stakeholderMap.get(entry.holderId) || "Unknown",
+      securityClass: securityClassMap.get(entry.classId) || "Unknown",
+      date: new Date(entry.issueDate),
+      quantity: Math.abs(entry.quantity),
+      value: entry.consideration || 0,
+      status: "Completed"
     })),
-    ...(Array.isArray(auditLogs) ? auditLogs : []).map((log: any) => ({
-      id: log.id,
-      type: "audit_log",
-      action: log.action,
-      description: log.description,
-      date: log.timestamp ? new Date(log.timestamp) : new Date(),
-      amount: null,
-      pricePerShare: null,
-      value: null,
+    ...(Array.isArray(equityAwards) ? equityAwards : []).map((award: any) => ({
+      id: award.id,
+      type: "Equity Award",
+      description: `Granted ${award.quantityGranted} ${award.type} options`,
+      stakeholder: stakeholderMap.get(award.holderId) || "Unknown",
+      securityClass: "Options",
+      date: new Date(award.grantDate),
+      quantity: award.quantityGranted,
+      value: (award.quantityGranted * parseFloat(award.strikePrice || "0")),
+      status: "Active"
+    })),
+    ...(Array.isArray(convertibles) ? convertibles : []).map((conv: any) => ({
+      id: conv.id,
+      type: conv.type === "safe" ? "SAFE Agreement" : "Convertible Note",
+      description: `${conv.type === "safe" ? "SAFE" : "Note"} for $${formatNumber(conv.principal)}`,
+      stakeholder: stakeholderMap.get(conv.holderId) || "Unknown",
+      securityClass: conv.framework || "Convertible",
+      date: new Date(conv.issueDate),
+      quantity: 0,
+      value: conv.principal || 0,
+      status: "Outstanding"
     }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Completed": return "bg-green-100 text-green-800";
+      case "Active": return "bg-blue-100 text-blue-800";
+      case "Outstanding": return "bg-yellow-100 text-yellow-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -82,95 +160,129 @@ export default function TransactionsPage() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-neutral-900">Transaction History</h1>
-            <Button>
-              <i className="fas fa-plus mr-2"></i>
-              Add Transaction
-            </Button>
+            <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
+            <Select onValueChange={setSelectedTransactionType}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="New Transaction" />
+              </SelectTrigger>
+              <SelectContent>
+                {transactionTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    <div className="flex items-center gap-2">
+                      <type.icon className={`h-4 w-4 ${type.color}`} />
+                      {type.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="px-6 py-4 border-b border-neutral-200">
-              <h3 className="text-lg font-semibold text-neutral-900">Recent Transactions</h3>
-            </div>
-            
-            {combinedTransactions.length === 0 ? (
-              <div className="p-8 text-center text-neutral-500">
-                <i className="fas fa-file-alt text-4xl mb-4 text-neutral-300"></i>
-                <p>No transactions found</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Description
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Value
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-neutral-200">
-                    {combinedTransactions.map((transaction: any) => (
-                      <tr key={`${transaction.type}-${transaction.id}`} className="hover:bg-neutral-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <i className={`${getTransactionIcon(transaction.action)} mr-3`}></i>
-                            <Badge variant={transaction.type === "share_transaction" ? "default" : "secondary"}>
-                              {transaction.type === "share_transaction" ? "Share" : "Audit"}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-neutral-900">
-                            {transaction.action}
-                          </div>
-                          <div className="text-sm text-neutral-500">
-                            {transaction.description}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
-                          {transaction.date.toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                          {transaction.amount ? formatNumber(transaction.amount) : "—"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                          {transaction.value ? `$${formatNumber(transaction.value)}` : "—"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-primary hover:text-primary-dark mr-3">
-                            View
-                          </button>
-                          {transaction.type === "share_transaction" && (
-                            <button className="text-primary hover:text-primary-dark">
-                              Edit
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          {/* Transaction Type Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {transactionTypes.map((type) => (
+              <Card key={type.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedTransactionType(type.id)}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg bg-neutral-100`}>
+                      <type.icon className={`h-5 w-5 ${type.color}`} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{type.name}</CardTitle>
+                      <p className="text-sm text-neutral-600 mt-1">{type.description}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
           </div>
+
+          {/* Transactions Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {allTransactions.length === 0 ? (
+                <div className="text-center py-8 text-neutral-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-neutral-300" />
+                  <p className="text-lg mb-2">No transactions yet</p>
+                  <p className="text-sm">Create your first transaction using the options above</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-neutral-200">
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Type</th>
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Description</th>
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Stakeholder</th>
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Security Class</th>
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Date</th>
+                        <th className="text-right py-3 px-4 font-medium text-neutral-700">Quantity</th>
+                        <th className="text-right py-3 px-4 font-medium text-neutral-700">Value</th>
+                        <th className="text-left py-3 px-4 font-medium text-neutral-700">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allTransactions.map((transaction) => (
+                        <tr key={transaction.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                          <td className="py-3 px-4">
+                            <Badge variant="outline">{transaction.type}</Badge>
+                          </td>
+                          <td className="py-3 px-4">{transaction.description}</td>
+                          <td className="py-3 px-4">{transaction.stakeholder}</td>
+                          <td className="py-3 px-4">{transaction.securityClass}</td>
+                          <td className="py-3 px-4">{formatDate(transaction.date)}</td>
+                          <td className="py-3 px-4 text-right">
+                            {transaction.quantity > 0 ? formatNumber(transaction.quantity) : "-"}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            ${formatNumber(transaction.value)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge className={getStatusColor(transaction.status)}>
+                              {transaction.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Transaction Dialogs */}
+      <IssueSharesDialog
+        open={selectedTransactionType === "shares"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
+      />
+      
+      <GrantOptionsDialog
+        open={selectedTransactionType === "options"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
+      />
+
+      <SafeAgreementDialog
+        open={selectedTransactionType === "safe"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+      />
+
+      <ConvertibleNoteDialog
+        open={selectedTransactionType === "convertible"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+      />
+
+      <SecondaryTransactionDialog
+        open={selectedTransactionType === "secondary"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+      />
     </div>
   );
 }
