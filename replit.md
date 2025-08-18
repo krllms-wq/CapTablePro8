@@ -6,6 +6,15 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ## Recent Changes (August 2025)
 
+✅ **TRANSACTION DIALOGS & API INTEGRATION FIXES COMPLETED (August 18, 2025)**
+  - **Critical 400 Validation Error Fix**: Fixed all transaction dialog validation errors by implementing proper number parsing with comma removal (parseFloat(value.replace(/,/g, ''))) across ALL transaction types
+  - **Enhanced Number Formatting**: Added real-time comma thousands separators to all transaction input fields with proper backend parsing
+  - **Missing API Endpoints**: Added convertible instruments (/convertibles) and equity awards (/equity-awards) endpoints to server routes with full CRUD operations
+  - **Navigation Enhancement**: Added company name display in header with functional back navigation to companies list
+  - **Scenarios API Fix**: Fixed scenarios page functionality by switching from raw fetch to apiRequest for proper authentication handling
+  - **TypeScript Resolution**: Resolved all LSP diagnostic errors with proper array type checking and ReactNode handling
+  - **Stakeholder Operations**: Verified and confirmed working stakeholder deletion functionality through existing API integration
+
 ✅ **COMPREHENSIVE UX/UI ENHANCEMENT SUITE COMPLETED (August 18, 2025)**
   - **Motion Utilities**: Implemented accessibility-aware motion system respecting prefers-reduced-motion user settings
   - **Enhanced Toast System**: Created ARIA-compliant notifications with success/info/warn/error variants, auto-dismiss, and duplicate prevention
