@@ -8,7 +8,10 @@ import {
   type Round, type InsertRound,
   type CorporateAction, type InsertCorporateAction,
   type AuditLog,
-  type Scenario, type InsertScenario
+  type Scenario, type InsertScenario,
+  type User, type InsertUser,
+  type UserCompanyAccess, type InsertUserCompanyAccess,
+  type CapTableShare, type InsertCapTableShare
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -66,6 +69,25 @@ export interface IStorage {
   getScenario(id: string): Promise<Scenario | undefined>;
   updateScenario(id: string, updates: Partial<InsertScenario>): Promise<Scenario | undefined>;
   deleteScenario(id: string): Promise<void>;
+
+  // Users
+  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
+  updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+
+  // User Company Access
+  createUserCompanyAccess(access: InsertUserCompanyAccess): Promise<UserCompanyAccess>;
+  getUserCompanyAccess(userId: string, companyId: string): Promise<UserCompanyAccess | undefined>;
+  getUserCompanies(userId: string): Promise<Company[]>;
+  getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]>;
+
+  // Cap Table Sharing
+  createCapTableShare(share: InsertCapTableShare): Promise<CapTableShare>;
+  getCapTableShare(token: string): Promise<CapTableShare | undefined>;
+  getCapTableShares(companyId: string): Promise<CapTableShare[]>;
+  updateCapTableShare(id: string, updates: Partial<InsertCapTableShare>): Promise<CapTableShare | undefined>;
+  deleteCapTableShare(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -79,6 +101,9 @@ export class MemStorage implements IStorage {
   private corporateActions: Map<string, CorporateAction> = new Map();
   private auditLogs: Map<string, AuditLog> = new Map();
   private scenarios: Map<string, Scenario> = new Map();
+  private users: Map<string, User> = new Map();
+  private userCompanyAccess: Map<string, UserCompanyAccess> = new Map();
+  private capTableShares: Map<string, CapTableShare> = new Map();
 
   constructor() {
     this.seedData();
@@ -605,6 +630,118 @@ export class MemStorage implements IStorage {
 
   async deleteScenario(id: string): Promise<void> {
     this.scenarios.delete(id);
+  }
+
+  // Users
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = {
+      id,
+      email: insertUser.email,
+      passwordHash: insertUser.passwordHash,
+      firstName: insertUser.firstName,
+      lastName: insertUser.lastName,
+      profileImage: insertUser.profileImage ?? null,
+      emailVerified: insertUser.emailVerified ?? false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.email === email);
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updated = { ...user, ...updates, updatedAt: new Date() };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  // User Company Access
+  async createUserCompanyAccess(insertAccess: InsertUserCompanyAccess): Promise<UserCompanyAccess> {
+    const id = randomUUID();
+    const access: UserCompanyAccess = {
+      id,
+      userId: insertAccess.userId,
+      companyId: insertAccess.companyId,
+      role: insertAccess.role ?? "viewer",
+      permissions: insertAccess.permissions ?? null,
+      invitedBy: insertAccess.invitedBy ?? null,
+      invitedAt: insertAccess.invitedAt ?? null,
+      acceptedAt: insertAccess.acceptedAt ?? null,
+      createdAt: new Date(),
+    };
+    this.userCompanyAccess.set(id, access);
+    return access;
+  }
+
+  async getUserCompanyAccess(userId: string, companyId: string): Promise<UserCompanyAccess | undefined> {
+    return Array.from(this.userCompanyAccess.values()).find(
+      a => a.userId === userId && a.companyId === companyId
+    );
+  }
+
+  async getUserCompanies(userId: string): Promise<Company[]> {
+    const userAccess = Array.from(this.userCompanyAccess.values()).filter(a => a.userId === userId);
+    const companyIds = userAccess.map(a => a.companyId);
+    return Array.from(this.companies.values()).filter(c => companyIds.includes(c.id));
+  }
+
+  async getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]> {
+    return Array.from(this.userCompanyAccess.values()).filter(a => a.companyId === companyId);
+  }
+
+  // Cap Table Sharing
+  async createCapTableShare(insertShare: InsertCapTableShare): Promise<CapTableShare> {
+    const id = randomUUID();
+    const shareToken = randomUUID();
+    const share: CapTableShare = {
+      id,
+      companyId: insertShare.companyId,
+      shareToken,
+      createdBy: insertShare.createdBy,
+      title: insertShare.title,
+      description: insertShare.description ?? null,
+      permissions: insertShare.permissions ?? null,
+      expiresAt: insertShare.expiresAt ?? null,
+      isActive: insertShare.isActive ?? true,
+      viewCount: 0,
+      lastAccessed: null,
+      createdAt: new Date(),
+    };
+    this.capTableShares.set(id, share);
+    return share;
+  }
+
+  async getCapTableShare(token: string): Promise<CapTableShare | undefined> {
+    return Array.from(this.capTableShares.values()).find(s => s.shareToken === token);
+  }
+
+  async getCapTableShares(companyId: string): Promise<CapTableShare[]> {
+    return Array.from(this.capTableShares.values()).filter(s => s.companyId === companyId);
+  }
+
+  async updateCapTableShare(id: string, updates: Partial<InsertCapTableShare>): Promise<CapTableShare | undefined> {
+    const share = this.capTableShares.get(id);
+    if (!share) return undefined;
+    
+    const updated = { ...share, ...updates };
+    this.capTableShares.set(id, updated);
+    return updated;
+  }
+
+  async deleteCapTableShare(id: string): Promise<void> {
+    this.capTableShares.delete(id);
   }
 }
 

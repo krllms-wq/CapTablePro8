@@ -3,6 +3,48 @@ import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } f
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Users and Authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  profileImage: text("profile_image"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+});
+
+// User Company Access
+export const userCompanyAccess = pgTable("user_company_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  role: varchar("role", { length: 20 }).notNull().default("viewer"), // owner, admin, viewer, investor
+  permissions: jsonb("permissions"), // specific permissions
+  invitedBy: varchar("invited_by").references(() => users.id),
+  invitedAt: timestamp("invited_at"),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+});
+
+// Cap Table Sharing
+export const capTableShares = pgTable("cap_table_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  shareToken: varchar("share_token").notNull().unique(),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  permissions: jsonb("permissions"), // view caps, export rights, etc.
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  viewCount: integer("view_count").notNull().default(0),
+  lastAccessed: timestamp("last_accessed"),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+});
+
 // Companies
 export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -243,3 +285,34 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 
 export type Scenario = typeof scenarios.$inferSelect;
 export type InsertScenario = z.infer<typeof insertScenarioSchema>;
+
+// User schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// User Company Access schemas
+export const insertUserCompanyAccessSchema = createInsertSchema(userCompanyAccess).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserCompanyAccess = z.infer<typeof insertUserCompanyAccessSchema>;
+export type UserCompanyAccess = typeof userCompanyAccess.$inferSelect;
+
+// Cap Table Share schemas
+export const insertCapTableShareSchema = createInsertSchema(capTableShares).omit({
+  id: true,
+  createdAt: true,
+  shareToken: true,
+  viewCount: true,
+  lastAccessed: true,
+});
+
+export type InsertCapTableShare = z.infer<typeof insertCapTableShareSchema>;
+export type CapTableShare = typeof capTableShares.$inferSelect;

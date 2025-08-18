@@ -9,17 +9,232 @@ import {
   insertEquityAwardSchema,
   insertConvertibleInstrumentSchema,
   insertRoundSchema,
-  insertCorporateActionSchema
+  insertCorporateActionSchema,
+  insertUserSchema,
+  insertCapTableShareSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Companies
-  app.get("/api/companies", async (req, res) => {
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
     try {
-      const companies = await storage.getCompanies();
-      res.json(companies);
+      const { email, password, firstName, lastName } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already registered" });
+      }
+      
+      // Hash password and create user
+      const passwordHash = await hashPassword(password);
+      const user = await storage.createUser({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+      });
+      
+      // Generate token
+      const token = generateToken(user);
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = user;
+      
+      res.status(201).json({ user: userResponse, token });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      
+      // Check password
+      const isValid = await comparePassword(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      
+      // Generate token
+      const token = generateToken(user);
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = user;
+      
+      res.json({ user: userResponse, token });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  app.patch("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { firstName, lastName, email } = req.body;
+      
+      // Check if email is already taken by another user
+      if (email && email !== req.user!.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== req.user!.id) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(req.user!.id, {
+        firstName,
+        lastName,
+        email,
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.post("/api/auth/change-password", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Verify current password
+      const isValid = await comparePassword(currentPassword, user.passwordHash);
+      if (!isValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Hash new password and update
+      const newPasswordHash = await hashPassword(newPassword);
+      await storage.updateUser(req.user!.id, { passwordHash: newPasswordHash });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // Shared cap table route
+  app.get("/api/shared/cap-table/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const share = await storage.getCapTableShare(token);
+      
+      if (!share || !share.isActive) {
+        return res.status(404).json({ error: "Share not found or expired" });
+      }
+      
+      // Check if share has expired
+      if (share.expiresAt && new Date() > share.expiresAt) {
+        return res.status(404).json({ error: "Share has expired" });
+      }
+      
+      // Get company and cap table data
+      const company = await storage.getCompany(share.companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Get cap table data
+      const stakeholders = await storage.getStakeholders(share.companyId);
+      const securityClasses = await storage.getSecurityClasses(share.companyId);
+      const shareLedgerEntries = await storage.getShareLedgerEntries(share.companyId);
+      
+      // Build cap table with calculations
+      const capTable = stakeholders.map(stakeholder => {
+        const entries = shareLedgerEntries.filter(e => e.stakeholderId === stakeholder.id);
+        const totalShares = entries.reduce((sum, e) => sum + e.shares, 0);
+        const securityClass = securityClasses.find(sc => sc.id === entries[0]?.securityClassId);
+        
+        return {
+          stakeholder: {
+            name: stakeholder.name,
+            type: stakeholder.type,
+          },
+          securityClass: {
+            name: securityClass?.name || "Unknown",
+          },
+          shares: totalShares,
+          ownership: totalShares / (company.authorizedShares || 1) * 100,
+          value: totalShares * 1.0, // Simplified value calculation
+        };
+      }).filter(row => row.shares > 0);
+      
+      // Update view count and last accessed
+      await storage.updateCapTableShare(share.id, {
+        viewCount: share.viewCount + 1,
+        lastAccessed: new Date(),
+      });
+      
+      res.json({
+        company: {
+          name: company.name,
+          description: company.description,
+        },
+        shareInfo: {
+          title: share.title,
+          description: share.description,
+          permissions: share.permissions,
+        },
+        capTable,
+      });
+    } catch (error) {
+      console.error("Shared cap table error:", error);
+      res.status(500).json({ error: "Failed to load shared cap table" });
+    }
+  });
+
+  // Companies
+  app.get("/api/companies", optionalAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (req.user) {
+        // Return only companies the user has access to
+        const companies = await storage.getUserCompanies(req.user.id);
+        res.json(companies);
+      } else {
+        // For demo purposes, return all companies if not authenticated
+        const companies = await storage.getCompanies();
+        res.json(companies);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch companies" });
     }
