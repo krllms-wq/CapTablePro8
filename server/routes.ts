@@ -256,11 +256,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validated = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany(validated);
+      
+      // Automatically create a default Common Stock security class
+      await storage.createSecurityClass({
+        companyId: company.id,
+        name: "Common Stock",
+        type: "common",
+        description: "Standard voting shares for founders and employees",
+        votingRights: true,
+        dividendRights: true,
+        liquidationPreference: 1.0,
+        antiDilutionProtection: "none",
+        participationRights: "none",
+        conversionRights: false,
+        redemptionRights: false,
+        tagAlongRights: false,
+        dragAlongRights: false,
+        preemptiveRights: false,
+        boardSeats: 0,
+        observerRights: false,
+        informationRights: false,
+        proRataRights: false,
+        restrictions: null,
+        transferRestrictions: null,
+        vesting: null,
+      });
+      
       res.status(201).json(company);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid company data", details: error.errors });
       }
+      console.error("Company creation error:", error);
       res.status(500).json({ error: "Failed to create company" });
     }
   });
