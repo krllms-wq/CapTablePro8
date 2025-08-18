@@ -31,7 +31,7 @@ This is a comprehensive capitalization table (cap table) web application designe
   - Automatic selection of newly created stakeholder
 
 ✓ **UI/UX Improvements**: 
-  - Removed problematic "As of" selector from cap table interface
+  - **COMPLETELY REMOVED "As of" dropdown**: Eliminated all date selector components from navigation and interface
   - Fixed Model Round button to properly navigate to scenarios page
   - Enhanced transaction action buttons with proper routing
   - Streamlined cap table header layout for better usability

@@ -55,19 +55,6 @@ export default function Navigation() {
         </div>
         
         <div className="flex items-center space-x-4">
-          {companyId && (
-            <div className="flex items-center space-x-2 bg-neutral-100 rounded-lg px-3 py-2">
-              <i className="fas fa-calendar text-neutral-500 text-sm"></i>
-              <span className="text-sm font-medium text-neutral-700">As of:</span>
-              <select className="text-sm font-semibold text-neutral-900 bg-transparent border-none outline-none">
-                <option value="current">Current</option>
-                <option value="2024-01-15">Jan 15, 2024</option>
-                <option value="2023-12-31">Dec 31, 2023</option>
-                <option value="2023-09-30">Sep 30, 2023</option>
-              </select>
-            </div>
-          )}
-          
           <button className="p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
             <i className="fas fa-bell text-lg"></i>
           </button>
