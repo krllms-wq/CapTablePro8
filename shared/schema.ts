@@ -150,6 +150,8 @@ export const auditLogs = pgTable("audit_logs", {
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
   createdAt: true,
+}).extend({
+  incorporationDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
 });
 
 export const insertSecurityClassSchema = createInsertSchema(securityClasses).omit({

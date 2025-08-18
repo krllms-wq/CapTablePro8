@@ -9,24 +9,75 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Building, Users, FileText, TrendingUp, CheckCircle } from "lucide-react";
+
+const countries = [
+  { code: "US", name: "United States" },
+  { code: "CA", name: "Canada" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "NL", name: "Netherlands" },
+  { code: "CH", name: "Switzerland" },
+  { code: "AU", name: "Australia" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "SG", name: "Singapore" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "JP", name: "Japan" },
+  { code: "KR", name: "South Korea" },
+  { code: "IN", name: "India" },
+  { code: "IL", name: "Israel" },
+  { code: "SE", name: "Sweden" },
+  { code: "NO", name: "Norway" },
+  { code: "DK", name: "Denmark" },
+  { code: "FI", name: "Finland" },
+  { code: "IE", name: "Ireland" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "BE", name: "Belgium" },
+  { code: "AT", name: "Austria" },
+  { code: "PT", name: "Portugal" },
+  { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" },
+  { code: "AR", name: "Argentina" },
+  { code: "CL", name: "Chile" },
+  { code: "CO", name: "Colombia" },
+  { code: "PE", name: "Peru" },
+  { code: "UY", name: "Uruguay" },
+  { code: "PL", name: "Poland" },
+  { code: "CZ", name: "Czech Republic" },
+  { code: "HU", name: "Hungary" },
+  { code: "RO", name: "Romania" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "HR", name: "Croatia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "SK", name: "Slovakia" },
+  { code: "EE", name: "Estonia" },
+  { code: "LV", name: "Latvia" },
+  { code: "LT", name: "Lithuania" },
+];
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
   country: z.string().min(1, "Country is required"),
   incorporationDate: z.string().min(1, "Incorporation date is required"),
-  authorizedShares: z.string().min(1, "Authorized shares is required").transform(val => parseInt(val)),
+  authorizedShares: z.coerce.number().min(1, "Authorized shares must be greater than 0"),
 });
 
 const founderSchema = z.object({
   name: z.string().min(1, "Founder name is required"),
   email: z.string().email("Valid email is required"),
   title: z.string().min(1, "Title is required"),
-  shares: z.string().min(1, "Shares is required").transform(val => parseInt(val)),
+  shares: z.coerce.number().min(1, "Shares must be greater than 0"),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
@@ -45,6 +96,7 @@ export default function CompanySetup() {
   const [currentStep, setCurrentStep] = useState(0);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [founders, setFounders] = useState<FounderFormData[]>([]);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const steps: SetupStep[] = [
     {
@@ -104,7 +156,7 @@ export default function CompanySetup() {
         name: data.name,
         description: data.description,
         country: data.country,
-        incorporationDate: new Date(data.incorporationDate),
+        incorporationDate: data.incorporationDate,
         authorizedShares: data.authorizedShares,
       });
     },
@@ -276,21 +328,55 @@ export default function CompanySetup() {
                       control={companyForm.control}
                       name="country"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex flex-col">
                           <FormLabel>Country</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select country" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="US">United States</SelectItem>
-                              <SelectItem value="CA">Canada</SelectItem>
-                              <SelectItem value="UK">United Kingdom</SelectItem>
-                              <SelectItem value="DE">Germany</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "justify-between",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value
+                                    ? countries.find((country) => country.code === field.value)?.name
+                                    : "Select country..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Search country..." />
+                                <CommandList>
+                                  <CommandEmpty>No country found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {countries.map((country) => (
+                                      <CommandItem
+                                        key={country.code}
+                                        value={country.name}
+                                        onSelect={() => {
+                                          field.onChange(country.code);
+                                          setCountryOpen(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            country.code === field.value ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {country.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       )}
