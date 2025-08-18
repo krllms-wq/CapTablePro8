@@ -210,10 +210,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }).filter(row => row.shares > 0);
       
-      // Update view count and last accessed
-      await storage.updateCapTableShare(share.id, {
-        lastAccessed: new Date(),
-      });
+      // Update view count - simplified for now
+      // await storage.updateCapTableShare(share.id, {
+      //   viewCount: share.viewCount + 1,
+      // });
       
       res.json({
         company: {
@@ -538,11 +538,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const capTableRows = [];
       
       // Add stakeholder holdings
-      for (const [holderId, classMap] of holdings) {
+      for (const [holderId, classMap] of Array.from(holdings.entries())) {
         const stakeholder = stakeholderMap.get(holderId);
         if (!stakeholder) continue;
 
-        for (const [classId, shares] of classMap) {
+        for (const [classId, shares] of Array.from(classMap.entries())) {
           const securityClass = securityClassMap.get(classId);
           if (!securityClass) continue;
 
