@@ -57,7 +57,7 @@ export default function QuickActions({ companyId }: QuickActionsProps) {
       icon: "fas fa-chart-line",
       hoverColor: "hover:border-primary hover:bg-primary/5",
       hoverIconColor: "group-hover:text-primary",
-      onClick: () => window.location.href = `/companies/${companyId}/scenarios`,
+      onClick: () => window.location.href = `/scenarios?companyId=${companyId}`,
     },
   ];
 

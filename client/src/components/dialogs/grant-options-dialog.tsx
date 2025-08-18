@@ -119,14 +119,14 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
         body: {
           holderId,
           type: data.type,
-          quantityGranted: parseInt(data.quantityGranted),
+          quantityGranted: data.quantityGranted,
           quantityExercised: 0,
           quantityCanceled: 0,
-          strikePrice: parseFloat(data.strikePrice),
-          grantDate: new Date(data.grantDate),
-          vestingStartDate: new Date(data.vestingStartDate),
-          vestingCliff: data.vestingCliff ? parseInt(data.vestingCliff) : null,
-          vestingPeriod: data.vestingPeriod ? parseInt(data.vestingPeriod) : null,
+          strikePrice: data.strikePrice,
+          grantDate: data.grantDate,
+          vestingStartDate: data.vestingStartDate,
+          vestingCliff: data.vestingCliff || null,
+          vestingPeriod: data.vestingPeriod || null,
         }
       });
     },

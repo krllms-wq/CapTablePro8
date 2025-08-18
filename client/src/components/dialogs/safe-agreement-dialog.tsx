@@ -121,13 +121,13 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
         body: {
           type: "SAFE",
           holderId,
-          principal: parseFloat(data.principal),
+          principal: data.principal,
           framework: data.framework,
-          valuationCap: data.valuationCap ? parseFloat(data.valuationCap) : null,
-          discountRate: data.discountRate ? parseFloat(data.discountRate) / 100 : null,
-          interestRate: data.interestRate ? parseFloat(data.interestRate) / 100 : null,
-          issueDate: new Date(data.issueDate),
-          maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
+          valuationCap: data.valuationCap || null,
+          discountRate: data.discountRate || null,
+          interestRate: data.interestRate || null,
+          issueDate: data.issueDate,
+          maturityDate: data.maturityDate || null,
         }
       });
     },

@@ -152,9 +152,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
         
         const securityClass = await createSecurityClassMutation.mutateAsync({
           name: newSecurityClass.name,
-          liquidationPreferenceMultiple: parseFloat(newSecurityClass.liquidationPreferenceMultiple),
+          liquidationPreferenceMultiple: newSecurityClass.liquidationPreferenceMultiple,
           participating: newSecurityClass.participating,
-          votingRights: parseFloat(newSecurityClass.votingRights),
+          votingRights: newSecurityClass.votingRights,
           companyId: companyId,
         });
         classId = securityClass.id;
@@ -272,7 +272,18 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   <FormItem>
                     <FormLabel>Company Valuation ($) *</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 10000000" {...field} />
+                      <Input 
+                        type="text" 
+                        placeholder="10,000,000" 
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          const formatted = value ? parseFloat(value).toLocaleString() : '';
+                          e.target.value = formatted;
+                          field.onChange(value);
+                          handleCalculation('valuation', value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -466,7 +477,17 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   <FormItem>
                     <FormLabel>Quantity *</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="100000" {...field} />
+                      <Input 
+                        type="text" 
+                        placeholder="100,000" 
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          const formatted = value ? parseInt(value).toLocaleString() : '';
+                          e.target.value = formatted;
+                          field.onChange(value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -482,7 +503,18 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   <FormItem>
                     <FormLabel>Consideration ($) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="1000000" {...field} />
+                      <Input 
+                        type="text" 
+                        placeholder="1,000,000" 
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          const formatted = value ? parseFloat(value).toLocaleString() : '';
+                          e.target.value = formatted;
+                          field.onChange(value);
+                          handleCalculation('consideration', value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

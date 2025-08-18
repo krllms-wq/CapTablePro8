@@ -225,28 +225,52 @@ export default function ScenariosPage() {
             </Button>
           </div>
 
-          {/* Current Cap Table */}
+          {/* Before/After Results Table (always visible) */}
           <Card>
             <CardHeader>
-              <CardTitle>Current Cap Table</CardTitle>
+              <CardTitle>Modeling Results</CardTitle>
             </CardHeader>
             <CardContent>
-              {capTable?.capTable ? (
-                <div className="space-y-2">
-                  {capTable.capTable.map((row: any, index: number) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>{row.stakeholder?.name}</span>
-                      <span>{row.ownership?.toFixed(1)}%</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-neutral-500 py-4">
-                  <div className="text-sm">Loading cap table...</div>
-                </div>
-              )}
+              <div className="overflow-x-auto">
+                <table className="w-full table-auto border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Stakeholder</th>
+                      <th className="text-right p-2">Current</th>
+                      {modelingResults && <th className="text-right p-2">After</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!modelingResults ? (
+                      // Show current cap table only
+                      capTable?.map((row: any) => (
+                        <tr key={row.stakeholder?.id || Math.random()} className="border-b">
+                          <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
+                          <td className="text-right p-2">{(row.ownership || 0).toFixed(2)}%</td>
+                        </tr>
+                      ))
+                    ) : (
+                      // Show before and after results
+                      modelingResults.afterCapTable.map((row: any) => {
+                        const beforeRow = modelingResults.beforeCapTable.find((b: any) => 
+                          b.stakeholder?.id === row.stakeholder?.id
+                        );
+                        return (
+                          <tr key={row.stakeholder?.id || Math.random()} className="border-b">
+                            <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
+                            <td className="text-right p-2">{(beforeRow?.ownership || 0).toFixed(2)}%</td>
+                            <td className="text-right p-2">{(row.ownership || 0).toFixed(2)}%</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
+
+
 
           {!showSavedScenarios ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -376,6 +400,55 @@ export default function ScenariosPage() {
                           <div className="text-lg font-semibold">
                             {formatNumber(modelingResults.newShares)}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Conversion Tools Section */}
+                      <div className="border-t pt-6">
+                        <h4 className="text-sm font-medium mb-4">Conversion Tools</h4>
+                        <div className="space-y-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Convert outstanding options to shares
+                              toast({
+                                title: "Convert Options",
+                                description: "Options conversion feature coming soon",
+                                variant: "info"
+                              });
+                            }}
+                          >
+                            Convert Outstanding Options to Shares
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Convert SAFEs to shares
+                              toast({
+                                title: "Convert SAFEs",
+                                description: "SAFE conversion feature coming soon",
+                                variant: "info"
+                              });
+                            }}
+                          >
+                            Convert SAFEs to Shares
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Convert convertible notes to shares
+                              toast({
+                                title: "Convert Notes",
+                                description: "Convertible note conversion feature coming soon",
+                                variant: "info"
+                              });
+                            }}
+                          >
+                            Convert Convertible Notes to Shares
+                          </Button>
                         </div>
                       </div>
                       

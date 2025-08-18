@@ -69,7 +69,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
           holderId: data.sellerId,
           classId: data.classId,
           quantity: -parseInt(data.quantity),
-          issueDate: new Date(data.transactionDate),
+          issueDate: data.transactionDate,
           consideration: totalValue,
           considerationType: "cash",
           sourceTransactionId: transactionId
@@ -83,7 +83,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
           holderId: buyerId,
           classId: data.classId,
           quantity: parseInt(data.quantity),
-          issueDate: new Date(data.transactionDate),
+          issueDate: data.transactionDate,
           consideration: totalValue,
           considerationType: "cash",
           sourceTransactionId: transactionId
