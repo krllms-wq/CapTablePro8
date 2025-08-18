@@ -1,0 +1,459 @@
+Here’s a complete, engineering-ready Technical Specification (TS) for building a cap-table web application on Replit. It’s written to cover real-world edge cases (options, RSUs, warrants, SAFEs, convertible notes, anti-dilution, secondaries, waterfalls, stock splits, etc.) and to be implementable by a small team.
+
+1) Product Overview
+
+Goal: A web app where startups and investors can model, maintain, and share capitalization tables across the full company lifecycle—from incorporation through multiple rounds, notes/SAFEs, option pool changes, secondaries, exits, and M&A—while handling legal and financial edge cases with auditability.
+
+Non-goals: This app does not provide legal/tax advice or generate legally binding documents by itself (though it may export data to document templates).
+
+2) Users & Permissions
+
+Personas
+
+Company Admin (Founder/CFO/Legal): Full read/write to company, instruments, scenarios, exports, user management.
+
+Investor (External): Read-only by default; optional per-round/per-instrument visibility; can receive secure share-links.
+
+Employee/Advisor: Read-only on personal grants; optional access to fully diluted totals; can accept/view option/RSU details (no company-wide visibility unless granted).
+
+Auditor/Legal/Board: Read-only full visibility; can comment; no edits.
+
+Access control
+
+Org → Company → Cap Table → Scenario hierarchy with role-based access control (RBAC).
+
+Resource-scoped sharing links with expiry and watermarking.
+
+SSO (OAuth2: Google/Microsoft), 2FA (TOTP).
+
+Field-level redaction for personally identifiable information (PII).
+
+3) Data Model (Core Entities)
+
+Company
+
+id, name, country, currency (ISO 4217), par_value, incorporation_date
+
+authorized_shares by class; default classes: Common, Preferred A/B/… (extensible)
+
+settings: rounding_policy, default_interest_daycount, timezone, default_vesting_convention
+
+SecurityClass
+
+id, name (Common, Series A Preferred, Non-Voting Common, etc.)
+
+seniority_tier (integer), liquidation_preference_multiple (e.g., 1.0x), participating (bool), participation_cap (multiple or None), dividend_rate (%), dividend_type (cumulative/non-cumulative), convert_to_common_ratio (default 1.0)
+
+voting_rights (ratio or special)
+
+ShareLedgerEntry
+
+id, holder_id, class_id, quantity, issue_date, certificate_no (optional), consideration (cash/non-cash), source_txn_id
+
+Stakeholder
+
+id, type (Person/Entity), name, email (PII), address (PII), tax_flags (e.g., ISO eligible)
+
+EquityAward (Options / RSUs / SARs / Phantom)
+
+id, holder_id, type (ISO/NSO/RSU/SAR/Phantom), plan_id, grant_date, strike_price (if any), quantity_granted, quantity_exercised, quantity_canceled, early_exercise_allowed (bool)
+
+VestingSchedule: start_date, cliff_months, total_months, cadence (monthly/quarterly/annual), acceleration (single-trigger/double-trigger %), custom_holidays (optional)
+
+post_termination_exercise_window_days, iso_100k_limit_tracking (bool)
+
+Warrant
+
+id, holder_id, underlying_class_id, strike_price, quantity, expiry_date, performance_triggers (optional)
+
+ConvertibleInstrument (Note/SAFE)
+
+id, holder_id, type (Note/SAFE), framework (YC pre-money SAFE, post-money SAFE, custom), principal (for Notes), interest_rate (Notes), compounding (simple/compounded), issue_date, maturity_date (Notes), discount_rate, valuation_cap, mf_n (bool), pro_rata_rights (bool), most_favored_nation (bool), conversion_type (shadow preferred/standard), target_round_link (when converted)
+
+for post-money SAFe: post_money_cap_basis and company_capitalization_definition snapshot storage
+
+Round (FinancingEvent)
+
+id, name (Seed, Series A, bridge, extension), close_date, pre_money, raise_amount, price_per_share, new_security_class_id, round_type (priced/bridge/secondary/recap)
+
+option_pool_increase: amount or % and timing (pre-money or post-money)
+
+anti_dilution_provisions (broad-based WA / narrow-based / full-ratchet / none), pay-to-play (bool), seniority_rules (standard/pari passu/custom stack)
+
+SecondaryTransaction
+
+id, date, seller_id, buyer_id, class_id, quantity, price_per_share, right_of_first_refusal (tracked), approvals (board/investor)
+
+CorporateAction
+
+id, type (stock_split/reverse_split/merger/reincorporation/dividend), ratio, effective_date, affects (classes), rounding_policy
+
+ExitEvent / WaterfallScenario
+
+id, date, enterprise_value, transaction_costs, debt_outstanding, carveouts (management carveout %, retention pool), taxes (optional simplifications), distribution_rules
+
+AuditLog
+
+id, actor_id, timestamp, action, payload_diff (JSON patch), ip_hash
+
+Scenario
+
+id, name, base_snapshot_id, overrides (JSON), compare_to (scenario_id), is_default (bool)
+
+4) Functional Requirements
+4.1 Cap Table Core
+
+Create/manage security classes, authorize shares, issue shares.
+
+Maintain as-issued and fully diluted views; filters by date (“as of”).
+
+Support multiple share classes, non-voting classes, shadow preferred, treasury shares.
+
+Import from CSV/Excel and (optional) Carta/Pulley CSV templates; field mappers + validation.
+
+4.2 Options/RSUs/Equity Awards
+
+Support ISO/NSO with ISO $100k/year limit tracking across vesting tranches.
+
+Vesting engines: time-based, milestone-based, hybrid; cliffs; custom calendars; leap-year safe.
+
+Early exercise (with unvested shares held subject to repurchase); auto-repurchase logic on termination.
+
+Post-termination exercise windows; automatic expirations.
+
+RSUs with service-based vesting and release events (e.g., double-trigger at change in control).
+
+Net exercise and cashless exercise calculators with tax placeholders (no tax advice).
+
+4.3 SAFEs & Convertible Notes
+
+Events: Equity Financing, Liquidity, Dissolution, Maturity (notes).
+
+Notes
+
+Interest accrual: simple (principal × rate × daycount) or compounded (Actual/365, Actual/360 selectable).
+
+Conversion: at min(price_cap_price, discount_price) if both present; MFN application; series mapping (shadow preferred vs new money class).
+
+Stacking multiple notes with different caps/discounts; partial conversions; rounding rules (Banker’s rounding configurable).
+
+Maturity outcomes: automatic conversion to a pre-agreed class, repayment, or extension.
+
+SAFEs
+
+Pre-money SAFE: Convert using round capitalization excluding new money and excluding post-round option pool (per original YC language).
+
+Post-money SAFE: Convert so investor owns (Investment / PM Cap) of defined post-money capitalization; pro-rata side letters honored.
+
+MFN claws: best-of terms among contemporaneous instruments.
+
+Liquidity event: choose cash-out for original amount vs conversion to common per framework.
+
+4.4 Anti-Dilution & Down Rounds
+
+Support full-ratchet, broad-based weighted average, narrow-based weighted average.
+
+Weighted Average (broad-based) formula
+New Conversion Price (NCP):
+
+NCP = OCP × (A + B) / (A + C)
+
+
+where
+OCP = old conversion price,
+A = fully diluted shares before the new issue (broad base = includes all common on an as-converted, options/RSUs available for grant if specified by docs),
+B = consideration received / OCP,
+C = number of new shares issued.
+
+Full-ratchet: NCP = lowest new issue price.
+
+Pay-to-play: if investor does not invest pro-rata in down round, convert their preferred to shadow preferred or common per round rules; app must automate conversion pathways.
+
+Per-series configuration of: which pools are included in “A”, treatment of unallocated options, and rounding direction.
+
+4.5 Option Pool Mechanics
+
+Pool creation and top-ups: pre-money (affects founders/legacy holders) or post-money (affects all).
+
+Target-pool modeling: “Set pool to X% post-round”; compute required increase and dilution impact.
+
+Scenario tool to toggle pre/post money pool changes and compare cap tables.
+
+4.6 Waterfall & Exit Modeling
+
+Seniority: standard (later series senior), pari passu, or custom tiers.
+
+Liquidation preferences: non-participating vs participating with caps (e.g., 3x cap).
+
+Automatic convert-vs-liquidate optimization per holder (take greater of preference or as-converted value).
+
+Include transaction costs, debt, ESCROW holdbacks, management carve-outs, retention pools.
+
+Outputs: per-holder distributions, charts, and sensitivity sliders (EV range).
+
+4.7 Secondaries, Transfers, and Recaps
+
+Record secondary sales with ROFR/co-sale flags, board/investor approvals.
+
+Recapitalizations (reverse splits, class re-designations, re-pricing, option exchanges).
+
+Share cancellations, buybacks, and treasury re-issuance.
+
+4.8 Corporate Actions
+
+Stock splits/reverse splits with exact ratio and rounding policies: round down, bankers’ rounding, or cash-in-lieu tracker.
+
+Dividends (cash or stock) with ex-date and record date mechanics.
+
+Mergers: map legacy classes to acquirer classes; exchange ratios; stub equity.
+
+4.9 Scenarios & Timeline
+
+“As-of” date view with historical snapshots.
+
+Scenario sandbox: duplicate snapshot, change inputs (new round, pool, notes) without affecting live data.
+
+Compare scenarios side-by-side; export differential reports.
+
+4.10 Imports/Exports
+
+Imports: CSV/Excel with robust schema validator; field-by-field error reporting and suggested fixes.
+
+Exports: Full cap table, stakeholder statements, option grant packets, board deck charts (PNG/SVG), Excel models.
+
+API export (JSON) for downstream tools.
+
+4.11 Auditability & Compliance
+
+Immutable AuditLog with JSON Patch diffs.
+
+E-sign integration stubs (DocuSign/Adobe Sign) via webhook placeholders.
+
+Data retention and right-to-be-forgotten (PII) tools; configurable PII masking in investor views.
+
+5) Calculations & Edge Cases (Acceptance Criteria)
+
+Rounding & Precision
+
+Monetary calculations: store in minor units (cents) internally; display using currency formatting.
+
+Share counts to 6 decimals internally; display to 4 (configurable).
+
+Deterministic rounding policy per company; identical inputs produce identical outputs.
+
+Day-count Conventions
+
+Notes support Actual/365 and Actual/360; leap years handled.
+
+Vesting
+
+Cliff months count from vesting start date; partial months on termination are truncated unless policy says pro-rata by days.
+
+Early exercise: unvested shares are subject to repurchase at lower of cost or FMV (configurable).
+
+ISO $100k Limit
+
+If ISO value > $100k vesting in any calendar year (FMV at grant × shares vesting that year), excess automatically reclassified to NSO; report shows split.
+
+SAFE Conversions
+
+Pre-money SAFE: Round Price Per Share (PPS) = Pre-Money / (FD Pre-Round Shares). SAFE conversion price = min(cap_price, discount × PPS).
+
+Post-money SAFE: Shares_issued_to_SAFE = Investment / Conversion_Price, where Conversion_Price chosen so that post-financing capitalization defined by the SAFE yields investor’s PM ownership per contract. Implementation must adhere to PM SAFE capitalization definition (includes/excludes specific pools as per instrument). Scenario tests must reproduce YC examples.
+
+Anti-Dilution
+
+Implement series-level configuration for broad vs narrow base (e.g., include options outstanding and available, warrants, all convertibles as if converted).
+
+Pay-to-play: non-participants’ preferred convert to common or shadow preferred automatically, with optional discounts.
+
+Waterfall
+
+For each holder and series, compute greater of:
+
+Liquidation preference (multiple × original issue price × shares) plus participation (if any, capped), then seniority distribution rules.
+
+As-converted common participation.
+
+Waterfall must solve optimal convert-or-not for each preferred series.
+
+Corporate Actions
+
+Splits/reverse splits must preserve total company value; update strike prices and conversion prices inversely; maintain audit trail.
+
+Secondaries
+
+Transfer reduces seller stake and increases buyer stake with no change to company totals; vesting continues per grant terms unless explicitly transferred with conditions.
+
+6) UI/UX Requirements
+
+General
+
+Modern, responsive React UI (Vite + TypeScript) with data grid, inline edits, undo (local), and autosave.
+
+“As-of” selector (date/time) visible in header; scenario badge.
+
+Stakeholder pages with per-holder holdings, vesting charts, downloadable statements.
+
+Visuals: ownership pie, fully diluted bar chart by class, round impact dilutions, waterfall bars.
+
+Flows/Wizards
+
+New Round Wizard: inputs for pre-money, raise amount, option pool target/timing, per-investor checks, side letters (MFN/pro-rata).
+
+Note/SAFE Wizard: cap/discount/MFN/PM vs PM, interest policy, conversion mapping (shadow vs standard).
+
+Equity Award Wizard: vesting templates, ISO/NSO split preview, early-exercise toggles.
+
+Validation UX
+
+Inline validation with actionable error messages; cannot complete wizard with blocking errors.
+
+Scenario diff viewer: what changed (pool, PPS, ownership, FD% per holder).
+
+7) Tech Stack & Replit Setup
+
+Frontend
+
+React + TypeScript + Vite
+
+State: TanStack Query + Zustand (or Redux Toolkit)
+
+Component kit: Headless UI or Radix Primitives
+
+Backend
+
+Node.js + TypeScript
+
+Fastify or NestJS
+
+Prisma ORM
+
+Database
+
+SQLite for Replit development (default Prisma provider).
+
+Optional Postgres (neon.tech, Supabase) via DATABASE_URL secret.
+
+Auth
+
+NextAuth (if using Next.js) or custom OAuth2 with Passport for Fastify/Nest.
+
+JWT access tokens; short-lived; refresh via rotation.
+
+Hosting (Replit)
+
+Single Replit for monorepo or two repls (frontend/back).
+
+Secrets: DATABASE_URL, JWT_SECRET, OAUTH_GOOGLE_ID/SECRET, ENCRYPTION_KEY (AES-256 for PII at rest).
+
+Security
+
+HTTPS via Replit; server-side input validation (Zod).
+
+PII encryption at rest; hashed IP in logs; rate limiting; CSRF on web forms.
+
+8) API (Representative Endpoints)
+
+POST /api/companies – create company
+GET /api/companies/:id/cap-table?asOf=YYYY-MM-DD – current/frozen view
+POST /api/companies/:id/rounds – create round (priced/bridge/secondary)
+POST /api/companies/:id/convertibles – add note/SAFE
+POST /api/companies/:id/awards – grant option/RSU
+POST /api/companies/:id/corporate-actions/split – stock split
+POST /api/companies/:id/scenarios – create scenario
+GET /api/companies/:id/waterfall?scenario=...&ev=... – compute waterfall
+POST /api/imports – CSV upload → dry-run validate → commit
+GET /api/exports/cap-table.xlsx?companyId=...&scenario=...
+
+All write endpoints must:
+
+Validate payload, simulate, and return diff preview before commit (two-step “confirm” flag).
+
+Emit AuditLog entry with JSON Patch.
+
+9) Import/Export Schemas
+
+CSV Columns (examples)
+
+Share Issuances: holder_name, class, quantity, price_per_share, issue_date, certificate_no
+
+Options/RSUs: holder_email, type, grant_date, strike, qty, vesting_start, cliff_months, months_total
+
+Convertibles: type, principal, interest_rate, cap, discount, mf_n, pm (bool), issue_date, maturity_date
+
+Excel Export Tabs
+
+Cap Table (as-of), Fully Diluted, Awards, Convertibles, Rounds, Waterfall (parametric), Audit Log.
+
+10) Testing Strategy
+
+Unit Tests
+
+Anti-dilution formula variants with numeric fixtures.
+
+SAFE conversions (YC example parity).
+
+ISO $100k split across calendar years.
+
+Waterfall conversions (participating vs non).
+
+Property-Based Tests
+
+Randomized splits vs reverse splits preserve value and rights.
+
+Random notes/SAFEs sets → deterministic cap tables regardless of input order.
+
+Scenario Regression Packs
+
+Incorporation → Seed (PM SAFE) → Series A with pool pre-money → Down round with broad-based WA → Secondary → Exit with carveout.
+
+Edge: zero-price gifts (FMV validations), tiny fractional shares, multiple currencies (display only).
+
+Performance
+
+Target: recompute FD cap table ≤ 200ms on 10k instruments; waterfall ≤ 500ms with 10 series.
+
+11) Analytics & Observability
+
+Event logging for major actions (create round, import, convert).
+
+Error tracking (Sentry).
+
+Health check: /healthz returns DB and queue status.
+
+12) Documentation & Help
+
+In-app “What’s this?” tooltips for each advanced term (anti-dilution, MFN, shadow preferred).
+
+Onboarding sample company with preloaded scenarios.
+
+Legal disclaimer banner (configurable).
+
+13) Internationalization & Currency
+
+i18n ready (English default).
+
+Display currency configurable per company; no FX conversions in core (optional display-only FX rates with date).
+
+14) Acceptance Criteria (Summary)
+
+Users can create a company, model priced rounds, add SAFEs/notes, configure option pools (pre/post), and view as-of and scenario cap tables with correct math.
+
+Anti-dilution adjustments behave per series configuration (weighted average variants and full-ratchet) with transparent calculation explainers.
+
+Waterfall shows per-holder distributions under seniority/participation rules and optimizes convert-vs-liquidate automatically.
+
+All mutations produce preview diffs and permanent audit logs.
+
+Imports validate and map fields with clear error messages; exports open cleanly in Excel.
+
+Security: RBAC enforced; PII encrypted; 2FA available.
+
+Deterministic results: same inputs → same outputs across sessions.
+
+15) Delivery Notes (Replit)
+
+Provide a .replit and replit.nix (or Poetry/Node setup) to launch both API and frontend.
+
+Seed script to create a sample company with: founders, ESOP, two SAFEs (pre & post money), a note with cap+discount, Series A with pool pre-money, a down round, and a sample exit.
