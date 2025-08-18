@@ -63,24 +63,24 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
-        <thead className="bg-neutral-50">
+        <thead className="bg-neutral-50 dark:bg-neutral-800">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider sticky left-0 bg-neutral-50 z-10 border-r border-neutral-200">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider sticky left-0 bg-neutral-50 dark:bg-neutral-800 z-10 border-r border-neutral-200 dark:border-neutral-700">
               Stakeholder
             </th>
             {historicalDates.map(date => (
-              <th key={date} className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider min-w-[120px]">
+              <th key={date} className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider min-w-[120px]">
                 {date}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200">
+        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
           {stakeholders.map((stakeholder: any, index: number) => (
-            <tr key={index} className="hover:bg-neutral-50 transition-colors">
-              <td className="px-6 py-4 sticky left-0 bg-white z-10 border-r border-neutral-200">
+            <tr key={index} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+              <td className="px-6 py-4 sticky left-0 bg-white dark:bg-neutral-900 z-10 border-r border-neutral-200 dark:border-neutral-700">
                 <div className="flex items-center">
-                  <div className={`w-8 h-8 ${stakeholder.stakeholder.type === "entity" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"} rounded-full flex items-center justify-center mr-3`}>
+                  <div className={`w-8 h-8 ${stakeholder.stakeholder.type === "entity" ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"} rounded-full flex items-center justify-center mr-3`}>
                     {stakeholder.stakeholder.type === "entity" ? (
                       <i className="fas fa-building text-sm"></i>
                     ) : (
@@ -90,19 +90,19 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
                     )}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-neutral-900">{stakeholder.stakeholder.name}</div>
+                    <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{stakeholder.stakeholder.name}</div>
                     {stakeholder.stakeholder.title && (
-                      <div className="text-sm text-neutral-500">{stakeholder.stakeholder.title}</div>
+                      <div className="text-sm text-neutral-500 dark:text-neutral-400">{stakeholder.stakeholder.title}</div>
                     )}
                   </div>
                 </div>
               </td>
               {historicalDates.map(date => (
                 <td key={date} className="px-4 py-4 text-center">
-                  <div className="text-sm font-semibold text-neutral-900">
+                  <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                     {formatPercentage(stakeholder.history[date] || 0)}
                   </div>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
                     {((stakeholder.history[date] || 0) * 1000000).toLocaleString()} shares
                   </div>
                 </td>
@@ -110,14 +110,14 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
             </tr>
           ))}
         </tbody>
-        <tfoot className="bg-neutral-50 border-t-2 border-neutral-300">
+        <tfoot className="bg-neutral-50 dark:bg-neutral-800 border-t-2 border-neutral-300 dark:border-neutral-600">
           <tr>
-            <td className="px-6 py-4 text-sm font-semibold text-neutral-900 sticky left-0 bg-neutral-50 z-10 border-r border-neutral-200">
+            <td className="px-6 py-4 text-sm font-semibold text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-50 dark:bg-neutral-800 z-10 border-r border-neutral-200 dark:border-neutral-700">
               Total
             </td>
             {historicalDates.map(date => (
               <td key={date} className="px-4 py-4 text-center">
-                <div className="text-sm font-semibold text-neutral-900">100.00%</div>
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">100.00%</div>
               </td>
             ))}
           </tr>

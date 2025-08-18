@@ -8,9 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { ArrowRight, Users, TrendingUp, Shield, Calculator, Smartphone, BarChart3, FileText, Zap, CheckCircle } from "lucide-react";
-import dashboardScreenshot from "@assets/generated_images/Cap_table_dashboard_interface_5d46ff51.png";
-import mobileScreenshot from "@assets/generated_images/Mobile_cap_table_interface_8346c84d.png";
-import modelingScreenshot from "@assets/generated_images/Funding_round_modeling_interface_c964ab35.png";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -61,7 +58,7 @@ export default function Landing() {
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -91,7 +88,7 @@ export default function Landing() {
       toast({
         title: "Registration failed",
         description: error.message || "Failed to create account",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -144,13 +141,13 @@ export default function Landing() {
           </div>
           
           <h2 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-4 leading-tight">
-            Управляйте капитализацией
-            <span className="text-primary block">с профессиональной точностью</span>
+            Manage Your Cap Table
+            <span className="text-primary block">with Professional Precision</span>
           </h2>
           
           <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-6 leading-relaxed">
-            Комплексная платформа для стартапов: отслеживание долей, управление стейкхолдерами, 
-            моделирование раундов и соблюдение требований.
+            Comprehensive platform for startups: track equity, manage stakeholders, 
+            model funding rounds, and maintain compliance.
           </p>
         </div>
       </div>
@@ -169,13 +166,13 @@ export default function Landing() {
               </div>
               
               <h2 className="text-6xl font-bold text-neutral-900 dark:text-neutral-100 mb-6 leading-tight">
-                Управляйте капитализацией с
-                <span className="text-primary"> профессиональной точностью</span>
+                Manage Your Cap Table with
+                <span className="text-primary"> Professional Precision</span>
               </h2>
               
               <p className="text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed">
-                Комплексная платформа для стартапов: отслеживание долей, управление стейкхолдерами, 
-                моделирование раундов инвестиций и поддержание соответствия требованиям с расширенным планированием сценариев.
+                The comprehensive platform for startups to track equity, manage stakeholders, 
+                model funding rounds, and maintain compliance with advanced scenario planning.
               </p>
             </div>
           </div>
@@ -185,12 +182,12 @@ export default function Landing() {
             <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm dark:bg-neutral-800/90">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl text-neutral-900 dark:text-neutral-100">
-                  {isLogin ? "Войти" : "Создать аккаунт"}
+                  {isLogin ? "Sign In" : "Create Account"}
                 </CardTitle>
                 <CardDescription className="dark:text-neutral-400">
                   {isLogin 
-                    ? "С возвращением! Войдите для доступа к вашим таблицам капитализации." 
-                    : "Присоединяйтесь к тысячам основателей, управляющих своими долями с CapTable Pro."
+                    ? "Welcome back! Sign in to access your cap tables." 
+                    : "Join thousands of founders managing their equity with CapTable Pro."
                   }
                 </CardDescription>
               </CardHeader>
@@ -202,7 +199,7 @@ export default function Landing() {
                       <div>
                         <Input
                           type="text"
-                          placeholder="Имя"
+                          placeholder="First Name"
                           value={formData.firstName}
                           onChange={(e) => handleInputChange("firstName", e.target.value)}
                           className={`touch-target ${errors.firstName ? "border-red-500" : ""}`}
@@ -214,7 +211,7 @@ export default function Landing() {
                       <div>
                         <Input
                           type="text"
-                          placeholder="Фамилия"
+                          placeholder="Last Name"
                           value={formData.lastName}
                           onChange={(e) => handleInputChange("lastName", e.target.value)}
                           className={`touch-target ${errors.lastName ? "border-red-500" : ""}`}
@@ -242,7 +239,7 @@ export default function Landing() {
                   <div>
                     <Input
                       type="password"
-                      placeholder="Пароль"
+                      placeholder="Password"
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
                       className={`touch-target ${errors.password ? "border-red-500" : ""}`}
@@ -258,15 +255,15 @@ export default function Landing() {
                     disabled={loginMutation.isPending || registerMutation.isPending}
                   >
                     {loginMutation.isPending || registerMutation.isPending 
-                      ? "Обработка..." 
-                      : isLogin ? "Войти" : "Создать аккаунт"
+                      ? "Processing..." 
+                      : isLogin ? "Sign In" : "Create Account"
                     }
                   </Button>
                 </form>
                 
                 <div className="mt-6 text-center">
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    {isLogin ? "Нет аккаунта?" : "Уже есть аккаунт?"}
+                    {isLogin ? "Don't have an account?" : "Already have an account?"}
                     <button
                       type="button"
                       onClick={() => {
@@ -276,7 +273,7 @@ export default function Landing() {
                       }}
                       className="ml-1 text-primary hover:underline font-medium"
                     >
-                      {isLogin ? "Зарегистрироваться" : "Войти"}
+                      {isLogin ? "Sign up" : "Sign in"}
                     </button>
                   </p>
                 </div>
@@ -291,12 +288,12 @@ export default function Landing() {
         <Card className="shadow-xl bg-white/95 backdrop-blur-sm dark:bg-neutral-800/95">
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100">
-              {isLogin ? "Войти" : "Создать аккаунт"}
+              {isLogin ? "Sign In" : "Create Account"}
             </CardTitle>
             <CardDescription className="text-sm dark:text-neutral-400">
               {isLogin 
-                ? "Войдите для доступа к вашим таблицам" 
-                : "Присоединяйтесь к CapTable Pro"
+                ? "Access your cap tables" 
+                : "Join CapTable Pro"
               }
             </CardDescription>
           </CardHeader>
@@ -307,7 +304,7 @@ export default function Landing() {
                 <div className="space-y-4">
                   <Input
                     type="text"
-                    placeholder="Имя"
+                    placeholder="First Name"
                     value={formData.firstName}
                     onChange={(e) => handleInputChange("firstName", e.target.value)}
                     className={`touch-target ${errors.firstName ? "border-red-500" : ""}`}
@@ -317,7 +314,7 @@ export default function Landing() {
                   )}
                   <Input
                     type="text"
-                    placeholder="Фамилия"
+                    placeholder="Last Name"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
                     className={`touch-target ${errors.lastName ? "border-red-500" : ""}`}
@@ -344,7 +341,7 @@ export default function Landing() {
               <div>
                 <Input
                   type="password"
-                  placeholder="Пароль"
+                  placeholder="Password"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   className={`touch-target ${errors.password ? "border-red-500" : ""}`}
@@ -360,15 +357,15 @@ export default function Landing() {
                 disabled={loginMutation.isPending || registerMutation.isPending}
               >
                 {loginMutation.isPending || registerMutation.isPending 
-                  ? "Обработка..." 
-                  : isLogin ? "Войти" : "Создать аккаунт"
+                  ? "Processing..." 
+                  : isLogin ? "Sign In" : "Create Account"
                 }
               </Button>
             </form>
             
             <div className="mt-6 text-center">
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                {isLogin ? "Нет аккаунта?" : "Уже есть аккаунт?"}
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
                 <button
                   type="button"
                   onClick={() => {
@@ -378,7 +375,7 @@ export default function Landing() {
                   }}
                   className="ml-1 text-primary hover:underline font-medium"
                 >
-                  {isLogin ? "Зарегистрироваться" : "Войти"}
+                  {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </p>
             </div>
@@ -391,11 +388,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 lg:mb-16">
             <h3 className="text-2xl lg:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-              Полный функционал для управления капитализацией
+              Complete Cap Table Management
             </h3>
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-              Все инструменты, необходимые для точного отслеживания долей, моделирования инвестиций 
-              и управления стейкхолдерами в одной интуитивной платформе.
+              All the tools you need for accurate equity tracking, investment modeling, 
+              and stakeholder management in one intuitive platform.
             </p>
           </div>
 
@@ -407,11 +404,11 @@ export default function Landing() {
                   <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Управление стейкхолдерами
+                  Stakeholder Management
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Централизованная база данных всех акционеров, инвесторов и опционщиков с детальной 
-                  информацией о каждом участнике и их долях в компании.
+                  Centralized database of all shareholders, investors, and option holders with detailed 
+                  information about each participant and their equity stakes.
                 </p>
               </CardContent>
             </Card>
@@ -422,11 +419,11 @@ export default function Landing() {
                   <Calculator className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Моделирование раундов
+                  Funding Round Modeling
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Создавайте и сравнивайте различные сценарии инвестиций с расчетом размывания долей, 
-                  пре- и пост-money оценок, влияния на текущих акционеров.
+                  Create and compare different investment scenarios with dilution calculations, 
+                  pre- and post-money valuations, and impact on existing shareholders.
                 </p>
               </CardContent>
             </Card>
@@ -437,11 +434,11 @@ export default function Landing() {
                   <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Отслеживание долей
+                  Equity Tracking
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Автоматические расчеты долей владения с учетом всех типов инструментов: 
-                  обыкновенные акции, опционы, SAFE, конвертируемые займы.
+                  Automatic ownership calculations across all instrument types: 
+                  common shares, options, SAFEs, and convertible notes.
                 </p>
               </CardContent>
             </Card>
@@ -452,11 +449,11 @@ export default function Landing() {
                   <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  История транзакций
+                  Transaction History
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Полная история всех операций с акциями: эмиссии, передачи, исполнение опционов, 
-                  конверсии SAFE с временными метками и аудитом.
+                  Complete history of all equity transactions: issuances, transfers, option exercises, 
+                  SAFE conversions with timestamps and audit trails.
                 </p>
               </CardContent>
             </Card>
@@ -467,11 +464,11 @@ export default function Landing() {
                   <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Соблюдение требований
+                  Compliance Ready
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Встроенные проверки соответствия корпоративному законодательству, 
-                  автоматические уведомления и подготовка отчетности для регуляторов.
+                  Built-in compliance checks for corporate law, 
+                  automatic notifications, and regulatory reporting preparation.
                 </p>
               </CardContent>
             </Card>
@@ -482,122 +479,17 @@ export default function Landing() {
                   <Smartphone className="h-6 w-6 text-teal-600 dark:text-teal-400" />
                 </div>
                 <h4 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Мобильный доступ
+                  Mobile Access
                 </h4>
                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                  Полноценный доступ ко всем функциям с любого устройства. 
-                  Оптимизированный интерфейс для планшетов и смартфонов.
+                  Full access to all features from any device. 
+                  Optimized interface for tablets and smartphones.
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Screenshots Section */}
-          <div className="space-y-12 lg:space-y-20">
-            {/* Desktop Dashboard */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div>
-                <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-                  Профессиональный дашборд
-                </h4>
-                <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-6">
-                  Получайте полное представление о структуре капитала компании с интерактивными 
-                  таблицами, графиками и аналитикой в реальном времени.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Визуализация данных в реальном времени</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Интерактивные таблицы и графики</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Экспорт и печать отчетов</span>
-                  </div>
-                </div>
-              </div>
-              <div className="order-first lg:order-last">
-                <img 
-                  src={dashboardScreenshot} 
-                  alt="Дашборд таблицы капитализации" 
-                  className="rounded-lg shadow-2xl border border-neutral-200 dark:border-neutral-700 w-full"
-                />
-              </div>
-            </div>
 
-            {/* Mobile Interface */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div className="flex justify-center">
-                <div className="max-w-sm">
-                  <img 
-                    src={mobileScreenshot} 
-                    alt="Мобильный интерфейс" 
-                    className="rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-700 w-full"
-                  />
-                </div>
-              </div>
-              <div>
-                <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-                  Удобство на любом устройстве
-                </h4>
-                <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-6">
-                  Полный функционал доступен с телефона или планшета. Отзывчивый дизайн 
-                  и оптимизация для сенсорных экранов обеспечивают комфортную работу везде.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Сенсорно-дружелюбный интерфейс</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Оптимизация для iOS и Android</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Офлайн-режим для просмотра данных</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modeling Interface */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div>
-                <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-                  Продвинутое моделирование
-                </h4>
-                <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-6">
-                  Создавайте детальные сценарии инвестиций с поддержкой множественных инвесторов, 
-                  сравнением до/после и расчетом влияния на всех стейкхолдеров.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Сравнение до/после инвестиций</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Расчет размывания долей</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-neutral-700 dark:text-neutral-300">Сохранение и загрузка сценариев</span>
-                  </div>
-                </div>
-              </div>
-              <div className="order-first lg:order-last">
-                <img 
-                  src={modelingScreenshot} 
-                  alt="Интерфейс моделирования раундов" 
-                  className="rounded-lg shadow-2xl border border-neutral-200 dark:border-neutral-700 w-full"
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -605,11 +497,11 @@ export default function Landing() {
       <div className="px-4 lg:px-8 py-12 lg:py-20 bg-gradient-to-r from-primary to-blue-600">
         <div className="max-w-4xl mx-auto text-center">
           <h3 className="text-2xl lg:text-4xl font-bold text-white mb-4">
-            Начните управлять капитализацией профессионально
+            Start Managing Your Cap Table Professionally
           </h3>
           <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-            Присоединяйтесь к сотням стартапов, которые доверяют CapTable Pro 
-            управление своими таблицами капитализации и планирование инвестиций.
+            Join hundreds of startups that trust CapTable Pro 
+            to manage their cap tables and plan their investments.
           </p>
           <Button 
             size="lg" 
@@ -619,7 +511,7 @@ export default function Landing() {
               document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
             }}
           >
-            Начать бесплатно
+            Get Started Free
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
