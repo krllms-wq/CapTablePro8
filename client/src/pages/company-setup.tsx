@@ -134,9 +134,9 @@ export default function CompanySetup() {
     defaultValues: {
       name: "",
       description: "",
-      country: "",
+      country: "US",
       incorporationDate: "",
-      authorizedShares: "",
+      authorizedShares: "10000000",
     },
   });
 
@@ -168,10 +168,11 @@ export default function CompanySetup() {
         description: "Company created successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Company creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create company",
+        description: error?.message || "Failed to create company",
         variant: "destructive",
       });
     },
@@ -189,31 +190,23 @@ export default function CompanySetup() {
         type: "person",
       });
 
-      // Create initial share issuance
-      await apiRequest("POST", `/api/companies/${companyId}/share-ledger`, {
-        stakeholderId: stakeholder.id,
-        securityClassId: "common", // Would be actual ID in real app
-        shares: data.shares,
-        pricePerShare: 0.01, // Nominal price for founder shares
-        transactionType: "issuance",
-        issuedAt: new Date().toISOString(),
-      });
-
+      // For now, just create the stakeholder - share issuance would need proper security class setup
       return stakeholder;
     },
-    onSuccess: () => {
+    onSuccess: (stakeholder) => {
       const newFounder = founderForm.getValues();
       setFounders(prev => [...prev, newFounder]);
       founderForm.reset();
       toast({
         title: "Success",
-        description: "Founder added successfully",
+        description: `${newFounder.name} added as founder`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Founder creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to add founder",
+        description: error?.message || "Failed to add founder",
         variant: "destructive",
       });
     },
