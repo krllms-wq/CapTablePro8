@@ -146,7 +146,7 @@ export default function CompanySetup() {
       name: "",
       email: "",
       title: "",
-      shares: "",
+      shares: 1000000,
     },
   });
 
@@ -182,15 +182,31 @@ export default function CompanySetup() {
     mutationFn: async (data: FounderFormData) => {
       if (!companyId) throw new Error("No company selected");
       
+      console.log("Creating founder with data:", data);
+      console.log("Company ID:", companyId);
+      
       // Create stakeholder
-      const stakeholder = await apiRequest("POST", `/api/companies/${companyId}/stakeholders`, {
-        name: data.name,
-        email: data.email,
-        title: data.title,
-        type: "person",
+      const response = await fetch(`/api/companies/${companyId}/stakeholders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          title: data.title,
+          type: "person",
+        }),
       });
 
-      // For now, just create the stakeholder - share issuance would need proper security class setup
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error:", errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const stakeholder = await response.json();
+      console.log("Created stakeholder:", stakeholder);
       return stakeholder;
     },
     onSuccess: (stakeholder) => {
