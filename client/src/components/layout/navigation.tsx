@@ -1,15 +1,26 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 
 export default function Navigation() {
   const [location] = useLocation();
+  const { companyId } = useParams();
 
-  const navItems = [
-    { path: "/", label: "Cap Table", icon: "fas fa-table" },
-    { path: "/stakeholders", label: "Stakeholders", icon: "fas fa-users" },
-    { path: "/transactions", label: "Transactions", icon: "fas fa-file-text" },
-    { path: "/equity-awards", label: "Equity Awards", icon: "fas fa-gift" },
-    { path: "/scenarios", label: "Scenarios", icon: "fas fa-exchange-alt" },
-  ];
+  const getNavItems = () => {
+    if (!companyId) {
+      return [
+        { path: "/", label: "Companies", icon: "fas fa-building" },
+      ];
+    }
+    
+    return [
+      { path: `/companies/${companyId}`, label: "Cap Table", icon: "fas fa-table" },
+      { path: `/companies/${companyId}/stakeholders`, label: "Stakeholders", icon: "fas fa-users" },
+      { path: `/companies/${companyId}/transactions`, label: "Transactions", icon: "fas fa-file-text" },
+      { path: `/companies/${companyId}/equity-awards`, label: "Equity Awards", icon: "fas fa-gift" },
+      { path: `/companies/${companyId}/scenarios`, label: "Scenarios", icon: "fas fa-exchange-alt" },
+    ];
+  };
+
+  const navItems = getNavItems();
 
   return (
     <nav className="bg-white border-b border-neutral-200 px-6 py-4">
@@ -44,11 +55,18 @@ export default function Navigation() {
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-neutral-100 rounded-lg px-3 py-2">
-            <i className="fas fa-calendar text-neutral-500 text-sm"></i>
-            <span className="text-sm font-medium text-neutral-700">As of:</span>
-            <span className="text-sm font-semibold text-neutral-900">Jan 15, 2024</span>
-          </div>
+          {companyId && (
+            <div className="flex items-center space-x-2 bg-neutral-100 rounded-lg px-3 py-2">
+              <i className="fas fa-calendar text-neutral-500 text-sm"></i>
+              <span className="text-sm font-medium text-neutral-700">As of:</span>
+              <select className="text-sm font-semibold text-neutral-900 bg-transparent border-none outline-none">
+                <option value="current">Current</option>
+                <option value="2024-01-15">Jan 15, 2024</option>
+                <option value="2023-12-31">Dec 31, 2023</option>
+                <option value="2023-09-30">Sep 30, 2023</option>
+              </select>
+            </div>
+          )}
           
           <button className="p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
             <i className="fas fa-bell text-lg"></i>

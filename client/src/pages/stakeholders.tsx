@@ -1,144 +1,145 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Users, User, Building, Mail, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Navigation from "@/components/layout/navigation";
-import type { Stakeholder } from "@shared/schema";
+import { formatNumber } from "@/lib/formatters";
 
 export default function Stakeholders() {
-  // Get the actual company ID from the companies list
-  const { data: companies } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ["/api/companies"],
-  });
-  const companyId = companies?.[0]?.id;
+  const { companyId } = useParams();
 
-  const { data: stakeholders, isLoading } = useQuery<Stakeholder[]>({
+  const { data: stakeholders, isLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "stakeholders"],
     enabled: !!companyId,
   });
 
-  const personStakeholders = stakeholders?.filter(s => s.type === "person") || [];
-  const entityStakeholders = stakeholders?.filter(s => s.type === "entity") || [];
+  const { data: capTableData } = useQuery({
+    queryKey: ["/api/companies", companyId, "cap-table"],
+    enabled: !!companyId,
+  });
 
-  return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Header */}
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
+        </div>
         <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-3">
-                <Users className="h-8 w-8" />
-                Stakeholders
-              </h1>
-              <p className="text-neutral-600 mt-1">
-                Manage individual and entity stakeholders in your cap table
-              </p>
-            </div>
+          <div className="animate-pulse space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-neutral-200 rounded"></div>
+            ))}
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Individual Stakeholders</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{personStakeholders.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Founders, employees, and advisors
-              </p>
-            </CardContent>
-          </Card>
+  const stakeholderData = stakeholders?.map((stakeholder: any) => {
+    const ownership = capTableData?.capTable?.find((row: any) => 
+      row.stakeholder.name === stakeholder.name
+    );
+    return {
+      ...stakeholder,
+      shares: ownership?.shares || 0,
+      ownership: ownership?.ownership || 0,
+      value: ownership?.value || 0,
+    };
+  }) || [];
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Entity Stakeholders</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{entityStakeholders.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Institutional investors and funds
-              </p>
-            </CardContent>
-          </Card>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
+        <Button>
+          <i className="fas fa-plus mr-2"></i>
+          Add Stakeholder
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-200">
+          <h3 className="text-lg font-semibold text-neutral-900">All Stakeholders</h3>
         </div>
-
-        {/* Stakeholders Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>All Stakeholders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading stakeholders...</div>
-            ) : stakeholders?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No stakeholders found
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stakeholders?.map((stakeholder) => (
-                    <TableRow key={stakeholder.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {stakeholder.type === "person" ? (
-                            <User className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Building className="h-4 w-4 text-muted-foreground" />
-                          )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-neutral-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Title
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Shares
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Ownership %
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Value
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-neutral-200">
+              {stakeholderData.map((stakeholder: any) => (
+                <tr key={stakeholder.id} className="hover:bg-neutral-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          {stakeholder.name.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-neutral-900">
                           {stakeholder.name}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={stakeholder.type === "person" ? "default" : "secondary"}>
-                          {stakeholder.type === "person" ? "Individual" : "Entity"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{stakeholder.title || "-"}</TableCell>
-                      <TableCell>
-                        {stakeholder.email ? (
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            <span className="text-sm">{stakeholder.email}</span>
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/stakeholders/${stakeholder.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View Details
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                        <div className="text-sm text-neutral-500">
+                          {stakeholder.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
+                    {stakeholder.title || "—"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      stakeholder.type === "person" 
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-green-100 text-green-800"
+                    }`}>
+                      {stakeholder.type === "person" ? "Individual" : "Entity"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                    {formatNumber(stakeholder.shares)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                    {stakeholder.ownership.toFixed(2)}%
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                    ${formatNumber(stakeholder.value)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="text-primary hover:text-primary-dark mr-3">
+                      Edit
+                    </button>
+                    <button className="text-red-600 hover:text-red-900">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

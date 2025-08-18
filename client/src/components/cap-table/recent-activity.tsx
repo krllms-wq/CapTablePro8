@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 
 interface RecentActivityProps {
   companyId: string;
@@ -11,61 +12,61 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
     enabled: !!companyId,
   });
 
-  // Mock recent activities for display
-  const mockActivities = [
-    {
-      id: "1",
-      type: "option_grant",
-      title: "Option grant",
-      description: "to Sarah Adams",
-      details: "185,000 shares • 4-year vesting • 1-year cliff",
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      icon: "fas fa-plus",
-      iconColor: "text-green-600",
-      iconBg: "bg-green-100"
-    },
-    {
-      id: "2",
-      type: "round_closed",
-      title: "Series A",
-      description: "round closed",
-      details: "$10M raised • 1.5M new shares • $6.67 PPS",
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-      icon: "fas fa-exchange-alt",
-      iconColor: "text-blue-600",
-      iconBg: "bg-blue-100"
-    },
-    {
-      id: "3",
-      type: "safe_conversion",
-      title: "SAFE conversion",
-      description: "completed",
-      details: "$2M SAFE • 20% discount • 350,000 shares",
-      timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
-      icon: "fas fa-file-alt",
-      iconColor: "text-orange-600",
-      iconBg: "bg-orange-100"
-    },
-    {
-      id: "4",
-      type: "option_pool",
-      title: "Option pool",
-      description: "increased",
-      details: "15% post-money • 1.2M shares allocated",
-      timestamp: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 3 weeks ago
-      icon: "fas fa-users",
-      iconColor: "text-purple-600",
-      iconBg: "bg-purple-100"
+  // Transform audit logs into activities
+  const activities = auditLogs?.slice(0, 4).map((log: any) => ({
+    id: log.id,
+    type: log.action,
+    title: log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+    description: log.details || `${log.entityType} ${log.action}`,
+    details: log.metadata ? JSON.stringify(log.metadata) : "No details available",
+    timestamp: new Date(log.timestamp),
+    icon: getActivityIcon(log.action),
+    iconColor: getActivityIconColor(log.action),
+    iconBg: getActivityIconBg(log.action)
+  })) || [];
+
+  function getActivityIcon(action: string) {
+    switch (action) {
+      case 'create': return "fas fa-plus";
+      case 'update': return "fas fa-edit";
+      case 'delete': return "fas fa-trash";
+      case 'issue_shares': return "fas fa-certificate";
+      case 'grant_options': return "fas fa-gift";
+      default: return "fas fa-file";
     }
-  ];
+  }
+
+  function getActivityIconColor(action: string) {
+    switch (action) {
+      case 'create': return "text-green-600";
+      case 'update': return "text-blue-600";
+      case 'delete': return "text-red-600";
+      case 'issue_shares': return "text-purple-600";
+      case 'grant_options': return "text-orange-600";
+      default: return "text-neutral-600";
+    }
+  }
+
+  function getActivityIconBg(action: string) {
+    switch (action) {
+      case 'create': return "bg-green-100";
+      case 'update': return "bg-blue-100";
+      case 'delete': return "bg-red-100";
+      case 'issue_shares': return "bg-purple-100";
+      case 'grant_options': return "bg-orange-100";
+      default: return "bg-neutral-100";
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-neutral-900">Recent Activity</h3>
-        <button className="text-neutral-400 hover:text-neutral-600 transition-colors">
-          <i className="fas fa-history"></i>
-        </button>
+        <Link href={`/companies/${companyId}/transactions`}>
+          <button className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            View all activity
+          </button>
+        </Link>
       </div>
       
       {isLoading ? (
@@ -80,9 +81,13 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
             </div>
           ))}
         </div>
+      ) : activities.length === 0 ? (
+        <div className="text-center text-neutral-500">
+          No recent activity found
+        </div>
       ) : (
         <div className="space-y-4">
-          {mockActivities.map((activity) => (
+          {activities.map((activity) => (
             <div key={activity.id} className="flex items-start space-x-3">
               <div className={`w-8 h-8 ${activity.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
                 <i className={`${activity.icon} ${activity.iconColor} text-sm`}></i>

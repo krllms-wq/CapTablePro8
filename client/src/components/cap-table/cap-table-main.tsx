@@ -24,6 +24,7 @@ interface CapTableMainProps {
 
 export default function CapTableMain({ capTable, isLoading }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
+  const [tableView, setTableView] = useState<"current" | "historical">("current");
 
   if (isLoading) {
     return (
@@ -45,8 +46,32 @@ export default function CapTableMain({ capTable, isLoading }: CapTableMainProps)
   if (!capTable || capTable.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 mb-6">
-        <div className="px-6 py-4 border-b border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-neutral-900">Capitalization Table</h3>
+          <div className="flex items-center space-x-2">
+            <div className="flex rounded-lg border border-neutral-200 overflow-hidden">
+              <button
+                onClick={() => setTableView("current")}
+                className={`px-3 py-1 text-sm font-medium transition-colors ${
+                  tableView === "current"
+                    ? "bg-primary text-white"
+                    : "bg-white text-neutral-600 hover:bg-neutral-50"
+                }`}
+              >
+                Current
+              </button>
+              <button
+                onClick={() => setTableView("historical")}
+                className={`px-3 py-1 text-sm font-medium transition-colors ${
+                  tableView === "historical"
+                    ? "bg-primary text-white"
+                    : "bg-white text-neutral-600 hover:bg-neutral-50"
+                }`}
+              >
+                Historical
+              </button>
+            </div>
+          </div>
         </div>
         <div className="p-6 text-center text-neutral-500">
           No cap table data available
