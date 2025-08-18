@@ -9,8 +9,8 @@ import { formatNumber, formatDate } from "@/lib/formatters";
 import Navigation from "@/components/layout/navigation";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
-import { SafeAgreementDialog } from "@/components/dialogs/safe-agreement-dialog";
-import { ConvertibleNoteDialog } from "@/components/dialogs/convertible-note-dialog";
+import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
+import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield } from "lucide-react";
 
@@ -272,16 +272,19 @@ export default function TransactionsPage() {
       <SafeAgreementDialog
         open={selectedTransactionType === "safe"}
         onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
       />
 
       <ConvertibleNoteDialog
         open={selectedTransactionType === "convertible"}
         onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
       />
 
       <SecondaryTransactionDialog
         open={selectedTransactionType === "secondary"}
         onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
       />
     </div>
   );

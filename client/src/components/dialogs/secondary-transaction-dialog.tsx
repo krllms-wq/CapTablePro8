@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 interface SecondaryTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  companyId: string;
 }
 
-export function SecondaryTransactionDialog({ open, onOpenChange }: SecondaryTransactionDialogProps) {
-  const { companyId } = useParams();
+export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: SecondaryTransactionDialogProps) {
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({

@@ -27,18 +27,22 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 
 const grantOptionsSchema = z.object({
-  type: z.enum(["ISO", "NSO"]),
   holderId: z.string().min(1, "Please select a stakeholder"),
-  strikePrice: z.string().min(0, "Strike price must be positive").transform(val => parseFloat(val)),
-  quantityGranted: z.string().min(1, "Quantity is required").transform(val => parseInt(val)),
-  cliffMonths: z.string().min(0, "Cliff months must be positive").transform(val => parseInt(val)),
-  totalMonths: z.string().min(1, "Total months is required").transform(val => parseInt(val)),
+  type: z.string().min(1, "Please select option type"),
+  quantityGranted: z.string().min(1, "Quantity is required"),
+  strikePrice: z.string().min(1, "Strike price is required"),
+  grantDate: z.string().min(1, "Grant date is required"),
+  vestingStartDate: z.string().min(1, "Vesting start date is required"),
+  vestingCliff: z.string().optional(),
+  vestingPeriod: z.string().optional(),
 });
 
 type GrantOptionsFormData = z.infer<typeof grantOptionsSchema>;
@@ -51,8 +55,14 @@ interface GrantOptionsDialogProps {
 
 export default function GrantOptionsDialog({ open, onOpenChange, companyId }: GrantOptionsDialogProps) {
   const { toast } = useToast();
+  const [showNewStakeholder, setShowNewStakeholder] = useState(false);
+  const [newStakeholder, setNewStakeholder] = useState({
+    name: "",
+    email: "",
+    type: "individual" as "individual" | "entity"
+  });
 
-  const { data: stakeholders } = useQuery<Stakeholder[]>({
+  const { data: stakeholders = [] } = useQuery<Stakeholder[]>({
     queryKey: ["/api/companies", companyId, "stakeholders"],
     enabled: !!companyId && open,
   });
@@ -60,104 +70,130 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
   const form = useForm<GrantOptionsFormData>({
     resolver: zodResolver(grantOptionsSchema),
     defaultValues: {
-      type: "ISO",
       holderId: "",
-      strikePrice: "0.01",
-      quantityGranted: "1000",
-      cliffMonths: "12",
-      totalMonths: "48",
+      type: "stock_option",
+      quantityGranted: "",
+      strikePrice: "",
+      grantDate: new Date().toISOString().split('T')[0],
+      vestingStartDate: new Date().toISOString().split('T')[0],
+      vestingCliff: "12",
+      vestingPeriod: "48",
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: async (data: GrantOptionsFormData) => {
-      const grantDate = new Date();
-      const vestingStartDate = new Date(grantDate);
-      const vestingEndDate = new Date(grantDate);
-      vestingEndDate.setMonth(vestingEndDate.getMonth() + data.totalMonths);
+  const createStakeholderMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/companies/${companyId}/stakeholders`, {
+        method: "POST",
+        body: data
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create stakeholder",
+        variant: "error",
+      });
+    }
+  });
 
-      const payload = {
-        ...data,
-        grantDate: grantDate.toISOString(),
-        vestingStartDate: vestingStartDate.toISOString(),
-        vestingEndDate: vestingEndDate.toISOString(),
-        quantityExercised: 0,
-        quantityCanceled: 0,
-        earlyExerciseAllowed: false,
-        iso100kLimitTracking: data.type === "ISO",
-      };
-      return apiRequest("POST", `/api/companies/${companyId}/equity-awards`, payload);
+  const grantOptionsMutation = useMutation({
+    mutationFn: async (data: GrantOptionsFormData) => {
+      let holderId = data.holderId;
+      
+      if (data.holderId === "new") {
+        if (!newStakeholder.name.trim()) {
+          throw new Error("Stakeholder name is required");
+        }
+        
+        const stakeholder = await createStakeholderMutation.mutateAsync({
+          name: newStakeholder.name,
+          email: newStakeholder.email || null,
+          type: newStakeholder.type,
+        });
+        holderId = stakeholder.id;
+      }
+
+      return apiRequest(`/api/companies/${companyId}/equity-awards`, {
+        method: "POST",
+        body: {
+          holderId,
+          type: data.type,
+          quantityGranted: parseInt(data.quantityGranted),
+          quantityExercised: 0,
+          quantityCanceled: 0,
+          strikePrice: parseFloat(data.strikePrice),
+          grantDate: new Date(data.grantDate),
+          vestingStartDate: new Date(data.vestingStartDate),
+          vestingCliff: data.vestingCliff ? parseInt(data.vestingCliff) : null,
+          vestingPeriod: data.vestingPeriod ? parseInt(data.vestingPeriod) : null,
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       toast({
         title: "Success",
-        description: "Stock options granted successfully",
+        description: "Options granted successfully",
+        variant: "success",
       });
-      form.reset();
       onOpenChange(false);
+      form.reset();
+      setNewStakeholder({ name: "", email: "", type: "individual" });
+      setShowNewStakeholder(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to grant options",
-        variant: "destructive",
+        variant: "error",
       });
-    },
+    }
   });
 
   const onSubmit = (data: GrantOptionsFormData) => {
-    mutation.mutate(data);
+    grantOptionsMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Grant Stock Options</DialogTitle>
+          <DialogTitle>Grant Options</DialogTitle>
           <DialogDescription>
-            Create a new stock option grant for an employee or stakeholder.
+            Grant stock options to employees or advisors
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Option Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select option type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="ISO">Incentive Stock Option (ISO)</SelectItem>
-                      <SelectItem value="NSO">Non-Qualified Stock Option (NSO)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            {/* Stakeholder Selection */}
             <FormField
               control={form.control}
               name="holderId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stakeholder</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>Stakeholder *</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowNewStakeholder(value === "new");
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select stakeholder" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {stakeholders?.map((stakeholder) => (
+                      <SelectItem value="new">
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Add New Stakeholder
+                        </div>
+                      </SelectItem>
+                      {stakeholders.map((stakeholder) => (
                         <SelectItem key={stakeholder.id} value={stakeholder.id}>
                           {stakeholder.name}
                         </SelectItem>
@@ -169,85 +205,173 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
               )}
             />
 
+            {/* New Stakeholder Form */}
+            {showNewStakeholder && (
+              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-medium text-sm">New Stakeholder Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Name *</Label>
+                    <Input
+                      value={newStakeholder.name}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                      placeholder="Enter name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newStakeholder.email}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                      placeholder="Enter email"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Type</Label>
+                  <Select 
+                    value={newStakeholder.type} 
+                    onValueChange={(value: "individual" | "entity") => 
+                      setNewStakeholder({...newStakeholder, type: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="entity">Entity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Option Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Option Type *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="stock_option">Stock Option</SelectItem>
+                        <SelectItem value="RSU">RSU</SelectItem>
+                        <SelectItem value="warrant">Warrant</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quantityGranted"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity *</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="10000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="strikePrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Strike Price ($) *</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="1.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="grantDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grant Date *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="quantityGranted"
+              name="vestingStartDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quantity</FormLabel>
+                  <FormLabel>Vesting Start Date *</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter number of options"
-                      {...field}
-                    />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="strikePrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Strike Price ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter strike price"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="vestingCliff"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliff Period (months)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="12" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vestingPeriod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Vesting Period (months)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="48" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="cliffMonths"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliff Period (Months)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter cliff period in months"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="totalMonths"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Vesting Period (Months)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter total vesting period"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? "Granting..." : "Grant Options"}
+              <Button
+                type="submit"
+                disabled={grantOptionsMutation.isPending}
+              >
+                {grantOptionsMutation.isPending ? "Granting..." : "Grant Options"}
               </Button>
             </div>
           </form>

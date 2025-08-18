@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AppShell } from "@/components/layout/AppShell";
+import Navigation from "@/components/layout/navigation";
 import { queryClient } from "@/lib/queryClient";
 import { Building2, Search, Plus } from "lucide-react";
 
@@ -46,23 +46,25 @@ export default function CompaniesPage() {
   );
 
   const LoadingState = () => (
-    <AppShell breadcrumbs={[{ label: 'Companies' }]}>
-      <div className="p-6">
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <CompanySkeleton key={i} />
           ))}
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 
   if (isLoading) return <LoadingState />;
 
   if (error) {
     return (
-      <AppShell breadcrumbs={[{ label: 'Companies' }]}>
-        <div className="p-6">
+      <div className="min-h-screen bg-neutral-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <EmptyState
             icon={<Building2 className="h-6 w-6 text-destructive" />}
             title="Failed to load companies"
@@ -73,13 +75,14 @@ export default function CompaniesPage() {
             }}
           />
         </div>
-      </AppShell>
+      </div>
     );
   }
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Companies' }]}>
-      <div className="p-6">
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Search and Create Company */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="flex-1 max-w-sm">
@@ -152,6 +155,6 @@ export default function CompaniesPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </div>
   );
 }

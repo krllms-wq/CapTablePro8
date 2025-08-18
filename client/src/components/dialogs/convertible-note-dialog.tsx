@@ -1,35 +1,59 @@
 import { useState } from "react";
-import { useParams } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus } from "lucide-react";
+import type { Stakeholder } from "@shared/schema";
+
+const convertibleNoteSchema = z.object({
+  holderId: z.string().min(1, "Please select a stakeholder"),
+  principal: z.string().min(1, "Principal amount is required"),
+  interestRate: z.string().min(1, "Interest rate is required"),
+  maturityDate: z.string().min(1, "Maturity date is required"),
+  discountRate: z.string().optional(),
+  valuationCap: z.string().optional(),
+  issueDate: z.string().min(1, "Issue date is required"),
+});
+
+type ConvertibleNoteFormData = z.infer<typeof convertibleNoteSchema>;
 
 interface ConvertibleNoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  companyId: string;
 }
 
-export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDialogProps) {
-  const { companyId } = useParams();
+export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }: ConvertibleNoteDialogProps) {
   const { toast } = useToast();
-  
-  const [formData, setFormData] = useState({
-    holderId: "",
-    principal: "",
-    interestRate: "",
-    maturityDate: "",
-    discountRate: "",
-    valuationCap: "",
-    compounding: "simple",
-    issueDate: new Date().toISOString().split('T')[0]
-  });
-
   const [showNewStakeholder, setShowNewStakeholder] = useState(false);
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
@@ -37,287 +61,297 @@ export function ConvertibleNoteDialog({ open, onOpenChange }: ConvertibleNoteDia
     type: "individual" as "individual" | "entity"
   });
 
-  const { data: stakeholders } = useQuery({
+  const { data: stakeholders = [] } = useQuery<Stakeholder[]>({
     queryKey: ["/api/companies", companyId, "stakeholders"],
-    enabled: !!companyId,
+    enabled: !!companyId && open,
+  });
+
+  const form = useForm<ConvertibleNoteFormData>({
+    resolver: zodResolver(convertibleNoteSchema),
+    defaultValues: {
+      holderId: "",
+      principal: "",
+      interestRate: "",
+      maturityDate: "",
+      discountRate: "",
+      valuationCap: "",
+      issueDate: new Date().toISOString().split('T')[0],
+    },
   });
 
   const createStakeholderMutation = useMutation({
-    mutationFn: async (stakeholderData: any) => {
+    mutationFn: async (data: any) => {
       return apiRequest(`/api/companies/${companyId}/stakeholders`, {
         method: "POST",
-        body: stakeholderData
+        body: data
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create stakeholder",
+        variant: "error",
       });
     }
   });
 
-  const createNoteMutation = useMutation({
-    mutationFn: async (data: any) => {
+  const createConvertibleNoteMutation = useMutation({
+    mutationFn: async (data: ConvertibleNoteFormData) => {
       let holderId = data.holderId;
       
-      // Create new stakeholder if needed
+      // If it's a new stakeholder, create the stakeholder first
       if (data.holderId === "new") {
-        const newStakeholderResult = await createStakeholderMutation.mutateAsync(newStakeholder);
-        holderId = newStakeholderResult.id;
+        if (!newStakeholder.name.trim()) {
+          throw new Error("Stakeholder name is required");
+        }
+        
+        const stakeholder = await createStakeholderMutation.mutateAsync({
+          name: newStakeholder.name,
+          email: newStakeholder.email || null,
+          type: newStakeholder.type,
+        });
+        holderId = stakeholder.id;
       }
 
+      // Create the convertible note
       return apiRequest(`/api/companies/${companyId}/convertibles`, {
         method: "POST",
         body: {
+          type: "convertible_note",
           holderId,
-          type: "note",
+          principal: parseFloat(data.principal),
           framework: "Standard Convertible Note",
-          principal: parseFloat(data.principal) || 0,
-          interestRate: parseFloat(data.interestRate) || 0,
-          discountRate: parseFloat(data.discountRate) || 0,
+          interestRate: parseFloat(data.interestRate) / 100,
+          maturityDate: new Date(data.maturityDate),
+          discountRate: data.discountRate ? parseFloat(data.discountRate) / 100 : null,
           valuationCap: data.valuationCap ? parseFloat(data.valuationCap) : null,
-          compounding: data.compounding,
           issueDate: new Date(data.issueDate),
-          maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
         }
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "convertibles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
-      onOpenChange(false);
-      setFormData({
-        holderId: "",
-        principal: "",
-        interestRate: "",
-        maturityDate: "",
-        discountRate: "",
-        valuationCap: "",
-        compounding: "simple",
-        issueDate: new Date().toISOString().split('T')[0]
-      });
-      setNewStakeholder({
-        name: "",
-        email: "",
-        type: "individual"
-      });
-      setShowNewStakeholder(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       toast({
         title: "Success",
         description: "Convertible note created successfully",
+        variant: "success",
       });
+      onOpenChange(false);
+      form.reset();
+      setNewStakeholder({ name: "", email: "", type: "individual" });
+      setShowNewStakeholder(false);
     },
     onError: (error: any) => {
-      console.error("Note creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create convertible note",
+        description: error.message || "Failed to create convertible note",
         variant: "error",
       });
-    },
+    }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.holderId || !formData.principal || !formData.interestRate) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (formData.holderId === "new" && !newStakeholder.name) {
-      toast({
-        title: "Error",
-        description: "Please enter stakeholder name",
-        variant: "error",
-      });
-      return;
-    }
-
-    createNoteMutation.mutate(formData);
+  const onSubmit = (data: ConvertibleNoteFormData) => {
+    createConvertibleNoteMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Issue Convertible Note</DialogTitle>
+          <DialogTitle>Create Convertible Note</DialogTitle>
+          <DialogDescription>
+            Issue a convertible note to an investor
+          </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="stakeholder">Stakeholder *</Label>
-            <Select 
-              value={formData.holderId} 
-              onValueChange={(value) => {
-                setFormData({...formData, holderId: value});
-                setShowNewStakeholder(value === "new");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select stakeholder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add New Stakeholder
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Stakeholder Selection */}
+            <FormField
+              control={form.control}
+              name="holderId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stakeholder *</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowNewStakeholder(value === "new");
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select stakeholder" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="new">
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Add New Stakeholder
+                        </div>
+                      </SelectItem>
+                      {stakeholders.map((stakeholder) => (
+                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                          {stakeholder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* New Stakeholder Form */}
+            {showNewStakeholder && (
+              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-medium text-sm">New Stakeholder Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Name *</Label>
+                    <Input
+                      value={newStakeholder.name}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                      placeholder="Enter name"
+                    />
                   </div>
-                </SelectItem>
-                {stakeholders?.map((stakeholder: any) => (
-                  <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                    {stakeholder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {showNewStakeholder && (
-            <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
-              <h4 className="font-medium text-sm">New Stakeholder Details</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="newStakeholderName">Name *</Label>
-                  <Input
-                    id="newStakeholderName"
-                    value={newStakeholder.name}
-                    onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
-                    placeholder="Enter name"
-                  />
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newStakeholder.email}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                      placeholder="Enter email"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="newStakeholderEmail">Email</Label>
-                  <Input
-                    id="newStakeholderEmail"
-                    type="email"
-                    value={newStakeholder.email}
-                    onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
-                    placeholder="Enter email"
-                  />
+                  <Label>Type</Label>
+                  <Select 
+                    value={newStakeholder.type} 
+                    onValueChange={(value: "individual" | "entity") => 
+                      setNewStakeholder({...newStakeholder, type: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="entity">Entity</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="newStakeholderType">Type</Label>
-                <Select 
-                  value={newStakeholder.type} 
-                  onValueChange={(value: "individual" | "entity") => setNewStakeholder({...newStakeholder, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="entity">Entity</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="principal">Principal Amount ($) *</Label>
-              <Input
-                id="principal"
-                type="number"
-                step="0.01"
-                value={formData.principal}
-                onChange={(e) => setFormData({...formData, principal: e.target.value})}
-                placeholder="100000.00"
+            {/* Convertible Note Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="principal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Principal Amount ($) *</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="500000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interest Rate (%) *</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="e.g., 8" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="interestRate">Interest Rate (%) *</Label>
-              <Input
-                id="interestRate"
-                type="number"
-                step="0.1"
-                value={formData.interestRate}
-                onChange={(e) => setFormData({...formData, interestRate: e.target.value})}
-                placeholder="8.0"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="discountRate">Discount Rate (%)</Label>
-              <Input
-                id="discountRate"
-                type="number"
-                step="0.1"
-                value={formData.discountRate}
-                onChange={(e) => setFormData({...formData, discountRate: e.target.value})}
-                placeholder="20.0"
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="issueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Issue Date *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="maturityDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maturity Date *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="valuationCap">Valuation Cap ($)</Label>
-              <Input
-                id="valuationCap"
-                type="number"
-                step="0.01"
-                value={formData.valuationCap}
-                onChange={(e) => setFormData({...formData, valuationCap: e.target.value})}
-                placeholder="5000000.00"
-              />
-            </div>
-          </div>
 
-          <div>
-            <Label htmlFor="compounding">Interest Compounding</Label>
-            <Select 
-              value={formData.compounding} 
-              onValueChange={(value) => setFormData({...formData, compounding: value})}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="simple">Simple Interest</SelectItem>
-                <SelectItem value="compounded">Compound Interest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="issueDate">Issue Date</Label>
-              <Input
-                id="issueDate"
-                type="date"
-                value={formData.issueDate}
-                onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="discountRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discount Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="e.g., 20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="valuationCap"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valuation Cap ($)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="Optional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="maturityDate">Maturity Date</Label>
-              <Input
-                id="maturityDate"
-                type="date"
-                value={formData.maturityDate}
-                onChange={(e) => setFormData({...formData, maturityDate: e.target.value})}
-              />
-            </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={createNoteMutation.isPending}
-            >
-              {createNoteMutation.isPending ? "Creating..." : "Create Note"}
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createConvertibleNoteMutation.isPending}
+              >
+                {createConvertibleNoteMutation.isPending ? "Creating..." : "Create Note"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

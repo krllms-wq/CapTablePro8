@@ -1,8 +1,8 @@
 import { useState } from "react";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
-import { SafeAgreementDialog } from "@/components/dialogs/safe-agreement-dialog";
-import { ConvertibleNoteDialog } from "@/components/dialogs/convertible-note-dialog";
+import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
+import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 
 interface QuickActionsProps {

@@ -1,36 +1,60 @@
 import { useState } from "react";
-import { useParams } from "wouter";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus } from "lucide-react";
+import type { Stakeholder } from "@shared/schema";
+
+const safeAgreementSchema = z.object({
+  holderId: z.string().min(1, "Please select a stakeholder"),
+  principal: z.string().min(1, "Investment amount is required"),
+  framework: z.string().min(1, "Framework is required"),
+  valuationCap: z.string().optional(),
+  discountRate: z.string().optional(),
+  interestRate: z.string().optional(),
+  issueDate: z.string().min(1, "Issue date is required"),
+  maturityDate: z.string().optional(),
+});
+
+type SafeAgreementFormData = z.infer<typeof safeAgreementSchema>;
 
 interface SafeAgreementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  companyId: string;
 }
 
-export function SafeAgreementDialog({ open, onOpenChange }: SafeAgreementDialogProps) {
-  const { companyId } = useParams();
+export default function SafeAgreementDialog({ open, onOpenChange, companyId }: SafeAgreementDialogProps) {
   const { toast } = useToast();
-  
-  const [formData, setFormData] = useState({
-    holderId: "",
-    framework: "YC pre-money SAFE",
-    principal: "",
-    discountRate: "",
-    valuationCap: "",
-    mfn: false,
-    proRataRights: false,
-    postMoney: false,
-    issueDate: new Date().toISOString().split('T')[0]
-  });
-
   const [showNewStakeholder, setShowNewStakeholder] = useState(false);
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
@@ -38,298 +62,321 @@ export function SafeAgreementDialog({ open, onOpenChange }: SafeAgreementDialogP
     type: "individual" as "individual" | "entity"
   });
 
-  const { data: stakeholders } = useQuery({
+  const { data: stakeholders = [] } = useQuery<Stakeholder[]>({
     queryKey: ["/api/companies", companyId, "stakeholders"],
-    enabled: !!companyId,
+    enabled: !!companyId && open,
+  });
+
+  const form = useForm<SafeAgreementFormData>({
+    resolver: zodResolver(safeAgreementSchema),
+    defaultValues: {
+      holderId: "",
+      principal: "",
+      framework: "YC pre-money SAFE",
+      valuationCap: "",
+      discountRate: "",
+      interestRate: "",
+      issueDate: new Date().toISOString().split('T')[0],
+      maturityDate: "",
+    },
   });
 
   const createStakeholderMutation = useMutation({
-    mutationFn: async (stakeholderData: any) => {
+    mutationFn: async (data: any) => {
       return apiRequest(`/api/companies/${companyId}/stakeholders`, {
         method: "POST",
-        body: stakeholderData
+        body: data
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create stakeholder",
+        variant: "error",
       });
     }
   });
 
-  const createSafeMutation = useMutation({
-    mutationFn: async (data: any) => {
+  const createSafeAgreementMutation = useMutation({
+    mutationFn: async (data: SafeAgreementFormData) => {
       let holderId = data.holderId;
       
-      // Create new stakeholder if needed
+      // If it's a new stakeholder, create the stakeholder first
       if (data.holderId === "new") {
-        const newStakeholderResult = await createStakeholderMutation.mutateAsync(newStakeholder);
-        holderId = newStakeholderResult.id;
+        if (!newStakeholder.name.trim()) {
+          throw new Error("Stakeholder name is required");
+        }
+        
+        const stakeholder = await createStakeholderMutation.mutateAsync({
+          name: newStakeholder.name,
+          email: newStakeholder.email || null,
+          type: newStakeholder.type,
+        });
+        holderId = stakeholder.id;
       }
 
+      // Create the SAFE agreement
       return apiRequest(`/api/companies/${companyId}/convertibles`, {
         method: "POST",
         body: {
+          type: "SAFE",
           holderId,
-          type: "safe",
+          principal: parseFloat(data.principal),
           framework: data.framework,
-          principal: parseFloat(data.principal) || 0,
-          discountRate: parseFloat(data.discountRate) || 0,
           valuationCap: data.valuationCap ? parseFloat(data.valuationCap) : null,
-          mfn: data.mfn,
-          proRataRights: data.proRataRights,
-          postMoney: data.postMoney,
+          discountRate: data.discountRate ? parseFloat(data.discountRate) / 100 : null,
+          interestRate: data.interestRate ? parseFloat(data.interestRate) / 100 : null,
           issueDate: new Date(data.issueDate),
+          maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
         }
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "convertibles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
-      onOpenChange(false);
-      setFormData({
-        holderId: "",
-        framework: "YC pre-money SAFE",
-        principal: "",
-        discountRate: "",
-        valuationCap: "",
-        mfn: false,
-        proRataRights: false,
-        postMoney: false,
-        issueDate: new Date().toISOString().split('T')[0]
-      });
-      setNewStakeholder({
-        name: "",
-        email: "",
-        type: "individual"
-      });
-      setShowNewStakeholder(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       toast({
         title: "Success",
         description: "SAFE agreement created successfully",
+        variant: "success",
       });
+      onOpenChange(false);
+      form.reset();
+      setNewStakeholder({ name: "", email: "", type: "individual" });
+      setShowNewStakeholder(false);
     },
     onError: (error: any) => {
-      console.error("SAFE creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create SAFE agreement",
+        description: error.message || "Failed to create SAFE agreement",
         variant: "error",
       });
-    },
+    }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.holderId || !formData.principal) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (formData.holderId === "new" && !newStakeholder.name) {
-      toast({
-        title: "Error",
-        description: "Please enter stakeholder name",
-        variant: "error",
-      });
-      return;
-    }
-
-    createSafeMutation.mutate(formData);
+  const onSubmit = (data: SafeAgreementFormData) => {
+    createSafeAgreementMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Issue SAFE Agreement</DialogTitle>
+          <DialogTitle>Create SAFE Agreement</DialogTitle>
+          <DialogDescription>
+            Issue a Simple Agreement for Future Equity (SAFE) to an investor
+          </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="stakeholder">Stakeholder *</Label>
-            <Select 
-              value={formData.holderId} 
-              onValueChange={(value) => {
-                setFormData({...formData, holderId: value});
-                setShowNewStakeholder(value === "new");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select stakeholder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add New Stakeholder
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Stakeholder Selection */}
+            <FormField
+              control={form.control}
+              name="holderId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stakeholder *</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowNewStakeholder(value === "new");
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select stakeholder" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="new">
+                        <div className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Add New Stakeholder
+                        </div>
+                      </SelectItem>
+                      {stakeholders.map((stakeholder) => (
+                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                          {stakeholder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* New Stakeholder Form */}
+            {showNewStakeholder && (
+              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-medium text-sm">New Stakeholder Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Name *</Label>
+                    <Input
+                      value={newStakeholder.name}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                      placeholder="Enter name"
+                    />
                   </div>
-                </SelectItem>
-                {stakeholders?.map((stakeholder: any) => (
-                  <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                    {stakeholder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {showNewStakeholder && (
-            <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
-              <h4 className="font-medium text-sm">New Stakeholder Details</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="newStakeholderName">Name *</Label>
-                  <Input
-                    id="newStakeholderName"
-                    value={newStakeholder.name}
-                    onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
-                    placeholder="Enter name"
-                  />
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newStakeholder.email}
+                      onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                      placeholder="Enter email"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="newStakeholderEmail">Email</Label>
-                  <Input
-                    id="newStakeholderEmail"
-                    type="email"
-                    value={newStakeholder.email}
-                    onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
-                    placeholder="Enter email"
-                  />
+                  <Label>Type</Label>
+                  <Select 
+                    value={newStakeholder.type} 
+                    onValueChange={(value: "individual" | "entity") => 
+                      setNewStakeholder({...newStakeholder, type: value})
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="entity">Entity</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="newStakeholderType">Type</Label>
-                <Select 
-                  value={newStakeholder.type} 
-                  onValueChange={(value: "individual" | "entity") => setNewStakeholder({...newStakeholder, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="entity">Entity</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+            )}
 
-          <div>
-            <Label htmlFor="framework">SAFE Framework</Label>
-            <Select 
-              value={formData.framework} 
-              onValueChange={(value) => setFormData({...formData, framework: value})}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="YC pre-money SAFE">YC Pre-money SAFE</SelectItem>
-                <SelectItem value="YC post-money SAFE">YC Post-money SAFE</SelectItem>
-                <SelectItem value="custom">Custom SAFE</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="principal">Investment Amount ($) *</Label>
-              <Input
-                id="principal"
-                type="number"
-                step="0.01"
-                value={formData.principal}
-                onChange={(e) => setFormData({...formData, principal: e.target.value})}
-                placeholder="25000.00"
-              />
-            </div>
-            <div>
-              <Label htmlFor="discountRate">Discount Rate (%)</Label>
-              <Input
-                id="discountRate"
-                type="number"
-                step="0.1"
-                value={formData.discountRate}
-                onChange={(e) => setFormData({...formData, discountRate: e.target.value})}
-                placeholder="20.0"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="valuationCap">Valuation Cap ($)</Label>
-            <Input
-              id="valuationCap"
-              type="number"
-              step="0.01"
-              value={formData.valuationCap}
-              onChange={(e) => setFormData({...formData, valuationCap: e.target.value})}
-              placeholder="10000000.00"
+            {/* SAFE Details */}
+            <FormField
+              control={form.control}
+              name="framework"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SAFE Framework *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="YC pre-money SAFE">YC Pre-money SAFE</SelectItem>
+                      <SelectItem value="YC post-money SAFE">YC Post-money SAFE</SelectItem>
+                      <SelectItem value="custom">Custom SAFE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div>
-            <Label htmlFor="issueDate">Issue Date</Label>
-            <Input
-              id="issueDate"
-              type="date"
-              value={formData.issueDate}
-              onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
-            />
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="principal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investment Amount ($) *</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="100000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="issueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Issue Date *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="mfn"
-                checked={formData.mfn}
-                onChange={(e) => setFormData({...formData, mfn: e.target.checked})}
-                className="rounded"
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="valuationCap"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valuation Cap ($)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="Optional" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Label htmlFor="mfn">Most Favored Nation (MFN)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="proRataRights"
-                checked={formData.proRataRights}
-                onChange={(e) => setFormData({...formData, proRataRights: e.target.checked})}
-                className="rounded"
+              <FormField
+                control={form.control}
+                name="discountRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discount Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="e.g., 20" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Label htmlFor="proRataRights">Pro Rata Rights</Label>
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="postMoney"
-                checked={formData.postMoney}
-                onChange={(e) => setFormData({...formData, postMoney: e.target.checked})}
-                className="rounded"
-              />
-              <Label htmlFor="postMoney">Post-money SAFE</Label>
-            </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={createSafeMutation.isPending}
-            >
-              {createSafeMutation.isPending ? "Creating..." : "Create SAFE"}
-            </Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interest Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="e.g., 2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="maturityDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maturity Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createSafeAgreementMutation.isPending}
+              >
+                {createSafeAgreementMutation.isPending ? "Creating..." : "Create SAFE"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
