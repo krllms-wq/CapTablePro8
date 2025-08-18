@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -42,12 +42,16 @@ export default function Landing() {
     onSuccess: (data: any) => {
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      // Invalidate auth queries to force refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
-      // Force a full page reload to ensure auth state is properly updated
-      window.location.href = "/companies";
+      // Small delay to ensure localStorage is written
+      setTimeout(() => {
+        window.location.href = "/companies";
+      }, 100);
     },
     onError: (error: any) => {
       toast({
@@ -68,12 +72,16 @@ export default function Landing() {
     onSuccess: (data: any) => {
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      // Invalidate auth queries to force refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Account created!",
         description: "Welcome to CapTable Pro. Your account has been created successfully.",
       });
-      // Force a full page reload to ensure auth state is properly updated
-      window.location.href = "/companies";
+      // Small delay to ensure localStorage is written
+      setTimeout(() => {
+        window.location.href = "/companies";
+      }, 100);
     },
     onError: (error: any) => {
       toast({
