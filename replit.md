@@ -20,7 +20,21 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ✓ **Transaction History Improvements**: Enhanced transaction page with proper date handling and navigation integration
 
-✓ **Stakeholder Management**: Added functional edit and delete buttons with user confirmation
+✓ **Stakeholder Management**: Complete overhaul of stakeholder CRUD operations
+  - Functional edit dialog with inline form for updating stakeholder details
+  - Working delete functionality with confirmation prompts
+  - Proper error handling and success notifications
+
+✓ **Share Issuance Enhancement**: Added ability to create new stakeholders during share issuance
+  - "Add New Stakeholder" option in stakeholder dropdown
+  - Modal interface for quick stakeholder creation
+  - Automatic selection of newly created stakeholder
+
+✓ **UI/UX Improvements**: 
+  - Removed problematic "As of" selector from cap table interface
+  - Fixed Model Round button to properly navigate to scenarios page
+  - Enhanced transaction action buttons with proper routing
+  - Streamlined cap table header layout for better usability
 
 ## User Preferences
 

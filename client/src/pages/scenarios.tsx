@@ -222,7 +222,7 @@ export default function Scenarios() {
 
                 <Button 
                   onClick={() => modelRoundMutation.mutate()}
-                  disabled={!totalInvestment || !premoney || modelRoundMutation.isPending}
+                  disabled={!totalInvestment || !parseFormattedNumber(premoney) || modelRoundMutation.isPending}
                   className="w-full"
                 >
                   {modelRoundMutation.isPending ? (

@@ -1,11 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatters";
 import Navigation from "@/components/layout/navigation";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Stakeholders() {
   const { companyId } = useParams();
+  const { toast } = useToast();
+  const [editingStakeholder, setEditingStakeholder] = useState<any>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const { data: stakeholders, isLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "stakeholders"],
@@ -33,6 +54,52 @@ export default function Stakeholders() {
       </div>
     );
   }
+
+  const handleEditStakeholder = (stakeholder: any) => {
+    setEditingStakeholder(stakeholder);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteStakeholder = async (stakeholderId: string) => {
+    if (confirm('Are you sure you want to delete this stakeholder?')) {
+      try {
+        await apiRequest("DELETE", `/api/companies/${companyId}/stakeholders/${stakeholderId}`);
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+        toast({
+          title: "Success",
+          description: "Stakeholder deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete stakeholder",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const updateStakeholderMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("PUT", `/api/companies/${companyId}/stakeholders/${editingStakeholder.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+      setShowEditDialog(false);
+      setEditingStakeholder(null);
+      toast({
+        title: "Success",
+        description: "Stakeholder updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update stakeholder",
+        variant: "destructive",
+      });
+    },
+  });
 
   const stakeholderData = stakeholders?.map((stakeholder: any) => {
     const ownership = capTableData?.capTable?.find((row: any) => 
@@ -133,18 +200,13 @@ export default function Stakeholders() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 
-                      onClick={() => window.location.href = `/companies/${companyId}/stakeholders/${stakeholder.id}`}
+                      onClick={() => handleEditStakeholder(stakeholder)}
                       className="text-primary hover:text-primary-dark mr-3"
                     >
                       Edit
                     </button>
                     <button 
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this stakeholder?')) {
-                          // TODO: Implement delete functionality
-                          console.log('Delete stakeholder:', stakeholder.id);
-                        }
-                      }}
+                      onClick={() => handleDeleteStakeholder(stakeholder.id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Delete
@@ -157,6 +219,73 @@ export default function Stakeholders() {
             </div>
           </div>
         </div>
+
+        {/* Edit Stakeholder Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Stakeholder</DialogTitle>
+            </DialogHeader>
+            {editingStakeholder && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-name">Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingStakeholder.name}
+                    onChange={(e) => setEditingStakeholder({...editingStakeholder, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingStakeholder.email || ''}
+                    onChange={(e) => setEditingStakeholder({...editingStakeholder, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-title">Title</Label>
+                  <Input
+                    id="edit-title"
+                    value={editingStakeholder.title || ''}
+                    onChange={(e) => setEditingStakeholder({...editingStakeholder, title: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-type">Type</Label>
+                  <Select 
+                    value={editingStakeholder.type} 
+                    onValueChange={(value) => setEditingStakeholder({...editingStakeholder, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="entity">Entity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowEditDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => updateStakeholderMutation.mutate(editingStakeholder)}
+                    disabled={updateStakeholderMutation.isPending}
+                  >
+                    {updateStakeholderMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

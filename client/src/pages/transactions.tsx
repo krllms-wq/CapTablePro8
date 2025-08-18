@@ -158,14 +158,14 @@ export default function Transactions() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button 
-                          onClick={() => console.log('View transaction:', transaction.id)}
+                          onClick={() => window.location.href = `/companies/${companyId}/transactions/${transaction.id}`}
                           className="text-primary hover:text-primary-dark mr-3"
                         >
                           View
                         </button>
                         <button 
-                          onClick={() => console.log('Edit transaction:', transaction.id)}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => window.location.href = `/companies/${companyId}/transactions/${transaction.id}/edit`}
+                          className="text-neutral-600 hover:text-neutral-900"
                         >
                           Edit
                         </button>
