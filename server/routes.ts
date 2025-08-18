@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, password, firstName, lastName, name } = req.body;
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -31,11 +31,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Hash password and create user
       const passwordHash = await hashPassword(password);
+      
+      // Handle different name formats
+      let userFirstName = firstName;
+      let userLastName = lastName;
+      
+      if (!firstName && !lastName && name) {
+        const nameParts = name.trim().split(' ');
+        userFirstName = nameParts[0] || '';
+        userLastName = nameParts.slice(1).join(' ') || '';
+      }
+      
       const user = await storage.createUser({
         email,
         passwordHash,
-        firstName,
-        lastName,
+        firstName: userFirstName || null,
+        lastName: userLastName || null,
       });
       
       // Generate token
@@ -181,9 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Build cap table with calculations
       const capTable = stakeholders.map(stakeholder => {
-        const entries = shareLedgerEntries.filter(e => e.stakeholderId === stakeholder.id);
-        const totalShares = entries.reduce((sum, e) => sum + e.shares, 0);
-        const securityClass = securityClasses.find(sc => sc.id === entries[0]?.securityClassId);
+        const entries = shareLedgerEntries.filter(e => e.holderId === stakeholder.id);
+        const totalShares = entries.reduce((sum, e) => sum + e.quantity, 0);
+        const securityClass = securityClasses.find(sc => sc.id === entries[0]?.classId);
         
         return {
           stakeholder: {
@@ -201,7 +212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update view count and last accessed
       await storage.updateCapTableShare(share.id, {
-        viewCount: share.viewCount + 1,
         lastAccessed: new Date(),
       });
       
@@ -511,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const capTableRows = [];
       
       // Add stakeholder holdings
-      for (const [holderId, classMap] of Array.from(holdings.entries())) {
+      for (const [holderId, classMap] of holdings) {
         const stakeholder = stakeholderMap.get(holderId);
         if (!stakeholder) continue;
 

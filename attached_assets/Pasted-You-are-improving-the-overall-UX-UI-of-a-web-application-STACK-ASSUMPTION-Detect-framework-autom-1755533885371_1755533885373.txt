@@ -1,0 +1,113 @@
+You are improving the overall UX/UI of a web application.
+
+STACK ASSUMPTION
+- Detect framework automatically. If React + TypeScript + Vite is present, proceed with that.
+- If different, adapt patterns accordingly but keep deliverables equivalent.
+- Prefer accessible, lightweight primitives (e.g., Radix/Headless UI) if available; otherwise implement minimal, accessible components.
+
+GUIDING PRINCIPLES
+- Accessibility first (WCAG 2.2 AA), keyboard-first navigation, screen-reader friendly.
+- Clear information architecture, predictable navigation, strong empty/edge states.
+- Deterministic behavior, explicit error handling, undo where feasible.
+- Performance budget: LCP ≤ 2.5s, TTI ≤ 3.0s on cold load, route bundle ≤ 200KB gzip. Lazy-load heavy modules.
+
+SCOPE (MUST-HAVE IMPROVEMENTS)
+1) Design Tokens & Theming
+   - Introduce CSS variables for color, spacing, radius, shadows, typography in /ui/tokens.(css|ts).
+   - Support light/dark mode (prefers-color-scheme) with ≥ 4.5:1 text contrast; add a persisted theme toggle.
+   - Define semantic roles: surface, surface-muted, border, primary, destructive, warning, success, focus, selection.
+
+2) Layout & Navigation
+   - App shell with header (app switcher, global search, context controls), left nav (sections), content area, optional right info panel.
+   - Breadcrumbs for deep routes. Encode state in URLs (filters, date, params) for shareable deep links.
+
+3) Data Grid / Lists
+   - Virtualized rows, sticky header, column resize/reorder/pinning, column visibility, CSV/Excel export, copy-to-clipboard.
+   - Inline edits with optimistic UI and rollback; dirty-state indicator and “Undo last edit”.
+   - Bulk actions. Strong empty states with CTA to import data or create first item.
+
+4) Forms & Validation
+   - Unified form primitives with label/description/help/error, required markers, aria-describedby hints.
+   - Inline (schema-based) and submit-level validation; precise field errors.
+   - Progressive disclosure for advanced options. Autosave for drafts; explicit Save/Cancel for critical flows.
+
+5) Wizards (Multi-step Flows)
+   - Generic multi-step wizard pattern with stepper, per-step validation, summary/confirm step with diff preview.
+   - Prevent navigation away with unsaved changes; ESC closes only non-destructive dialogs.
+
+6) Feedback & Status
+   - Toasts (ARIA live region) for success/info/error.
+   - Loading states: skeletons for tables/cards; minimize spinners.
+   - Empty, zero, and error states with recovery actions and doc links.
+
+7) Accessibility & Keyboard
+   - Full tab order, visible focus rings, focus trap in dialogs, Escape/Enter handling, ARIA roles and names.
+   - Keyboard shortcuts: ⌘/Ctrl+K command palette; “/” focuses search; “t” toggles theme; add a few context-appropriate shortcuts.
+
+8) Charts & Explainability
+   - Lazy-load charts for key metrics. Provide titles/descriptions; tooltips with exact values and footnotes.
+   - “View calculation trace” toggles where computed results are shown (e.g., summaries/aggregates).
+
+9) Internationalization & Formatting
+   - Use Intl APIs for number/currency/date; locale-aware pickers.
+   - Extract user-visible strings to i18n resources; default en-US; fallbacks in place.
+
+10) Error Handling & Fallback Routes
+   - Friendly 404/403/500 pages with recovery options.
+   - Route-level error boundaries; retry buttons; diagnostics id surfaced for support.
+
+11) Performance & DX
+   - Route-level code-splitting; defer non-critical JS; prefetch on hover for likely navigations.
+   - Optimize images/icons; prefer a single icon set or sprite.
+   - CI bundle-size checks and warnings on regressions.
+   - Replace console logs with a structured logger; mask sensitive values in client logs.
+
+12) Security-by-Design (UI Layer)
+   - Sanitize any rich text; follow CSP-friendly patterns.
+   - Permission-aware UI (hide vs disable rationale documented); guard dangerous actions with confirms.
+   - Quick redaction toggle for fields that may contain PII in shared views.
+
+13) Onboarding & Help
+   - First-run guided tour (≤5 steps) that can be dismissed or revisited.
+   - Contextual “?” tooltips linking to docs or inline explainers.
+   - Demo mode with sample data for exploration.
+
+14) Print/Export Views
+   - Print-friendly layouts for key pages and per-entity statements.
+   - One-click exports: CSV/XLSX/PDF (respect current filters and view state).
+
+DELIVERABLES
+- Implement the above with minimal dependencies, focusing on primitives and reusable patterns.
+- Place components under /ui/(components|primitives)/ and pages/routes under /app or /src/routes.
+- Update README with a short “UX Polish Pass” section.
+- Add tests:
+  a) Playwright (or equivalent) test: keyboard nav across a wizard.
+  b) Grid test: column resize + inline edit + undo.
+  c) Accessibility smoke tests using axe on key pages.
+  d) Command palette opens with ⌘/Ctrl+K and executes a navigation action.
+- Unit tests for form validation helpers, theming utils, and formatters.
+
+NON-GOALS
+- No full visual rebrand; focus on usability, accessibility, performance, and consistency.
+- Do not introduce heavy CSS frameworks; use tokens + utilities or minimal CSS modules.
+
+ACCEPTANCE CHECKLIST
+- Lighthouse (desktop) on two representative pages: Performance ≥ 85, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90.
+- Axe: 0 critical violations on representative pages.
+- Primary flows are fully keyboard-accessible.
+- Deep links restore view state in a fresh session.
+- Dark mode readable and contrast-compliant across core pages.
+- Bundle budgets enforced; lazy-loaded charts/components verified.
+- All tests green in CI.
+
+OUTPUT FORMAT
+- Provide a unified diff patch only (no extra prose), touching only necessary files.
+- If the stack is not React + TypeScript, output equivalent structure and tests for the detected stack.
+
+BEGIN WITH
+1) Add /ui/tokens.(css|ts) with semantic tokens and dark mode.
+2) Implement AppShell layout and navigation with breadcrumbs.
+3) Upgrade a representative data grid/list to virtualized, resizable columns with inline edit + undo.
+4) Wire the command palette (⌘/Ctrl+K) and global search.
+5) Add skeleton loaders and empty states across primary routes.
+Then iterate through the remaining items with small, test-backed patches.
