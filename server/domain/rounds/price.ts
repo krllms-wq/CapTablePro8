@@ -1,88 +1,56 @@
-import { roundMoney, roundShares } from '../util/round';
+import { roundMoney } from '../util/round';
 
-export interface RoundPricingParams {
-  investmentAmount: number;
-  preMoneyValuation: number;
-  poolTopUp?: {
-    enabled: boolean;
-    targetPercentage: number;
-    timing: 'pre' | 'post';
-  };
-  currentIssuedShares: number;
-  currentOptionsOutstanding: number;
-  currentUnallocatedPool: number;
-}
-
-export interface RoundPricingResult {
+export interface RoundPricing {
   pricePerShare: number;
-  sharesIssued: number;
+  preMoneyValuation: number;
   postMoneyValuation: number;
-  poolSharesCreated: number;
-  totalSharesPostRound: number;
-  dilution: number;
+  sharesSold: number;
+  proceedsRaised: number;
 }
 
-export function calculateRoundPricing(params: RoundPricingParams): RoundPricingResult {
-  const {
-    investmentAmount,
-    preMoneyValuation,
-    poolTopUp,
-    currentIssuedShares,
-    currentOptionsOutstanding,
-    currentUnallocatedPool
-  } = params;
-
-  let preRoundFullyDiluted = currentIssuedShares + currentOptionsOutstanding + currentUnallocatedPool;
-  let poolSharesCreated = 0;
-  let pricePerShare: number;
-  let sharesIssued: number;
-
-  if (poolTopUp?.enabled && poolTopUp.timing === 'pre') {
-    // Pool top-up before the round affects pre-money calculation
-    const targetPoolSize = (preRoundFullyDiluted * poolTopUp.targetPercentage) / (1 - poolTopUp.targetPercentage);
-    poolSharesCreated = Math.max(0, targetPoolSize - currentUnallocatedPool);
-    preRoundFullyDiluted += poolSharesCreated;
-  }
-
-  // Calculate price per share based on pre-money valuation and pre-round shares
-  pricePerShare = preMoneyValuation / preRoundFullyDiluted;
+export function calculateRoundPricing(
+  preMoneyValuation: number,
+  proceedsToRaise: number,
+  preRoundShares: number
+): RoundPricing {
+  const postMoneyValuation = preMoneyValuation + proceedsToRaise;
+  const pricePerShare = roundMoney(preMoneyValuation / preRoundShares);
+  const sharesSold = Math.round(proceedsToRaise / pricePerShare);
   
-  // Calculate shares issued for the investment
-  sharesIssued = roundShares(investmentAmount / pricePerShare);
-  
-  let totalSharesPostRound = preRoundFullyDiluted + sharesIssued;
-
-  if (poolTopUp?.enabled && poolTopUp.timing === 'post') {
-    // Pool top-up after the round - doesn't affect investor dilution
-    const targetPoolSize = totalSharesPostRound * poolTopUp.targetPercentage / (1 - poolTopUp.targetPercentage);
-    poolSharesCreated = Math.max(0, targetPoolSize - currentUnallocatedPool);
-    totalSharesPostRound += poolSharesCreated;
-  }
-
-  const postMoneyValuation = roundMoney(totalSharesPostRound * pricePerShare);
-  const dilution = (sharesIssued + poolSharesCreated) / totalSharesPostRound;
-
   return {
-    pricePerShare: roundMoney(pricePerShare),
-    sharesIssued: roundShares(sharesIssued),
-    postMoneyValuation,
-    poolSharesCreated: roundShares(poolSharesCreated),
-    totalSharesPostRound: roundShares(totalSharesPostRound),
-    dilution: roundMoney(dilution * 100) // Return as percentage
+    pricePerShare,
+    preMoneyValuation: roundMoney(preMoneyValuation),
+    postMoneyValuation: roundMoney(postMoneyValuation),
+    sharesSold,
+    proceedsRaised: roundMoney(proceedsToRaise)
   };
 }
 
-export function calculatePreMoneyValuation(
-  postMoneyValuation: number,
-  investmentAmount: number
+export function calculatePriceFromShares(
+  preMoneyValuation: number,
+  preRoundShares: number
 ): number {
-  return roundMoney(postMoneyValuation - investmentAmount);
+  return roundMoney(preMoneyValuation / preRoundShares);
 }
 
-export function calculateOwnershipPercentage(
-  sharesOwned: number,
-  totalShares: number
+export function calculateSharesFromProceeds(
+  proceedsToRaise: number,
+  pricePerShare: number
 ): number {
-  if (totalShares === 0) return 0;
-  return roundMoney((sharesOwned / totalShares) * 100);
+  return Math.round(proceedsToRaise / pricePerShare);
+}
+
+export function calculatePostMoneyFromPreMoney(
+  preMoneyValuation: number,
+  proceedsRaised: number
+): number {
+  return roundMoney(preMoneyValuation + proceedsRaised);
+}
+
+export function calculateOwnershipDilution(
+  preRoundShares: number,
+  newSharesIssued: number
+): number {
+  const postRoundShares = preRoundShares + newSharesIssued;
+  return roundMoney((newSharesIssued / postRoundShares) * 100);
 }

@@ -38,18 +38,16 @@ export function applySplit(
     strikePrice: award.strikePrice ? roundMoney(award.strikePrice / splitRatio) : undefined
   }));
 
-  // Adjust convertible instruments
+  // Adjust convertible instruments - do NOT adjust valuationCap or liquidationPreferenceMultiple
   const adjustedConvertibles = convertibles.map(convertible => ({
     ...convertible,
-    // Conversion ratios are typically adjusted inversely to maintain same economic value
-    valuationCap: convertible.valuationCap ? roundMoney(convertible.valuationCap * splitRatio) : undefined,
-    // Principal and discount rates typically remain unchanged
+    // Principal and discount rates remain unchanged per specification
   }));
 
-  // Security classes liquidation preferences are typically adjusted inversely
+  // Security classes - do NOT adjust liquidation preferences per specification
   const adjustedSecurityClasses = securityClasses.map(secClass => ({
-    ...secClass,
-    liquidationPreferenceMultiple: roundMoney(secClass.liquidationPreferenceMultiple / splitRatio)
+    ...secClass
+    // liquidationPreferenceMultiple remains unchanged per specification
   }));
 
   return {

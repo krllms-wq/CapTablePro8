@@ -66,6 +66,7 @@ export interface OptionPlan {
   totalShares: number;
   allocatedShares: number;
   availableShares: number;
+  issuedShares: number;
 }
 
 export interface SecurityClass {

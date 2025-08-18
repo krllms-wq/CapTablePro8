@@ -1,0 +1,51 @@
+You are improving the CapTable app’s UX/UI. Use the existing stack (React + TypeScript + Radix/Headless UI + Tailwind). Do not alter business logic or endpoints—just polish and optimize the user-facing experience.
+
+Goals (must achieve)
+
+1. **Form usability and validation**
+   - For numeric fields (e.g. valuation, price, quantity), accept user-friendly formats with commas or currency symbols. Parse and sanitize input into plain numbers before submission. Provide inline helper text showing examples (e.g. “10,000,000”).
+   - Use `react-hook-form` + `zod` for all forms. Show validation errors only after a field has been touched and hide them once corrected. Do not disable the submit button when there are validation errors—disable only on submission with invalid inputs.
+   - Use consistent date pickers (react-day-picker) that always send dates as ISO strings in UTC (e.g. `2025-08-18T00:00:00Z`). Strip time before sending to the API to prevent day‑offset bugs.
+   - For RSU grants, hide or disable the “Strike Price” field (since RSUs do not have a strike). For convertible notes, make interest/discount fields accept percentages (e.g. “8” for 8%) and convert them to decimals (0.08) before submission.
+
+2. **Responsive layout and modal ergonomics**
+   - Ensure primary actions (e.g. “Issue Shares”, “Grant Options”) are always visible without inner scrolling. When a modal is taller than the viewport, use a sticky footer with the primary button, and make the modal scroll its content, not the entire page.
+   - On smaller screens (<768px), convert the side navigation into a hamburger menu using `@radix-ui/react-dialog` or `@radix-ui/react-drawer`. Keep the desktop layout unchanged on ≥1280px.
+   - Implement a skip link (“Skip to main content”) and ensure all forms and dialogs have clear focus management. Use Radix’s `FocusScope` for modals and trap focus within them.
+
+3. **Navigation and feedback**
+   - Fix the “Sign up” link in the header so it opens the sign‑up form or hides the link if sign‑up is disabled.
+   - After submitting any transaction, automatically navigate back to the relevant tab (Cap Table, Awards, Convertibles) and show a toast notification (`@radix-ui/react-toast`) with success or failure status. Include a link in the toast to view the new or updated transaction.
+   - Provide Edit and Delete buttons for transactions and awards. When clicking Edit, preload the form with existing values; when clicking Delete, ask for confirmation in an AlertDialog before removing the record. Update the cap table immediately after these operations.
+
+4. **Number and currency formatting**
+   - Use `Intl.NumberFormat` with the company’s currency (default USD) to display currency values (e.g. $1,234,567.89). For share counts, use commas as thousand separators and show up to 2 decimal places for fractional shares.
+   - Provide tooltips or question‑mark icons explaining financial terms (valuation, strike price, option pool) with accessible `aria-describedby` attributes.
+
+5. **Error boundaries and empty states**
+   - Introduce a global error boundary component that catches uncaught errors and displays a friendly message with a “Reload” button. Wrap the main app router with this boundary.
+   - Add meaningful empty states for each tab (Cap Table, Awards, Convertibles, Rounds). For example: “No equity awards yet—start by granting options or RSUs” with a button that opens the appropriate modal.
+   - Create 404 and 500 pages under `/client/src/pages` that match the existing design aesthetic and provide navigation back to the dashboard.
+
+6. **Accessibility and keyboard support**
+   - Ensure all interactive elements have visible focus outlines (`:focus-visible`). Make sure keyboard shortcuts (Cmd/Ctrl+K for command palette, / for search) still work and that pressing “Escape” closes open modals or menus.
+   - Use semantic HTML: `<button>` for actions, `<label>` tied to inputs, and `<fieldset>`/`<legend>` for grouped inputs. Add `aria-live="polite"` to toast containers and status messages.
+
+7. **Testing**
+   - Write Playwright (or existing e2e) tests to verify:
+     * Numeric inputs accept comma-separated values and sanitize correctly.
+     * Date pickers always save the correct date (no offset).
+     * Modals are fully keyboard-navigable and the primary button is reachable without scrolling.
+     * Editing and deleting a transaction updates the cap table.
+     * The Sign‑up link opens the sign‑up flow or is hidden if disabled.
+   - Add unit tests for the new input sanitization and formatting helpers.
+
+Deliverables
+- Patch files only (no extra prose). Focus changes in `/client/src/components`, `/client/src/pages`, `/client/src/utils` or similar. Do not modify server logic.
+- Add any new helpers under `/client/src/utils` (e.g. `formatNumber.ts`, `parseCurrency.ts`).
+- Keep styling consistent with existing Tailwind classes. Use design tokens from `tailwind.config.ts` if available.
+
+Non‑goals
+- Do not redesign the entire look and feel or replace Radix/Headless UI.
+- Do not add heavy third‑party libraries; stick to existing dependencies (React, Radix UI, TanStack Table, react-hook-form).
+

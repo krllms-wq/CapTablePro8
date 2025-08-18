@@ -7,7 +7,7 @@ import {
 } from './split';
 import { ShareLedgerEntry, EquityAward, ConvertibleInstrument, SecurityClass } from '../captable/types';
 
-describe('Stock Split Operations', () => {
+describe('Stock Split Operations - Fixed Implementation', () => {
   const mockShareEntries: ShareLedgerEntry[] = [
     {
       id: '1',
@@ -68,7 +68,7 @@ describe('Stock Split Operations', () => {
     }
   ];
 
-  test('2:1 stock split doubles shares and halves prices', () => {
+  test('2:1 stock split doubles shares and halves strike prices', () => {
     const splitParams = {
       splitRatio: 2.0,
       effectiveDate: new Date('2024-06-01')
@@ -92,11 +92,11 @@ describe('Stock Split Operations', () => {
     expect(result.adjustedEquityAwards[0].quantityCanceled).toBe(10000);
     expect(result.adjustedEquityAwards[0].strikePrice).toBe(1.0);
 
-    // Check convertible valuation cap doubled
-    expect(result.adjustedConvertibles[0].valuationCap).toBe(10000000);
+    // Check convertible valuation cap is UNCHANGED per spec
+    expect(result.adjustedConvertibles[0].valuationCap).toBe(5000000);
 
-    // Check liquidation preference halved
-    expect(result.adjustedSecurityClasses[0].liquidationPreferenceMultiple).toBe(0.5);
+    // Check liquidation preference is UNCHANGED per spec
+    expect(result.adjustedSecurityClasses[0].liquidationPreferenceMultiple).toBe(1.0);
   });
 
   test('1:2 reverse split halves shares and doubles prices', () => {
@@ -121,11 +121,11 @@ describe('Stock Split Operations', () => {
     expect(result.adjustedEquityAwards[0].quantityGranted).toBe(25000);
     expect(result.adjustedEquityAwards[0].strikePrice).toBe(4.0);
 
-    // Check convertible valuation cap halved
-    expect(result.adjustedConvertibles[0].valuationCap).toBe(2500000);
+    // Check convertible valuation cap is UNCHANGED per spec
+    expect(result.adjustedConvertibles[0].valuationCap).toBe(5000000);
 
-    // Check liquidation preference doubled
-    expect(result.adjustedSecurityClasses[0].liquidationPreferenceMultiple).toBe(2.0);
+    // Check liquidation preference is UNCHANGED per spec
+    expect(result.adjustedSecurityClasses[0].liquidationPreferenceMultiple).toBe(1.0);
   });
 
   test('Split preserves ownership percentages', () => {
@@ -221,5 +221,46 @@ describe('Stock Split Operations', () => {
     // Should handle undefined strike price gracefully
     expect(result.adjustedEquityAwards[0].strikePrice).toBeUndefined();
     expect(result.adjustedEquityAwards[0].quantityGranted).toBe(100000); // Still doubled
+  });
+
+  test('Valuation cap and liquidation preference unchanged per specification', () => {
+    const preferredClass: SecurityClass = {
+      id: 'preferred',
+      name: 'Series A Preferred',
+      liquidationPreferenceMultiple: 2.5,
+      participating: true,
+      votingRights: 1.0,
+      seniorityTier: 1
+    };
+
+    const safeWithLargeCap: ConvertibleInstrument = {
+      id: '1',
+      holderId: 'investor1',
+      type: 'SAFE',
+      framework: 'YC SAFE',
+      principal: 1000000,
+      issueDate: new Date('2024-01-01'),
+      valuationCap: 20000000,
+      postMoney: false
+    };
+
+    const splitParams = {
+      splitRatio: 4.0, // 4:1 split
+      effectiveDate: new Date('2024-06-01')
+    };
+
+    const result = applySplit(
+      [],
+      [],
+      [safeWithLargeCap],
+      [preferredClass],
+      splitParams
+    );
+
+    // Valuation cap should remain unchanged
+    expect(result.adjustedConvertibles[0].valuationCap).toBe(20000000);
+    
+    // Liquidation preference should remain unchanged
+    expect(result.adjustedSecurityClasses[0].liquidationPreferenceMultiple).toBe(2.5);
   });
 });

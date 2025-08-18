@@ -51,17 +51,38 @@ export function computeCapTable(
   }
   
   let totalShares = 0;
-  for (const shares of stakeholderShares.values()) {
+  for (const shares of Array.from(stakeholderShares.values())) {
     totalShares += shares;
   }
   let fullyDilutedShares = totalShares;
+  
+  // Calculate preRoundFD for conversions
+  const outstandingOptions = calculateOutstandingOptions(equityAwards);
+  const unallocatedPool = optionPlans.reduce((sum, plan) => sum + plan.availableShares, 0);
+  const preRoundFD = totalShares + outstandingOptions + unallocatedPool;
   
   // Add convertibles if AsConverted or FullyDiluted
   if (view === 'AsConverted' || view === 'FullyDiluted') {
     for (const convertible of convertibles) {
       if (convertible.issueDate <= asOf) {
-        // Simplified conversion - in real implementation would need more context
-        const sharesFromConversion = roundShares(convertible.principal / 1.0); // Placeholder price
+        let sharesFromConversion = 0;
+        
+        if (convertible.type === 'SAFE') {
+          // Use default price for demonstration - in real implementation would come from parameters
+          const conversionResult = calculateSafeConversion(convertible, {
+            pricePerShare: 1.0, // This would be provided by the calling context
+            preRoundFullyDiluted: preRoundFD
+          });
+          sharesFromConversion = conversionResult.sharesIssued;
+        } else if (convertible.type === 'NOTE') {
+          const conversionResult = calculateNoteConversion(convertible, {
+            pricePerShare: 1.0, // This would be provided by the calling context
+            conversionDate: asOf,
+            preRoundFullyDiluted: preRoundFD
+          });
+          sharesFromConversion = conversionResult.sharesIssued;
+        }
+        
         const current = stakeholderShares.get(convertible.holderId) || 0;
         stakeholderShares.set(convertible.holderId, current + sharesFromConversion);
         fullyDilutedShares += sharesFromConversion;
@@ -71,7 +92,6 @@ export function computeCapTable(
   
   // Add equity awards if FullyDiluted
   if (view === 'FullyDiluted') {
-    const outstandingOptions = calculateOutstandingOptions(equityAwards);
     fullyDilutedShares += outstandingOptions;
     
     // Add options to stakeholder counts
@@ -100,13 +120,9 @@ export function computeCapTable(
         if (award.grantDate <= asOf) {
           let rsuCount = 0;
           if (fdOptions.includeRSUs === 'granted') {
-            rsuCount = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+            rsuCount = award.quantityGranted - award.quantityCanceled; // Remove quantityExercised for RSUs
           } else if (fdOptions.includeRSUs === 'vested') {
-            // Calculate vested RSUs for this award
-            rsuCount = Math.min(
-              award.quantityGranted - award.quantityExercised - award.quantityCanceled,
-              calculateVestedRSUs([award], asOf)
-            );
+            rsuCount = calculateVestedRSUs([award], asOf);
           }
           
           if (rsuCount > 0) {
@@ -117,22 +133,9 @@ export function computeCapTable(
       }
     }
     
-    // Add unallocated pool if requested
+    // Add unallocated pool if requested (don't add as separate holder)
     if (fdOptions.includeUnallocatedPool) {
-      const totalUnallocated = optionPlans.reduce((sum, plan) => sum + plan.availableShares, 0);
-      fullyDilutedShares += totalUnallocated;
-      
-      // Add pool as separate entry if significant
-      if (totalUnallocated > 0) {
-        entries.push({
-          holderId: 'pool',
-          holderName: 'Unallocated Pool',
-          securityClass: 'Option Pool',
-          shares: roundShares(totalUnallocated),
-          ownership: calculatePercentage(totalUnallocated, fullyDilutedShares),
-          value: 0
-        });
-      }
+      fullyDilutedShares += unallocatedPool;
     }
   }
   
@@ -208,3 +211,4 @@ export function calculateAntiDilution(
   
   return originalPrice * (baseShares + equivalentShares) / (baseShares + newShares);
 }
+

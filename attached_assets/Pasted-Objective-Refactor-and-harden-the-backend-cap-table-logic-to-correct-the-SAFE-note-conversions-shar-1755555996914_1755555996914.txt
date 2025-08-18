@@ -1,0 +1,54 @@
+Objective
+Refactor and harden the backend cap-table logic to correct the SAFE/note conversions, share calculations, option-plan accounting, anti-dilution, splits, and date handling. Focus on correctness and maintain existing API surface; no UI changes.
+
+Scope (critical fixes)
+
+1. SAFE conversion (server/domain/convertibles/safe.ts)
+   - Separate pre‑money vs post‑money logic. Pre‑money: conversion price = min(discount_price, cap_price) using preRoundFullyDiluted (issued + outstanding options + unallocated pool, excluding new money/top‑up) and the raise’s price per share. Post‑money: compute shares so the SAFE holder gets principal / PM Cap of the defined post‑money capitalization.
+   - Use safe.principal as the investment amount; discountPrice = pricePerShare * (1 – discountRate); capPrice = valuationCap / preRoundFD. For post‑money SAFEs, respect postMoney flag and stored capitalization snapshot.
+   - Return conversion price, shares issued, flags for cap/discount used.
+
+2. Convertible note conversion (server/domain/convertibles/note.ts)
+   - Implement calculateNoteInterest with Actual/365 (keep simple) and allow maturityDate to trigger conversion. Principal accrues simple interest: interest = principal × rate × (days / 365).
+   - In calculateNoteConversion, compute discountPrice = pricePerShare * (1 – discountRate); capPrice = valuationCap / preRoundFD (a new parameter passed in). Conversion price = min(pricePerShare, discountPrice, capPrice). sharesIssued = (principal + interest) / conversionPrice.
+   - Add shouldNoteConvert to return true on maturity or when an external financing flag is passed.
+
+3. Cap‑table compute (server/domain/captable/compute.ts)
+   - Introduce a view enum: AsIssued, AsConverted, FullyDiluted. AsConverted should add converted shares from SAFEs/notes using calculateSafeConversion/calculateNoteConversion (do not divide by 1.0). FullyDiluted should also add outstanding options, and optionally granted or vested RSUs and unallocated pool depending on fdOptions. Do not add unallocated pool as a separate “holder”.
+   - Use stakeholderShares map and add conversions per holder. Don’t double‑count options or pool. For RSUs, subtract only cancelled quantities; do not subtract “exercised”.
+   - Add a parameter preRoundFD to both SAFE and note conversions equal to issuedShares + outstanding awards + unallocated pool.
+
+4. Option-plan accounting & awards (server/domain/instruments/awards.ts)
+   - updatePlanForGrant: allocatedShares += grantQuantity; availableShares -= grantQuantity. updatePlanForExercise: allocatedShares -= exerciseQuantity; issuedShares += exerciseQuantity (add an issuedShares field to OptionPlan). updatePlanForCancellation: allocatedShares -= cancelQuantity; availableShares += cancelQuantity.
+   - calculateOutstandingOptions: sum(quantityGranted – quantityExercised – quantityCanceled – quantityExpired) for ISO/NSO only. calculateOutstandingRSUs: sum(quantityGranted – quantityCanceled) for RSUs (RSUs aren’t “exercised”). Remove subtraction of quantityExercised for RSUs.
+
+5. Anti-dilution (server/domain/captable/compute.ts – calculateAntiDilution)
+   - Implement full‑ratchet: return newPrice.
+   - For broad‑based weighted average, baseShares = outstandingShares + (includeOptions ? optionsOutstanding : 0) + (includePool ? poolSize : 0). Then new conversion price = originalPrice * (baseShares + (consideration/originalPrice)) / (baseShares + newShares). Expose includeOptions/includePool flags via parameters.
+
+6. Stock splits (server/domain/corpactions/split.ts)
+   - Adjust share quantities and award quantities by splitRatio. Inversely adjust strike prices and conversion ratios (e.g., award.strikePrice /= splitRatio). Do **not** multiply valuationCap or divide liquidationPreferenceMultiple. Remove lines that change valuationCap and liquidationPreferenceMultiple:contentReference[oaicite:0]{index=0}.
+
+7. Vesting/date handling (server/domain/instruments/awards.ts)
+   - Replace the 30.44‑day month approximation with a calendar month calculation using date‑fns: e.g., monthsElapsed = differenceInMonths(asOfDate, award.vestingStartDate). Use that for cliff and linear vesting. Ensure the cliff check uses >=.
+
+8. Rounding & UTC
+   - Continue using roundShares and roundMoney for numeric precision. Ensure that all dates passed to the backend are parsed as UTC and not adjusted to local timezone.
+
+Tests (must add)
+- safe.spec.ts: pre‑money vs post‑money SAFEs with cap only, discount only, both; principal vs investment; verify sharesIssued.
+- note.spec.ts: interest accrual over days, conversion price with discount/cap, maturity trigger.
+- compute.spec.ts: AsIssued vs AsConverted vs FullyDiluted; no double counting of pool or RSUs; SAFE and note conversions integrated into stakeholder counts.
+- awards.spec.ts: grants reduce plan.available, exercises reduce allocated and increase issued, cancellations return to available; outstandingOptions and outstandingRSUs correct.
+- split.spec.ts: splitting shares multiplies quantities and divides strike; valuationCap and liquidation preference remain unchanged.
+- antiDilution.spec.ts: full‑ratchet resets price; weighted average matches formula with optional inclusion of options/unallocated pool.
+- vesting.spec.ts: calendar month differences produce correct vesting schedule and cliff behavior.
+
+Non‑goals
+- Do not refactor UI components; focus on domain logic.
+- Do not introduce new external libraries except `date-fns` which is already a dependency.
+
+Deliverables
+- Provide unified diff patches only, touching the modules listed above. Add or modify TypeScript types as needed.
+- Include new tests in appropriate spec files.
+- Keep changes minimal and compatible with existing code; ensure all tests pass.

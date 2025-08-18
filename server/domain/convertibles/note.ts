@@ -1,9 +1,11 @@
 import { ConvertibleInstrument } from '../captable/types';
 import { roundShares, roundMoney } from '../util/round';
+import { differenceInDays } from 'date-fns';
 
 export interface NoteConversionParams {
   pricePerShare: number;
   conversionDate: Date;
+  preRoundFullyDiluted: number;
 }
 
 export interface NoteConversionResult {
@@ -22,7 +24,8 @@ export function calculateNoteInterest(
     return 0;
   }
 
-  const daysDiff = Math.floor((asOfDate.getTime() - note.issueDate.getTime()) / (24 * 60 * 60 * 1000));
+  // Use Actual/365 day count convention
+  const daysDiff = differenceInDays(asOfDate, note.issueDate);
   const interest = note.principal * (note.interestRate / 100) * (daysDiff / 365);
   
   return roundMoney(interest);
@@ -36,7 +39,7 @@ export function calculateNoteConversion(
     throw new Error('Invalid instrument type for note conversion');
   }
 
-  const { pricePerShare, conversionDate } = params;
+  const { pricePerShare, conversionDate, preRoundFullyDiluted } = params;
   
   const principalAmount = note.principal;
   const interestAmount = calculateNoteInterest(note, conversionDate);
@@ -52,9 +55,7 @@ export function calculateNoteConversion(
 
   // Apply cap if available
   if (note.valuationCap && note.valuationCap > 0) {
-    // For notes, cap price calculation would need additional context
-    // This is a simplified implementation
-    const capPrice = note.valuationCap / 1000000; // Placeholder calculation
+    const capPrice = note.valuationCap / preRoundFullyDiluted;
     conversionPrice = Math.min(conversionPrice, capPrice);
   }
 
@@ -71,15 +72,18 @@ export function calculateNoteConversion(
 
 export function shouldNoteConvert(
   note: ConvertibleInstrument,
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  financingOccurred: boolean = false
 ): { shouldConvert: boolean; reason: string } {
   // Check if matured
   if (note.maturityDate && currentDate >= note.maturityDate) {
     return { shouldConvert: true, reason: 'maturity' };
   }
 
-  // Check if equity financing trigger (would be determined by external context)
-  // This is a placeholder - in real implementation, this would check for qualifying financing rounds
+  // Check if equity financing trigger
+  if (financingOccurred) {
+    return { shouldConvert: true, reason: 'financing' };
+  }
   
   return { shouldConvert: false, reason: 'no_trigger' };
 }

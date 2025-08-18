@@ -1,5 +1,6 @@
 import { EquityAward, OptionPlan } from '../captable/types';
 import { roundShares } from '../util/round';
+import { differenceInMonths } from 'date-fns';
 
 export interface PlanAccounting {
   totalShares: number;
@@ -31,8 +32,14 @@ export function updatePlanForExercise(
   plan: OptionPlan,
   exerciseQuantity: number
 ): OptionPlan {
-  // Exercise doesn't change plan accounting - shares move from options to issued
-  return plan;
+  const newAllocated = plan.allocatedShares - exerciseQuantity;
+  const newIssued = plan.issuedShares + exerciseQuantity;
+  
+  return {
+    ...plan,
+    allocatedShares: roundShares(newAllocated),
+    issuedShares: roundShares(newIssued)
+  };
 }
 
 export function updatePlanForCancellation(
@@ -64,7 +71,7 @@ export function calculateOutstandingRSUs(awards: EquityAward[]): number {
     awards
       .filter(award => award.type === 'RSU')
       .reduce((sum, award) => {
-        return sum + (award.quantityGranted - award.quantityExercised - award.quantityCanceled);
+        return sum + (award.quantityGranted - award.quantityCanceled);
       }, 0)
   );
 }
@@ -73,9 +80,7 @@ export function calculateVestedShares(
   award: EquityAward,
   asOfDate: Date = new Date()
 ): number {
-  const monthsElapsed = Math.floor(
-    (asOfDate.getTime() - award.vestingStartDate.getTime()) / (30.44 * 24 * 60 * 60 * 1000)
-  );
+  const monthsElapsed = differenceInMonths(asOfDate, award.vestingStartDate);
 
   if (monthsElapsed < award.cliffMonths) {
     return 0;
@@ -101,6 +106,19 @@ export function calculateVestedRSUs(awards: EquityAward[], asOfDate: Date = new 
   return roundShares(
     awards
       .filter(award => award.type === 'RSU')
-      .reduce((sum, award) => sum + calculateVestedShares(award, asOfDate), 0)
+      .reduce((sum, award) => {
+        const monthsElapsed = differenceInMonths(asOfDate, award.vestingStartDate);
+        
+        if (monthsElapsed < award.cliffMonths) {
+          return sum;
+        }
+        
+        if (monthsElapsed >= award.totalMonths) {
+          return sum + (award.quantityGranted - award.quantityCanceled);
+        }
+        
+        const vestedShares = Math.floor((monthsElapsed / award.totalMonths) * award.quantityGranted);
+        return sum + Math.max(0, vestedShares - award.quantityCanceled);
+      }, 0)
   );
 }

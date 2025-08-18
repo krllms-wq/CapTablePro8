@@ -2,8 +2,6 @@ import { ConvertibleInstrument, ShareLedgerEntry, SecurityClass } from '../capta
 import { roundShares, roundMoney } from '../util/round';
 
 export interface SafeConversionParams {
-  roundValuation: number;
-  roundAmount: number;
   pricePerShare: number;
   preRoundFullyDiluted: number;
 }
@@ -23,55 +21,62 @@ export function calculateSafeConversion(
     throw new Error('Invalid instrument type for SAFE conversion');
   }
 
-  const { roundValuation, pricePerShare, preRoundFullyDiluted } = params;
+  const { pricePerShare, preRoundFullyDiluted } = params;
   
-  let conversionPrice = pricePerShare;
-  let usedDiscount = false;
-  let usedCap = false;
-
-  // Calculate discount price if discount rate exists
-  let discountPrice = Infinity;
-  if (safe.discountRate && safe.discountRate > 0) {
-    discountPrice = pricePerShare * (1 - safe.discountRate);
-    usedDiscount = true;
-  }
-
-  // Calculate cap price if valuation cap exists
-  let capPrice = Infinity;
-  if (safe.valuationCap && safe.valuationCap > 0) {
-    if (safe.postMoney) {
-      // Post-money SAFE: cap price based on post-money valuation
-      capPrice = safe.valuationCap / (preRoundFullyDiluted + (safe.principal / safe.valuationCap * preRoundFullyDiluted));
-    } else {
-      // Pre-money SAFE: cap price based on pre-money valuation
-      capPrice = safe.valuationCap / preRoundFullyDiluted;
+  if (safe.postMoney) {
+    // Post-money SAFE: compute shares so SAFE holder gets principal / PM Cap of post-money cap
+    if (!safe.valuationCap) {
+      throw new Error('Post-money SAFE requires valuation cap');
     }
-    usedCap = true;
-  }
-
-  // Use the minimum of discount price and cap price
-  if (discountPrice < pricePerShare && discountPrice <= capPrice) {
-    conversionPrice = discountPrice;
-    usedCap = false;
-  } else if (capPrice < pricePerShare && capPrice < discountPrice) {
-    conversionPrice = capPrice;
-    usedDiscount = false;
+    
+    const targetOwnership = safe.principal / safe.valuationCap;
+    const sharesIssued = roundShares((targetOwnership * preRoundFullyDiluted) / (1 - targetOwnership));
+    const conversionPrice = safe.principal / sharesIssued;
+    
+    return {
+      sharesIssued,
+      conversionPrice: roundMoney(conversionPrice),
+      usedDiscount: false,
+      usedCap: true
+    };
   } else {
-    // Neither discount nor cap applies
-    conversionPrice = pricePerShare;
-    usedDiscount = false;
-    usedCap = false;
+    // Pre-money SAFE: conversion price = min(discount_price, cap_price)
+    let conversionPrice = pricePerShare;
+    let usedDiscount = false;
+    let usedCap = false;
+
+    // Calculate discount price if discount rate exists
+    if (safe.discountRate && safe.discountRate > 0) {
+      const discountPrice = pricePerShare * (1 - safe.discountRate);
+      if (discountPrice < conversionPrice) {
+        conversionPrice = discountPrice;
+        usedDiscount = true;
+        usedCap = false;
+      }
+    }
+
+    // Calculate cap price if valuation cap exists
+    if (safe.valuationCap && safe.valuationCap > 0) {
+      const capPrice = safe.valuationCap / preRoundFullyDiluted;
+      if (capPrice < conversionPrice) {
+        conversionPrice = capPrice;
+        usedCap = true;
+        usedDiscount = false;
+      }
+    }
+
+    const sharesIssued = roundShares(safe.principal / conversionPrice);
+
+    return {
+      sharesIssued,
+      conversionPrice: roundMoney(conversionPrice),
+      usedDiscount,
+      usedCap
+    };
   }
-
-  const sharesIssued = roundShares(safe.principal / conversionPrice);
-
-  return {
-    sharesIssued,
-    conversionPrice: roundMoney(conversionPrice),
-    usedDiscount,
-    usedCap
-  };
 }
+
+
 
 export function calculatePreMoneyFullyDiluted(
   shareEntries: ShareLedgerEntry[],
