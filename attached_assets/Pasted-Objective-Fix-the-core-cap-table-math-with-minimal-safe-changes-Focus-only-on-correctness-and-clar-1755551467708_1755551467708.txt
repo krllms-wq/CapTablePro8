@@ -1,0 +1,62 @@
+Objective
+Fix the core cap-table math with minimal, safe changes. Focus only on correctness and clarity.
+
+Scope (critical fixes only)
+1) Views separation
+   - Implement: AsIssued, AsConverted, FullyDiluted.
+   - computeCapTable(asOf, view, fdOptions) where:
+     fdOptions = { includeUnallocatedPool: boolean, includeRSUs: "none"|"granted"|"vested", includeWarrants: boolean }
+
+2) Option pool accounting
+   - Grants CONSUME plan “available”; exercises/release MOVE to issued; cancellations RETURN to available.
+   - Options outstanding = granted - exercised - canceled - expired.
+   - RSUs outstanding = granted - released - canceled.
+
+3) SAFEs (pre- vs post-money)
+   - Pre-money: conversion price = min(discount_price, cap_price) using pre-round FD that EXCLUDES new money & post-round pool.
+   - Post-money: issue shares to achieve Investment / PM Cap ownership per instrument’s capitalization definition snapshot.
+
+4) Convertible notes (minimal)
+   - Interest: simple A/365.
+   - Convert at equity financing at min(discount_price, cap_price). Maturity: repay (default) or convert flag.
+
+5) Round math + pool timing
+   - Support poolTopUp with timing = "pre" | "post" (affects PPS and dilution accordingly).
+
+6) Anti-dilution (minimal)
+   - Full-ratchet.
+   - Broad-based WA with configurable “A” base: includeOutstandingAwards?: boolean, includeUnallocatedPool?: boolean.
+
+7) Corporate actions (split)
+   - Split/reverse split updates: share counts, option/warrant strikes, conversion ratios. No ownership change.
+
+8) Deterministic rounding
+   - Money in minor units; shares to 6 dp; company rounding policy = half-up.
+
+Files (add/refactor, typed, pure)
+- /server/domain/captable/types.ts          (views, fdOptions, result shapes)
+- /server/domain/captable/compute.ts        (AsIssued/AsConverted/FD)
+- /server/domain/instruments/awards.ts      (plan accounting for options/RSUs)
+- /server/domain/convertibles/safe.ts       (pre/post-money)
+- /server/domain/convertibles/note.ts       (simple A/365)
+- /server/domain/rounds/price.ts            (PPS with pool timing)
+- /server/domain/corpactions/split.ts       (split adjuster)
+- /server/domain/util/round.ts              (minor units, share rounding)
+
+Tests (small but sufficient)
+- compute.spec.ts: AsIssued vs AsConverted vs FD with toggles; no double count.
+- awards.spec.ts: grant → exercise → cancel flows update available/outstanding correctly.
+- safe.spec.ts: pre-money vs post-money examples (cap vs discount).
+- rounds.spec.ts: pool pre vs post changes PPS/dilution.
+- split.spec.ts: ownership unchanged; strikes/ratios adjusted.
+
+Acceptance (must pass)
+- Option grants reduce plan available; cancellations return it.
+- FD has no double counting of unallocated pool or awards.
+- SAFE conversions follow pre/post-money definitions.
+- PPS respects pool timing.
+- Splits preserve ownership and adjust dependent terms.
+- All tests green.
+
+Output
+- Unified diff patches only. No extra prose. Keep changes minimal and localized.
