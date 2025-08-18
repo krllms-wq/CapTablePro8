@@ -562,11 +562,18 @@ export default function CompanySetup() {
                                 type="number"
                                 step="0.01"
                                 placeholder="10.00"
-                                {...field}
+                                value={field.value === 0 ? '' : field.value}
                                 onChange={(e) => {
-                                  const percentage = parseFloat(e.target.value) || 0;
-                                  field.onChange(percentage);
-                                  handlePercentageChange(percentage);
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    field.onChange(0);
+                                    return;
+                                  }
+                                  const percentage = parseFloat(value);
+                                  if (!isNaN(percentage)) {
+                                    field.onChange(percentage);
+                                    handlePercentageChange(percentage);
+                                  }
                                 }}
                               />
                             </FormControl>
