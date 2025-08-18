@@ -180,26 +180,16 @@ export default function CompanySetup() {
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
-      const response = await fetch("/api/companies", {
+      return await apiRequest("/api/companies", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           name: data.name,
           description: data.description,
           country: data.country,
           incorporationDate: data.incorporationDate,
           authorizedShares: data.authorizedShares,
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      return await response.json();
     },
     onSuccess: (data: { id: string; authorizedShares: number }) => {
       setCompanyId(data.id);
@@ -228,31 +218,19 @@ export default function CompanySetup() {
       console.log("Company ID:", companyId);
       
       // Create stakeholder
-      const stakeholderResponse = await fetch(`/api/companies/${companyId}/stakeholders`, {
+      const stakeholder = await apiRequest(`/api/companies/${companyId}/stakeholders`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           name: data.name,
           email: data.email,
           title: data.title,
           type: "person",
-        }),
+        },
       });
-
-      if (!stakeholderResponse.ok) {
-        const errorData = await stakeholderResponse.json();
-        console.error("API error:", errorData);
-        throw new Error(errorData.error || `HTTP ${stakeholderResponse.status}`);
-      }
-
-      const stakeholder = await stakeholderResponse.json();
       console.log("Created stakeholder:", stakeholder);
 
       // Get security classes to find the common stock class ID
-      const securityClassesResponse = await fetch(`/api/companies/${companyId}/security-classes`);
-      const securityClasses = await securityClassesResponse.json();
+      const securityClasses = await apiRequest(`/api/companies/${companyId}/security-classes`);
       const commonStockClass = securityClasses.find((sc: any) => sc.name === "Common Stock");
       
       if (!commonStockClass) {
@@ -260,12 +238,9 @@ export default function CompanySetup() {
       }
 
       // Create share ledger entry for the founder
-      const shareResponse = await fetch(`/api/companies/${companyId}/share-ledger`, {
+      const shareLedgerEntry = await apiRequest(`/api/companies/${companyId}/share-ledger`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           holderId: stakeholder.id,
           classId: commonStockClass.id,
           quantity: data.shares,
@@ -274,16 +249,8 @@ export default function CompanySetup() {
           consideration: "100.00",
           considerationType: "cash",
           sourceTransactionId: null,
-        }),
+        },
       });
-
-      if (!shareResponse.ok) {
-        const errorData = await shareResponse.json();
-        console.error("Share ledger API error:", errorData);
-        throw new Error(errorData.error || `HTTP ${shareResponse.status}`);
-      }
-
-      const shareLedgerEntry = await shareResponse.json();
       console.log("Created share ledger entry:", shareLedgerEntry);
       
       return { stakeholder, shareLedgerEntry };

@@ -6,12 +6,13 @@ This is a comprehensive capitalization table (cap table) web application designe
 
 ## Recent Changes (August 2025)
 
-✅ **COMPREHENSIVE SYSTEM TESTING & OPTIMIZATION COMPLETED (August 18, 2025)**
-  - **Authentication System**: Fixed critical schema constraints (firstName/lastName nullable), registration now handles name parsing
-  - **Performance Optimization**: API response times 45-235ms, handles 10+ concurrent requests, added query caching (5min stale time)
+✅ **AUTHENTICATION & SYSTEM FIXES COMPLETED (August 18, 2025)**
+  - **Critical Authentication Fix**: Fixed company creation "Authentication required" error by replacing raw fetch() with apiRequest() in company-setup.tsx
+  - **Frontend Token Handling**: Improved authentication flow with query cache invalidation and localStorage synchronization
+  - **Database Schema**: Fixed firstName/lastName nullable constraints, registration now handles name parsing correctly
+  - **Performance Optimization**: API response times 45-235ms, handles 10+ concurrent requests, added query caching (5min stale time) 
   - **UX Enhancement Suite**: Implemented AppShell layout, skeleton loading states, empty state components, command palette (⌘K)
   - **Design System**: Created comprehensive design token system with dark/light theme support and responsive components
-  - **Database Stability**: PostgreSQL fully operational, schema migrations applied, data persistence verified
   - **Input Validation**: Comprehensive Zod validation with clear error messages for edge cases
   - **Error Handling**: Added retry logic (3 attempts), proper error boundaries, and user-friendly error states
   
