@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatters";
+import Navigation from "@/components/layout/navigation";
 
 export default function Stakeholders() {
   const { companyId } = useParams();
@@ -46,21 +47,24 @@ export default function Stakeholders() {
   }) || [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
-        <Button>
-          <i className="fas fa-plus mr-2"></i>
-          Add Stakeholder
-        </Button>
-      </div>
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
+            <Button>
+              <i className="fas fa-plus mr-2"></i>
+              Add Stakeholder
+            </Button>
+          </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-        <div className="px-6 py-4 border-b border-neutral-200">
-          <h3 className="text-lg font-semibold text-neutral-900">All Stakeholders</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+            <div className="px-6 py-4 border-b border-neutral-200">
+              <h3 className="text-lg font-semibold text-neutral-900">All Stakeholders</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
             <thead className="bg-neutral-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -128,17 +132,30 @@ export default function Stakeholders() {
                     ${formatNumber(stakeholder.value)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-primary hover:text-primary-dark mr-3">
+                    <button 
+                      onClick={() => window.location.href = `/companies/${companyId}/stakeholders/${stakeholder.id}`}
+                      className="text-primary hover:text-primary-dark mr-3"
+                    >
                       Edit
                     </button>
-                    <button className="text-red-600 hover:text-red-900">
+                    <button 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this stakeholder?')) {
+                          // TODO: Implement delete functionality
+                          console.log('Delete stakeholder:', stakeholder.id);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900"
+                    >
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

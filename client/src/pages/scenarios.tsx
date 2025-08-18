@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters";
+import Navigation from "@/components/layout/navigation";
 
 export default function Scenarios() {
   const { companyId } = useParams();
@@ -30,14 +31,17 @@ export default function Scenarios() {
   const scenario = calculateScenario();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-neutral-900">Funding Scenarios</h1>
-        <Button>
-          <i className="fas fa-save mr-2"></i>
-          Save Scenario
-        </Button>
-      </div>
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-neutral-900">Funding Scenarios</h1>
+            <Button>
+              <i className="fas fa-save mr-2"></i>
+              Save Scenario
+            </Button>
+          </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Panel */}
@@ -176,6 +180,8 @@ export default function Scenarios() {
               })}
             </tbody>
           </table>
+        </div>
+          </div>
         </div>
       </div>
     </div>

@@ -106,7 +106,10 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
         </div>
       )}
       
-      <button className="w-full mt-4 text-center text-sm text-primary hover:text-primary-dark font-medium">
+      <button 
+        onClick={() => window.location.href = `/companies/${companyId}/transactions`}
+        className="w-full mt-4 text-center text-sm text-primary hover:text-primary-dark font-medium"
+      >
         View all activity
       </button>
     </div>
