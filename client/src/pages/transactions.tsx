@@ -1,5 +1,13 @@
-// Enhanced transactions page with comprehensive UX improvements
-export { default } from "@/components/enhanced-transactions";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { formatNumber } from "@/lib/formatters";
+import Navigation from "@/components/layout/navigation";
+
+export default function TransactionsPage() {
+  const { companyId } = useParams();
 
   const { data: shareLedger, isLoading: ledgerLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "share-ledger"],
@@ -46,7 +54,7 @@ export { default } from "@/components/enhanced-transactions";
 
   // Combine share ledger entries and audit logs into unified transaction view
   const combinedTransactions = [
-    ...(shareLedger || []).map((entry: any) => ({
+    ...(Array.isArray(shareLedger) ? shareLedger : []).map((entry: any) => ({
       id: entry.id,
       type: "share_transaction",
       action: entry.action,
@@ -56,7 +64,7 @@ export { default } from "@/components/enhanced-transactions";
       pricePerShare: entry.pricePerShare,
       value: entry.quantity * parseFloat(entry.pricePerShare || "0"),
     })),
-    ...(auditLogs || []).map((log: any) => ({
+    ...(Array.isArray(auditLogs) ? auditLogs : []).map((log: any) => ({
       id: log.id,
       type: "audit_log",
       action: log.action,
@@ -75,7 +83,7 @@ export { default } from "@/components/enhanced-transactions";
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transaction History</h1>
-            <Button onClick={() => window.location.href = `/companies/${companyId}/stakeholders`}>
+            <Button>
               <i className="fas fa-plus mr-2"></i>
               Add Transaction
             </Button>
@@ -83,96 +91,83 @@ export { default } from "@/components/enhanced-transactions";
 
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="px-6 py-4 border-b border-neutral-200">
-              <h3 className="text-lg font-semibold text-neutral-900">All Transactions</h3>
-              <p className="text-sm text-neutral-500">Complete history of equity transactions and company activities</p>
+              <h3 className="text-lg font-semibold text-neutral-900">Recent Transactions</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Transaction
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Shares
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Price/Share
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Total Value
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
-                  {combinedTransactions.map((transaction: any) => (
-                    <tr key={transaction.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center mr-3">
-                            <i className={getTransactionIcon(transaction.action)}></i>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-neutral-900">
-                              {transaction.action ? transaction.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()) : "Unknown Action"}
-                            </div>
-                            <div className="text-sm text-neutral-500">
-                              {transaction.description}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-neutral-900">
-                          {transaction.date && !isNaN(transaction.date.getTime()) 
-                            ? transaction.date.toLocaleDateString() 
-                            : "Unknown date"}
-                        </div>
-                        <div className="text-xs text-neutral-500">
-                          {transaction.date && !isNaN(transaction.date.getTime()) 
-                            ? formatDistanceToNow(transaction.date, { addSuffix: true })
-                            : ""}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        {transaction.amount ? formatNumber(transaction.amount) : "—"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        {transaction.pricePerShare ? formatCurrency(parseFloat(transaction.pricePerShare)) : "—"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        {transaction.value ? formatCurrency(transaction.value) : "—"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
-                          onClick={() => window.location.href = `/companies/${companyId}/transactions/${transaction.id}`}
-                          className="text-primary hover:text-primary-dark mr-3"
-                        >
-                          View
-                        </button>
-                        <button 
-                          onClick={() => window.location.href = `/companies/${companyId}/transactions/${transaction.id}/edit`}
-                          className="text-neutral-600 hover:text-neutral-900"
-                        >
-                          Edit
-                        </button>
-                      </td>
+            
+            {combinedTransactions.length === 0 ? (
+              <div className="p-8 text-center text-neutral-500">
+                <i className="fas fa-file-alt text-4xl mb-4 text-neutral-300"></i>
+                <p>No transactions found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-neutral-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Value
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {(!combinedTransactions || combinedTransactions.length === 0) && (
-                <div className="text-center py-12">
-                  <p className="text-neutral-500">No transactions found</p>
-                </div>
-              )}
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-neutral-200">
+                    {combinedTransactions.map((transaction: any) => (
+                      <tr key={`${transaction.type}-${transaction.id}`} className="hover:bg-neutral-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <i className={`${getTransactionIcon(transaction.action)} mr-3`}></i>
+                            <Badge variant={transaction.type === "share_transaction" ? "default" : "secondary"}>
+                              {transaction.type === "share_transaction" ? "Share" : "Audit"}
+                            </Badge>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-neutral-900">
+                            {transaction.action}
+                          </div>
+                          <div className="text-sm text-neutral-500">
+                            {transaction.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
+                          {transaction.date.toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                          {transaction.amount ? formatNumber(transaction.amount) : "—"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                          {transaction.value ? `$${formatNumber(transaction.value)}` : "—"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button className="text-primary hover:text-primary-dark mr-3">
+                            View
+                          </button>
+                          {transaction.type === "share_transaction" && (
+                            <button className="text-primary hover:text-primary-dark">
+                              Edit
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

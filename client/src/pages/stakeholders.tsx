@@ -1,5 +1,31 @@
-// Enhanced stakeholders page with comprehensive UX improvements
-export { default } from "@/components/enhanced-stakeholders-demo";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useParams } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { formatNumber } from "@/lib/formatters";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import Navigation from "@/components/layout/navigation";
+
+export default function StakeholdersPage() {
+  const { companyId } = useParams();
+  const { toast } = useToast();
   const [editingStakeholder, setEditingStakeholder] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
@@ -33,7 +59,7 @@ export { default } from "@/components/enhanced-stakeholders-demo";
       toast({
         title: "Error",
         description: "Failed to update stakeholder",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -58,7 +84,7 @@ export { default } from "@/components/enhanced-stakeholders-demo";
         toast({
           title: "Error",
           description: "Failed to delete stakeholder",
-          variant: "destructive",
+          variant: "error",
         });
       }
     }
@@ -86,17 +112,18 @@ export { default } from "@/components/enhanced-stakeholders-demo";
     );
   }
 
-  const stakeholderData = stakeholders?.map((stakeholder: any) => {
-    const ownership = capTableData?.capTable?.find((row: any) => 
-      row.stakeholder.name === stakeholder.name
-    );
+  const stakeholderData = Array.isArray(stakeholders) ? stakeholders.map((stakeholder: any) => {
+    const capTable = Array.isArray(capTableData) ? capTableData : (capTableData?.capTable || []);
+    const ownership = Array.isArray(capTable) ? capTable.find((row: any) => 
+      row.stakeholder?.name === stakeholder.name
+    ) : null;
     return {
       ...stakeholder,
       shares: ownership?.shares || 0,
       ownership: ownership?.ownership || 0,
       value: ownership?.value || 0,
     };
-  }) || [];
+  }) : [];
 
   return (
     <div className="min-h-screen bg-neutral-50">

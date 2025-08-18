@@ -1,6 +1,23 @@
-// Enhanced companies page with comprehensive UX improvements
-export { default } from "@/components/enhanced-companies";
-  const { user } = useAuth();
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AppShell } from "@/components/layout/AppShell";
+import { queryClient } from "@/lib/queryClient";
+import { Building2, Search, Plus } from "lucide-react";
+
+type Company = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
+export default function CompaniesPage() {
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: companies = [], isLoading, error } = useQuery({
     queryKey: ["/api/companies"],
@@ -103,37 +120,30 @@ export { default } from "@/components/enhanced-companies";
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCompanies.map((company: Company) => (
+            {filteredCompanies.map((company) => (
               <Link key={company.id} href={`/companies/${company.id}`}>
-                <Card className="hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer group">
+                <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
                   <CardHeader>
-                    <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                      {company.name}
-                    </CardTitle>
-                    {company.description && (
-                      <CardDescription>{company.description}</CardDescription>
-                    )}
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-neutral-900 truncate">
+                          {company.name}
+                        </h3>
+                        {company.description && (
+                          <p className="text-sm text-neutral-600 line-clamp-2">
+                            {company.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-text-muted">Jurisdiction:</span>
-                        <Badge variant="secondary">{company.country}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-muted">Currency:</span>
-                        <span className="font-medium">{company.currency}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-muted">Authorized Shares:</span>
-                        <span className="font-medium">{company.authorizedShares?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-muted">Incorporated:</span>
-                        <span className="font-medium">
-                          {new Date(company.incorporationDate).toLocaleDateString()}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between text-sm text-neutral-500">
+                      <span>View details</span>
+                      <span>→</span>
                     </div>
                   </CardContent>
                 </Card>
