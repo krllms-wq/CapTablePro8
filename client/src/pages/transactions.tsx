@@ -58,7 +58,7 @@ export default function Transactions() {
       type: "share_transaction",
       action: entry.action,
       description: `${entry.action} transaction`,
-      date: new Date(entry.transactionDate),
+      date: entry.transactionDate ? new Date(entry.transactionDate) : new Date(),
       amount: entry.quantity,
       pricePerShare: entry.pricePerShare,
       value: entry.quantity * parseFloat(entry.pricePerShare || "0"),
@@ -68,7 +68,7 @@ export default function Transactions() {
       type: "audit_log",
       action: log.action,
       description: log.description,
-      date: new Date(log.timestamp),
+      date: log.timestamp ? new Date(log.timestamp) : new Date(),
       amount: null,
       pricePerShare: null,
       value: null,
@@ -137,10 +137,14 @@ export default function Transactions() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-neutral-900">
-                          {transaction.date.toLocaleDateString()}
+                          {transaction.date && !isNaN(transaction.date.getTime()) 
+                            ? transaction.date.toLocaleDateString() 
+                            : "Unknown date"}
                         </div>
                         <div className="text-xs text-neutral-500">
-                          {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                          {transaction.date && !isNaN(transaction.date.getTime()) 
+                            ? formatDistanceToNow(transaction.date, { addSuffix: true })
+                            : ""}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">

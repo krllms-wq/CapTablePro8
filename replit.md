@@ -4,6 +4,24 @@
 
 This is a comprehensive capitalization table (cap table) web application designed for startups and investors to model, maintain, and share company ownership structures throughout the business lifecycle. The application supports complex equity instruments including common shares, preferred shares, options, RSUs, warrants, SAFEs, and convertible notes. Built with a modern tech stack, it provides real-time calculations, scenario modeling, and role-based access control for different stakeholder types.
 
+## Recent Changes (January 2025)
+
+✓ **Dual-Mode Cap Table Implementation**: Added Current/Historical toggle for cap table viewing
+  - Current mode: Shows investment amounts per stakeholder with shares and ownership percentages
+  - Historical mode: Displays stakeholders in rows with ownership changes across time periods
+
+✓ **Navigation Enhancement**: Added consistent navigation component across all pages (stakeholders, transactions, equity-awards, scenarios)
+
+✓ **Funding Round Modeling Overhaul**: Converted modal-based funding round modeling to full-page experience
+  - Multiple investor support with individual names and investment amounts
+  - Number formatting with commas for thousands and dots for decimals
+  - Side-by-side before/after cap table comparison
+  - Real-time calculation of round impact
+
+✓ **Transaction History Improvements**: Enhanced transaction page with proper date handling and navigation integration
+
+✓ **Stakeholder Management**: Added functional edit and delete buttons with user confirmation
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
