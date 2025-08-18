@@ -82,7 +82,7 @@ export default function Transactions() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transaction History</h1>
-            <Button>
+            <Button onClick={() => window.location.href = `/companies/${companyId}/stakeholders`}>
               <i className="fas fa-plus mr-2"></i>
               Add Transaction
             </Button>
@@ -157,10 +157,16 @@ export default function Transactions() {
                         {transaction.value ? formatCurrency(transaction.value) : "—"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-primary hover:text-primary-dark mr-3">
+                        <button 
+                          onClick={() => console.log('View transaction:', transaction.id)}
+                          className="text-primary hover:text-primary-dark mr-3"
+                        >
                           View
                         </button>
-                        <button className="text-red-600 hover:text-red-900">
+                        <button 
+                          onClick={() => console.log('Edit transaction:', transaction.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
                           Edit
                         </button>
                       </td>

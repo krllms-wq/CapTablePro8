@@ -40,6 +40,13 @@ const issueSharesSchema = z.object({
   certificateNo: z.string().optional(),
 });
 
+const newStakeholderSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  type: z.enum(["individual", "entity"]),
+  email: z.string().email().optional(),
+  title: z.string().optional(),
+});
+
 type IssueSharesFormData = z.infer<typeof issueSharesSchema>;
 
 interface IssueSharesDialogProps {
@@ -50,6 +57,9 @@ interface IssueSharesDialogProps {
 
 export default function IssueSharesDialog({ open, onOpenChange, companyId }: IssueSharesDialogProps) {
   const { toast } = useToast();
+  const [showNewStakeholder, setShowNewStakeholder] = useState(false);
+  const [newStakeholderName, setNewStakeholderName] = useState("");
+  const [newStakeholderType, setNewStakeholderType] = useState<"individual" | "entity">("individual");
 
   const { data: stakeholders } = useQuery<Stakeholder[]>({
     queryKey: ["/api/companies", companyId, "stakeholders"],
@@ -99,6 +109,45 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
     },
   });
 
+  const createStakeholderMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof newStakeholderSchema>) => {
+      return apiRequest("POST", `/api/companies/${companyId}/stakeholders`, data);
+    },
+    onSuccess: (newStakeholder) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+      form.setValue("holderId", newStakeholder.id);
+      setShowNewStakeholder(false);
+      setNewStakeholderName("");
+      toast({
+        title: "Success",
+        description: "New stakeholder created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create stakeholder",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateStakeholder = () => {
+    if (!newStakeholderName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a stakeholder name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createStakeholderMutation.mutate({
+      name: newStakeholderName,
+      type: newStakeholderType,
+    });
+  };
+
   const onSubmit = (data: IssueSharesFormData) => {
     mutation.mutate(data);
   };
@@ -133,6 +182,16 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                           {stakeholder.name} {stakeholder.title && `(${stakeholder.title})`}
                         </SelectItem>
                       ))}
+                      <div className="border-t border-neutral-200 mt-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowNewStakeholder(true)}
+                          className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-primary/5 rounded flex items-center"
+                        >
+                          <i className="fas fa-plus mr-2"></i>
+                          Add New Stakeholder
+                        </button>
+                      </div>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -222,6 +281,63 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
             </div>
           </form>
         </Form>
+
+        {/* New Stakeholder Modal */}
+        {showNewStakeholder && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw]">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Add New Stakeholder</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="newName" className="block text-sm font-medium text-neutral-700 mb-1">
+                    Name
+                  </label>
+                  <Input
+                    id="newName"
+                    value={newStakeholderName}
+                    onChange={(e) => setNewStakeholderName(e.target.value)}
+                    placeholder="Enter stakeholder name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="newType" className="block text-sm font-medium text-neutral-700 mb-1">
+                    Type
+                  </label>
+                  <Select value={newStakeholderType} onValueChange={(value: "individual" | "entity") => setNewStakeholderType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="entity">Entity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowNewStakeholder(false);
+                    setNewStakeholderName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreateStakeholder}
+                  disabled={createStakeholderMutation.isPending}
+                >
+                  {createStakeholderMutation.isPending ? "Creating..." : "Create"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

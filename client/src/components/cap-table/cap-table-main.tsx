@@ -144,9 +144,9 @@ export default function CapTableMain({ capTable, isLoading }: CapTableMainProps)
           <div className="flex items-center space-x-2">
             <div className="flex rounded-lg border border-neutral-200 overflow-hidden">
               <button
-                onClick={() => setTableView("current")}
+                onClick={() => setMode("current")}
                 className={`px-3 py-1 text-sm font-medium transition-colors ${
-                  tableView === "current"
+                  mode === "current"
                     ? "bg-primary text-white"
                     : "bg-white text-neutral-600 hover:bg-neutral-50"
                 }`}
@@ -154,9 +154,9 @@ export default function CapTableMain({ capTable, isLoading }: CapTableMainProps)
                 Current
               </button>
               <button
-                onClick={() => setTableView("historical")}
+                onClick={() => setMode("historical")}
                 className={`px-3 py-1 text-sm font-medium transition-colors ${
-                  tableView === "historical"
+                  mode === "historical"
                     ? "bg-primary text-white"
                     : "bg-white text-neutral-600 hover:bg-neutral-50"
                 }`}
