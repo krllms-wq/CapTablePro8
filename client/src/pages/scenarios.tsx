@@ -285,83 +285,111 @@ export default function Scenarios() {
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-neutral-900">Cap Table Comparison</h2>
               
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {/* Before */}
-                <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-                  <div className="px-6 py-4 border-b border-neutral-200">
-                    <h3 className="text-lg font-semibold text-neutral-900">Before Round</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
-                            Stakeholder
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase">
-                            Shares
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase">
-                            %
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200">
-                        {(modelingResults.beforeCapTable || []).map((row: any, index: number) => (
-                          <tr key={index} className="hover:bg-neutral-50">
-                            <td className="px-4 py-3 text-sm font-medium text-neutral-900">
-                              {row.stakeholder?.name || "Unknown"}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-neutral-900 text-right font-mono">
-                              {formatNumber(row.shares)}
-                            </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-neutral-900 text-right">
-                              {formatPercentage(row.ownership)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+                <div className="px-6 py-4 border-b border-neutral-200">
+                  <h3 className="text-lg font-semibold text-neutral-900">Before vs After Round</h3>
+                  <p className="text-sm text-neutral-500">Ownership comparison showing round impact</p>
                 </div>
-
-                {/* After */}
-                <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-                  <div className="px-6 py-4 border-b border-neutral-200">
-                    <h3 className="text-lg font-semibold text-neutral-900">After Round</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
-                            Stakeholder
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase">
-                            Shares
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase">
-                            %
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200">
-                        {(modelingResults.afterCapTable || []).map((row: any, index: number) => (
-                          <tr key={index} className="hover:bg-neutral-50">
-                            <td className="px-4 py-3 text-sm font-medium text-neutral-900">
-                              {row.stakeholder?.name || "Unknown"}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-neutral-900 text-right font-mono">
-                              {formatNumber(row.shares)}
-                            </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-neutral-900 text-right">
-                              {formatPercentage(row.ownership)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                          Stakeholder
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 uppercase" colSpan={2}>
+                          Before Round
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 uppercase" colSpan={2}>
+                          After Round
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 uppercase">
+                          Change
+                        </th>
+                      </tr>
+                      <tr className="bg-neutral-50">
+                        <th></th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Shares</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">%</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Shares</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">%</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Δ%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      {(() => {
+                        // Combine stakeholders from before and after tables
+                        const stakeholderMap = new Map();
+                        
+                        // Add before data
+                        (modelingResults.beforeCapTable || []).forEach((row: any) => {
+                          stakeholderMap.set(row.stakeholder.name, {
+                            stakeholder: row.stakeholder,
+                            beforeShares: row.shares,
+                            beforeOwnership: row.ownership,
+                            afterShares: 0,
+                            afterOwnership: 0
+                          });
+                        });
+                        
+                        // Add after data
+                        (modelingResults.afterCapTable || []).forEach((row: any) => {
+                          const existing = stakeholderMap.get(row.stakeholder.name);
+                          if (existing) {
+                            existing.afterShares = row.shares;
+                            existing.afterOwnership = row.ownership;
+                          } else {
+                            stakeholderMap.set(row.stakeholder.name, {
+                              stakeholder: row.stakeholder,
+                              beforeShares: 0,
+                              beforeOwnership: 0,
+                              afterShares: row.shares,
+                              afterOwnership: row.ownership
+                            });
+                          }
+                        });
+                        
+                        return Array.from(stakeholderMap.values()).map((data: any, index: number) => {
+                          const change = data.afterOwnership - data.beforeOwnership;
+                          return (
+                            <tr key={index} className="hover:bg-neutral-50">
+                              <td className="px-4 py-3 text-sm font-medium text-neutral-900">
+                                {data.stakeholder.name}
+                                {data.stakeholder.type === "investor" && (
+                                  <span className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                                    New
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-neutral-900 text-right font-mono">
+                                {data.beforeShares > 0 ? formatNumber(data.beforeShares) : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-neutral-900 text-right">
+                                {data.beforeOwnership > 0 ? `${data.beforeOwnership.toFixed(2)}%` : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-neutral-900 text-right font-mono">
+                                {data.afterShares > 0 ? formatNumber(data.afterShares) : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-neutral-900 text-right">
+                                {data.afterOwnership > 0 ? `${data.afterOwnership.toFixed(2)}%` : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right">
+                                {Math.abs(change) > 0.01 ? (
+                                  <span className={`font-medium ${
+                                    change > 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {change > 0 ? '+' : ''}{change.toFixed(2)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-400">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

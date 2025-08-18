@@ -352,23 +352,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Round modeling
   app.post("/api/companies/:id/rounds/model", async (req, res) => {
     try {
-      const { raiseAmount, preMoneyValuation, pricePerShare, optionPoolIncrease } = req.body;
+      const { roundAmount, premoney, investors } = req.body;
       
-      // Simple round modeling calculation
-      const preMoneyVal = preMoneyValuation || 20000000;
-      const postMoneyVal = preMoneyVal + raiseAmount;
-      const calculatedPricePerShare = pricePerShare || preMoneyVal / 10000000; // Assuming 10M outstanding shares
-      const newShares = Math.round(raiseAmount / calculatedPricePerShare);
-      const dilution = (raiseAmount / postMoneyVal) * 100;
-      const optionPoolShares = optionPoolIncrease ? Math.round(newShares * (optionPoolIncrease / 100)) : 0;
+      // Get current cap table for "before" state
+      const stakeholders = await storage.getStakeholders(req.params.id);
+      const shareLedger = await storage.getShareLedgerEntries(req.params.id);
+      const securityClasses = await storage.getSecurityClasses(req.params.id);
+      const equityAwards = await storage.getEquityAwards(req.params.id);
+
+      // Build stakeholder and security class maps
+      const stakeholderMap = new Map(stakeholders.map(s => [s.id, s]));
+      const securityClassMap = new Map(securityClasses.map(sc => [sc.id, sc]));
+
+      // Calculate current cap table (before)
+      const sharesByStakeholder = new Map();
+      shareLedger.forEach(entry => {
+        if (!sharesByStakeholder.has(entry.holderId)) {
+          sharesByStakeholder.set(entry.holderId, new Map());
+        }
+        const classMap = sharesByStakeholder.get(entry.holderId);
+        const currentShares = classMap.get(entry.classId) || 0;
+        classMap.set(entry.classId, currentShares + entry.quantity);
+      });
+
+      // Calculate total outstanding shares
+      let totalOutstandingShares = 0;
+      sharesByStakeholder.forEach((classMap) => {
+        classMap.forEach((shares: number) => {
+          totalOutstandingShares += shares;
+        });
+      });
+
+      // Build before cap table
+      const beforeCapTable: any[] = [];
+      sharesByStakeholder.forEach((classMap, stakeholderId) => {
+        const stakeholder = stakeholderMap.get(stakeholderId);
+        if (!stakeholder) return;
+
+        let totalShares = 0;
+        classMap.forEach((shares: number) => totalShares += shares);
+        
+        if (totalShares > 0) {
+          beforeCapTable.push({
+            stakeholder,
+            shares: totalShares,
+            ownership: (totalShares / totalOutstandingShares) * 100
+          });
+        }
+      });
+
+      // Calculate round parameters
+      const premoneyVal = premoney || 20000000;
+      const raiseAmount = roundAmount || 5000000;
+      const postMoneyVal = premoneyVal + raiseAmount;
+      const pricePerShare = premoneyVal / totalOutstandingShares;
+      const newShares = Math.round(raiseAmount / pricePerShare);
+      const totalPostRoundShares = totalOutstandingShares + newShares;
+
+      // Build after cap table
+      const afterCapTable: any[] = [];
+      
+      // Existing stakeholders (diluted)
+      beforeCapTable.forEach((row: any) => {
+        afterCapTable.push({
+          stakeholder: row.stakeholder,
+          shares: row.shares,
+          ownership: (row.shares / totalPostRoundShares) * 100
+        });
+      });
+
+      // New investors
+      if (investors && investors.length > 0) {
+        investors.forEach((investor: any) => {
+          if (investor.name && investor.investmentAmount > 0) {
+            const investorShares = Math.round(investor.investmentAmount / pricePerShare);
+            afterCapTable.push({
+              stakeholder: { name: investor.name, type: "investor" },
+              shares: investorShares,
+              ownership: (investorShares / totalPostRoundShares) * 100
+            });
+          }
+        });
+      }
 
       res.json({
-        preMoneyValuation: preMoneyVal,
+        totalRaised: raiseAmount,
+        preMoneyValuation: premoneyVal,
         postMoneyValuation: postMoneyVal,
-        pricePerShare: calculatedPricePerShare,
+        pricePerShare,
         newShares,
-        dilution,
-        optionPoolShares: optionPoolShares || undefined,
+        beforeCapTable,
+        afterCapTable,
+        totalOutstandingShares,
+        totalPostRoundShares
       });
     } catch (error) {
       console.error("Error modeling round:", error);
