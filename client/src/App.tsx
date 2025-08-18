@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { TourProvider } from "@/components/ui/guided-tour";
+import { HelpProvider } from "@/components/ui/help-toggle";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -17,6 +19,7 @@ import EquityAwards from "@/pages/equity-awards";
 import Scenarios from "@/pages/scenarios";
 import Profile from "@/pages/profile";
 import CapTableShare from "@/pages/cap-table-share";
+import SystemInfo from "@/pages/system-info";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -55,6 +58,7 @@ function Router() {
           <Route path="/companies/:companyId/scenarios" component={Scenarios} />
           <Route path="/setup" component={CompanySetup} />
           <Route path="/profile" component={Profile} />
+          <Route path="/system-info" component={SystemInfo} />
           <Route component={NotFound} />
         </>
       )}
@@ -66,8 +70,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <TourProvider>
+          <HelpProvider>
+            <Toaster />
+            <Router />
+          </HelpProvider>
+        </TourProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
