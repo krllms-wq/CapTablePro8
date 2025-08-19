@@ -125,6 +125,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Logout route
+  app.post("/api/auth/logout", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      // Since we're using JWT tokens, we don't need to do anything on the server side
+      // The client will remove the token from localStorage
+      // In a production app, you might want to add the token to a blacklist
+      
+      res.status(204).send(); // 204 No Content - logout successful
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  });
+
   app.get("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const user = await storage.getUser(req.user!.id);
@@ -150,20 +164,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ error: "Failed to get user" });
-    }
-  });
-
-  app.post("/api/auth/logout", async (req, res) => {
-    try {
-      // Clear any server-side session if using session-based auth
-      // Since we're using JWT tokens, logout is primarily client-side
-      // We could implement token blacklisting here if needed
-      
-      // Return 204 No Content as per specification
-      res.status(204).send();
-    } catch (error) {
-      console.error("Logout error:", error);
-      res.status(500).json({ error: "Logout failed" });
     }
   });
 
