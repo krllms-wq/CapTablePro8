@@ -266,6 +266,16 @@ export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
     },
     z.number().positive().nullable().optional()
   ),
+}).refine((data) => {
+  // RSUs should not have strike prices, other types should
+  if (data.type === 'RSU') {
+    return data.strikePrice === null || data.strikePrice === undefined;
+  } else {
+    return data.strikePrice !== null && data.strikePrice !== undefined && data.strikePrice > 0;
+  }
+}, {
+  message: "RSUs cannot have strike prices. Options must have positive strike prices.",
+  path: ["strikePrice"],
 });
 
 export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleInstruments).omit({

@@ -44,6 +44,16 @@ const grantOptionsSchema = z.object({
   vestingStartDate: z.string().min(1, "Vesting start date is required"),
   vestingCliff: z.string().optional(),
   vestingPeriod: z.string().optional(),
+}).refine((data) => {
+  // RSUs should not require strike price, other types should
+  if (data.type === 'RSU') {
+    return true; // RSUs don't need strike price validation
+  } else {
+    return data.strikePrice && data.strikePrice.trim() !== '';
+  }
+}, {
+  message: "Strike price is required for stock options",
+  path: ["strikePrice"],
 });
 
 type GrantOptionsFormData = z.infer<typeof grantOptionsSchema>;
@@ -123,7 +133,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
           quantityGranted: parseInt(data.quantityGranted.replace(/,/g, '')),
           quantityExercised: 0,
           quantityCanceled: 0,
-          ...(data.type === 'RSU' ? {} : { strikePrice: parseFloat(data.strikePrice?.replace(/,/g, '') || '0') }),
+          strikePrice: data.type === 'RSU' ? null : parseFloat(data.strikePrice?.replace(/,/g, '') || '0'),
           grantDate: data.grantDate,
           vestingStartDate: data.vestingStartDate,
           cliffMonths: parseInt(data.vestingCliff || "12"),
