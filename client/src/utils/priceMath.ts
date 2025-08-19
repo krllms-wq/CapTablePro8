@@ -11,6 +11,12 @@ export type ReconcileResult = {
   conflictMessage?: string;
 };
 
+export type ReconcileValuationResult = {
+  valuation?: number;
+  source: "pps" | "consideration" | "override" | "unknown";
+  warningDeltaPct?: number;
+};
+
 export type DerivedPpsSource = {
   pps: number;
   source: "valuation" | "consideration";
@@ -199,6 +205,88 @@ export function reconcilePps(options: ReconcileOptions): ReconcileResult {
   if (fromConsideration !== undefined && fromConsideration > 0) {
     return {
       pps: roundMoney(fromConsideration),
+      source: "consideration"
+    };
+  }
+
+  // No valid sources
+  return { source: "unknown" };
+}
+
+/**
+ * Derive valuation from price-per-share and pre-round fully diluted shares
+ * @param args - Object with pps and preRoundFD
+ * @returns Rounded valuation or undefined
+ */
+export function deriveValuationFromPps(args: { 
+  pps?: number; 
+  preRoundFD?: number; 
+}): number | undefined {
+  const { pps, preRoundFD } = args;
+  
+  if (!pps || !preRoundFD || pps <= 0 || preRoundFD <= 0) {
+    return undefined;
+  }
+
+  return roundMoney(pps * preRoundFD);
+}
+
+/**
+ * Reconcile valuation from multiple sources with conflict detection
+ * @param args - Object with potential valuation sources and tolerance
+ * @returns ReconcileValuationResult with chosen valuation, source, and warning if applicable
+ */
+export function reconcileValuation(args: {
+  fromPps?: number;                // valuation via pps * preRoundFD
+  fromConsiderationPps?: number;   // valuation via (consideration/qty)*preRoundFD
+  overrideValuation?: number;
+  toleranceBps?: number;           // default 50 (0.50%)
+}): ReconcileValuationResult {
+  const { fromPps, fromConsiderationPps, overrideValuation, toleranceBps = 50 } = args;
+
+  // Override takes precedence
+  if (overrideValuation !== undefined && overrideValuation > 0) {
+    return {
+      valuation: roundMoney(overrideValuation),
+      source: "override"
+    };
+  }
+
+  // If both sources exist
+  if (fromPps !== undefined && fromPps > 0 && 
+      fromConsiderationPps !== undefined && fromConsiderationPps > 0) {
+    
+    // Calculate divergence percentage
+    const avg = (fromPps + fromConsiderationPps) / 2;
+    const delta = Math.abs(fromPps - fromConsiderationPps);
+    const deltaPct = (delta / avg) * 100;
+    
+    // Use tolerance in basis points (50 bps = 0.50%)
+    const tolerancePct = toleranceBps / 100;
+    
+    const result: ReconcileValuationResult = {
+      valuation: roundMoney(fromPps), // Prefer PPS-derived valuation
+      source: "pps"
+    };
+
+    if (deltaPct > tolerancePct) {
+      result.warningDeltaPct = Math.round(deltaPct * 100) / 100; // Round to 2 decimal places
+    }
+
+    return result;
+  }
+
+  // Use whichever single source exists
+  if (fromPps !== undefined && fromPps > 0) {
+    return {
+      valuation: roundMoney(fromPps),
+      source: "pps"
+    };
+  }
+
+  if (fromConsiderationPps !== undefined && fromConsiderationPps > 0) {
+    return {
+      valuation: roundMoney(fromConsiderationPps),
       source: "consideration"
     };
   }

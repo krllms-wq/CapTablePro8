@@ -1,0 +1,87 @@
+Objective
+Make Valuation in the Issue Shares form behave like PPS:
+- Derived by default (read-only with a “Derived” pill),
+- Editable when “Override valuation” is ON,
+- Same tolerance/warning logic as PPS,
+- No new server fields or route changes.
+
+Repo assumptions
+- Client code: client/src/**
+- Server code: server/**
+- Jest configured at repo root (keep tests alongside client utils)
+- Price math helper from PR B1 already exists; DerivedPill from PR B6 already exists.
+If file paths differ, locate the Issue Shares form by its user-facing title (“Issue Shares”) or the Transactions modal it opens from.
+
+A) Extend priceMath (client)
+File: client/src/utils/priceMath.ts
+- Add:
+  export function deriveValuationFromPps(args: { pps?: number; preRoundFD?: number }): number|undefined
+    // if pps>0 && preRoundFD>0 → return rounded money(pps * preRoundFD)
+
+  export type ReconcileValuationResult = {
+    valuation?: number;
+    source: "pps"|"consideration"|"override"|"unknown";
+    warningDeltaPct?: number;
+  }
+
+  export function reconcileValuation(args: {
+    fromPps?: number;                // valuation via pps * preRoundFD
+    fromConsiderationPps?: number;   // valuation via (consideration/qty)*preRoundFD
+    overrideValuation?: number;
+    toleranceBps?: number;           // default 50 (0.50%)
+  }): ReconcileValuationResult
+  // If override → return override.
+  // If both sources exist → prefer fromPps; include warningDeltaPct when divergence > tolerance.
+  // Else prefer whichever exists; else source:"unknown".
+
+B) Tests for priceMath
+File: client/src/utils/__tests__/priceMath.test.ts
+- deriveValuationFromPps(1, 10_000_000) → 10_000_000
+- reconcileValuation warns when fromPps vs fromConsiderationPps diverge > 0.5%
+- overrideValuation wins with source:"override"
+
+C) Issue Shares form integration (client)
+File: client/src/features/transactions/IssueSharesForm.tsx  (adjust to real path)
+- Keep Valuation & PPS in **Basic** (already done in PR B2).
+- Add a checkbox **[ ] Override valuation** next to the Valuation label.
+- Behavior:
+  1) State: reuse existing state for quantity, consideration, valuationRaw, ppsRaw, overridePps, preRoundFD; add `overrideValuation` boolean.
+  2) Parse: use parseMoneyLoose/parseSharesLoose for all currency/share inputs.
+  3) PPS flow (unchanged from PR B2):
+     - fromValuationPps = derivePpsFromValuation({ valuation, preRoundFD })
+     - fromConsiderationPps = derivePpsFromConsideration({ consideration, quantity })
+     - ppsResult = reconcilePps({ fromValuation: fromValuationPps, fromConsideration: fromConsiderationPps, overridePps, toleranceBps })
+     - finalPps = ppsResult.pps
+     - Show non-blocking warning if ppsResult.warningDeltaPct present.
+  4) Valuation flow (new):
+     - fromPpsValuation = deriveValuationFromPps({ pps: finalPps, preRoundFD })
+     - fromConsValuation = (fromConsiderationPps && preRoundFD) ? roundMoney(fromConsiderationPps * preRoundFD) : undefined
+     - valResult = reconcileValuation({
+         fromPps: fromPpsValuation,
+         fromConsiderationPps: fromConsValuation,
+         overrideValuation: overrideValuation ? parsed(valuationRaw) : undefined,
+         toleranceBps: 50
+       })
+     - finalValuation = valResult.valuation
+     - If valResult.warningDeltaPct present → show same style warning as PPS (“Valuation derived from PPS vs. consideration differs by ~X%”).
+  5) Precedence (avoids loops):
+     - If both overrides OFF → compute PPS first (as in PR B2), then compute Valuation from PPS.
+     - If Override PPS ON, Override valuation OFF → Valuation derives from PPS.
+     - If Override valuation ON, Override PPS OFF → PPS derives from Valuation.
+     - If both overrides ON → both editable; show warnings but don’t overwrite either.
+  6) UI:
+     - Valuation input is read-only (aria-readonly) when override OFF; editable when ON.
+     - Next to the Valuation label, render <DerivedPill /> when override OFF; use variant="warning" when warningDeltaPct present, with title explaining divergence.
+  7) Submission:
+     - Do NOT add new payload keys. Submit only existing fields your API already accepts today (e.g., valuation/consideration/quantity; pricePerShare only if the API already takes it).
+     - All number fields accept commas/$ in UI and are sanitized on submit.
+
+D) Component/E2E tests (client)
+- Quantity + Consideration only → PPS derived from consideration; Valuation derives from PPS (if preRoundFD present); submit OK.
+- User types Valuation (override valuation ON, override PPS OFF) → PPS derives from Valuation; submit OK.
+- User types PPS (override PPS ON, override valuation OFF) → Valuation derives from PPS; submit OK.
+- Both overrides ON → both editable; warnings show if divergent; submit OK.
+- Comma/currency parsing works for both fields.
+
+Acceptance
+- Valuation mirrors PPS behavior: derived by default, editable via override, warnings on divergence, no API changes or new keys.
