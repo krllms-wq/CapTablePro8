@@ -48,10 +48,11 @@ export default function Dashboard() {
 
   if (companyLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-600">Loading company...</p>
-          <p className="text-sm text-neutral-400 mt-2">Company ID: {companyId}</p>
+      <div className="min-h-screen bg-yellow-50 flex items-center justify-center">
+        <div className="text-center bg-yellow-100 p-8 rounded border">
+          <h2 className="text-2xl font-bold text-yellow-800">LOADING COMPANY...</h2>
+          <p className="text-yellow-700 mt-2">Company ID: {companyId}</p>
+          <p className="text-yellow-600 text-sm mt-2">If you see this, the page is working but still loading data.</p>
         </div>
       </div>
     );
@@ -59,11 +60,12 @@ export default function Dashboard() {
 
   if (companyError) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-600">Error loading company</p>
-          <p className="text-sm text-red-500 mt-2">{String(companyError)}</p>
-          <p className="text-sm text-neutral-400 mt-1">Company ID: {companyId}</p>
+      <div className="min-h-screen bg-red-50 flex items-center justify-center">
+        <div className="text-center bg-red-100 p-8 rounded border">
+          <h2 className="text-2xl font-bold text-red-800">ERROR LOADING COMPANY</h2>
+          <p className="text-red-700 mt-2">Company ID: {companyId}</p>
+          <p className="text-red-600 text-sm mt-2">{String(companyError)}</p>
+          <p className="text-red-500 text-xs mt-2">If you see this, there's an API error.</p>
         </div>
       </div>
     );
@@ -71,10 +73,11 @@ export default function Dashboard() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-600">Company not found</p>
-          <p className="text-sm text-neutral-400 mt-2">Company ID: {companyId}</p>
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="text-center bg-blue-100 p-8 rounded border">
+          <h2 className="text-2xl font-bold text-blue-800">COMPANY NOT FOUND</h2>
+          <p className="text-blue-700 mt-2">Company ID: {companyId}</p>
+          <p className="text-blue-600 text-sm mt-2">API call finished but no company data returned.</p>
         </div>
       </div>
     );

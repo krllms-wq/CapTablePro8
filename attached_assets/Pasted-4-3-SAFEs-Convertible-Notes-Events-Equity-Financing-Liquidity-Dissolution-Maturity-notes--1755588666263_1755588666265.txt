@@ -1,0 +1,81 @@
+4.3 SAFEs & Convertible Notes
+
+Events: Equity Financing, Liquidity, Dissolution, Maturity (notes).
+
+Notes
+
+Interest accrual: simple (principal × rate × daycount) or compounded (Actual/365, Actual/360 selectable).
+
+Conversion: at min(price_cap_price, discount_price) if both present; MFN application; series mapping (shadow preferred vs new money class).
+
+Stacking multiple notes with different caps/discounts; partial conversions; rounding rules (Banker’s rounding configurable).
+
+Maturity outcomes: automatic conversion to a pre-agreed class, repayment, or extension.
+
+SAFEs
+
+Pre-money SAFE: Convert using round capitalization excluding new money and excluding post-round option pool (per original YC language).
+
+Post-money SAFE: Convert so investor owns (Investment / PM Cap) of defined post-money capitalization; pro-rata side letters honored.
+
+MFN claws: best-of terms among contemporaneous instruments.
+
+Liquidity event: choose cash-out for original amount vs conversion to common per framework.
+
+4.4 Anti-Dilution & Down Rounds
+
+Support full-ratchet, broad-based weighted average, narrow-based weighted average.
+
+Weighted Average (broad-based) formula
+New Conversion Price (NCP):
+
+NCP = OCP × (A + B) / (A + C)
+
+
+where
+OCP = old conversion price,
+A = fully diluted shares before the new issue (broad base = includes all common on an as-converted, options/RSUs available for grant if specified by docs),
+B = consideration received / OCP,
+C = number of new shares issued.
+
+Full-ratchet: NCP = lowest new issue price.
+
+Pay-to-play: if investor does not invest pro-rata in down round, convert their preferred to shadow preferred or common per round rules; app must automate conversion pathways.
+
+Per-series configuration of: which pools are included in “A”, treatment of unallocated options, and rounding direction.
+
+4.5 Option Pool Mechanics
+
+Pool creation and top-ups: pre-money (affects founders/legacy holders) or post-money (affects all).
+
+Target-pool modeling: “Set pool to X% post-round”; compute required increase and dilution impact.
+
+Scenario tool to toggle pre/post money pool changes and compare cap tables.
+
+4.6 Waterfall & Exit Modeling
+
+Seniority: standard (later series senior), pari passu, or custom tiers.
+
+Liquidation preferences: non-participating vs participating with caps (e.g., 3x cap).
+
+Automatic convert-vs-liquidate optimization per holder (take greater of preference or as-converted value).
+
+Include transaction costs, debt, ESCROW holdbacks, management carve-outs, retention pools.
+
+Outputs: per-holder distributions, charts, and sensitivity sliders (EV range).
+
+4.7 Secondaries, Transfers, and Recaps
+
+Record secondary sales with ROFR/co-sale flags, board/investor approvals.
+
+Recapitalizations (reverse splits, class re-designations, re-pricing, option exchanges).
+
+Share cancellations, buybacks, and treasury re-issuance.
+
+4.8 Corporate Actions
+
+Stock splits/reverse splits with exact ratio and rounding policies: round down, bankers’ rounding, or cash-in-lieu tracker.
+
+Dividends (cash or stock) with ex-date and record date mechanics.
+
+Mergers: map legacy classes to acquirer classes; exchange ratios; stub equity.
