@@ -39,6 +39,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, AlertTriangle } from "lucide-react";
 import type { Stakeholder, SecurityClass } from "@shared/schema";
+import DerivedPill from "@/components/DerivedPill";
 import { 
   parseMoneyLoose, 
   parseSharesLoose, 
@@ -69,12 +70,7 @@ interface IssueSharesDialogProps {
   companyId: string;
 }
 
-// Small Derived pill component
-const DerivedPill = () => (
-  <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-    Derived
-  </Badge>
-);
+
 
 export default function IssueSharesDialog({ open, onOpenChange, companyId }: IssueSharesDialogProps) {
   const { toast } = useToast();
@@ -499,7 +495,16 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       Price per share ($)
-                      {!overridePps && <DerivedPill />}
+                      {!overridePps && (
+                        <DerivedPill 
+                          variant={ppsReconcileResult.warningDeltaPct ? "warning" : "default"}
+                          title={
+                            ppsReconcileResult.warningDeltaPct 
+                              ? `Valuation vs. consideration PPS differ by ~${ppsReconcileResult.warningDeltaPct}%`
+                              : "Calculated from valuation/consideration"
+                          }
+                        />
+                      )}
                       <HelpBubble 
                         term="Price per Share" 
                         definition="The calculated or set price for each share, derived from valuation and total shares or consideration and quantity."

@@ -39,6 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import { AlertTriangle } from "lucide-react";
 import type { SecurityClass } from "@shared/schema";
+import DerivedPill from "@/components/DerivedPill";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   parseMoneyLoose, 
@@ -358,7 +359,16 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
                             Price per share ($)
-                            {!overridePps && <DerivedPill />}
+                            {!overridePps && (
+                              <DerivedPill 
+                                variant={ppsReconcileResult.warningDeltaPct ? "warning" : "default"}
+                                title={
+                                  ppsReconcileResult.warningDeltaPct 
+                                    ? `Valuation vs. raise amount PPS differ by ~${ppsReconcileResult.warningDeltaPct}%`
+                                    : "Calculated from pre-money & pre-round FD"
+                                }
+                              />
+                            )}
                           </FormLabel>
                           <FormControl>
                             <TooltipProvider>
