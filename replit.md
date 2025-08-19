@@ -68,6 +68,15 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Cap Table Stats**: 8M shares, 285K options, 350K convertibles, 9 stakeholders
 
 ## Recent Bug Fixes & Enhancements - Aug 19, 2025 ✅
+
+### Price Math Helper Implementation - COMPLETED
+- **Centralized Price Utilities**: Created `client/src/utils/priceMath.ts` with comprehensive money/shares parsing and calculation functions
+- **Money Parsing**: `parseMoneyLoose()` strips currency symbols, commas, spaces and validates positive numbers
+- **Shares Parsing**: `parseSharesLoose()` handles up to 6 decimal places with comma/space stripping
+- **Precision Rounding**: `roundMoney()` (4dp default) and `roundShares()` (6dp default) with half-up rounding
+- **PPS Derivation**: `derivePpsFromValuation()` and `derivePpsFromConsideration()` for price-per-share calculations
+- **Conflict Resolution**: `reconcilePps()` reconciles multiple PPS sources with tolerance-based warning system (50bps default)
+- **Comprehensive Testing**: 29 unit tests covering all functions and edge cases, all passing ✅
 ### RSU Strike Price Bug - RESOLVED
 - **Fixed Schema**: Updated `insertEquityAwardSchema` to allow null strike prices for RSUs
 - **Fixed Routes**: Backend properly handles RSU creation without strike price requirement  
@@ -92,6 +101,9 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Zod**: Runtime type validation and schema parsing
 - **Wouter**: Lightweight client-side routing
 - **date-fns**: Date manipulation and formatting utilities
+
+### Utility Libraries
+- **Price Math Helper**: Centralized utilities for consistent money/shares parsing, rounding, and price-per-share calculations with conflict reconciliation (`client/src/utils/priceMath.ts`)
 
 ### Backend Services
 - **Drizzle ORM**: Type-safe PostgreSQL database toolkit

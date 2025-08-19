@@ -1,0 +1,36 @@
+Objective
+Add a centralized Price Math helper to consistently parse money/shares, round values, derive price-per-share (PPS) from valuation or consideration/quantity, and reconcile conflicting sources. No UI changes yet.
+
+Repo assumptions
+- Client: client/src/**
+- Test runner already configured.
+
+Tasks
+1) New file: client/src/utils/priceMath.ts
+   - export type ReconcileResult = { pps?: number; source: "valuation"|"consideration"|"override"|"unknown"; warningDeltaPct?: number }
+   - export function parseMoneyLoose(input: string|number|null|undefined): number|undefined
+     * Strip spaces, commas, currency symbols; return positive number or undefined.
+   - export function parseSharesLoose(input: string|number|null|undefined): number|undefined
+     * Allow up to 6 decimals; return positive number or undefined.
+   - export function roundMoney(n: number, dp=4): number  // half-up
+   - export function roundShares(n: number, dp=6): number // half-up
+   - export function derivePpsFromValuation(args: { valuation?: number; preRoundFD?: number }): number|undefined
+     * if valuation>0 && preRoundFD>0 → roundMoney(valuation / preRoundFD)
+   - export function derivePpsFromConsideration(args: { consideration?: number; quantity?: number }): number|undefined
+     * if consideration>0 && quantity>0 → roundMoney(consideration / quantity)
+   - export function reconcilePps(args: {
+       fromValuation?: number; fromConsideration?: number; overridePps?: number; toleranceBps?: number; // default 50 (=0.50%)
+     }): ReconcileResult
+     * if overridePps → {pps: roundMoney(overridePps), source:"override"}
+     * else if both present → choose valuation; include warningDeltaPct if |val-cons|/avg *100 > tolerance
+     * else prefer whichever exists; else source:"unknown"
+
+2) Unit tests: client/src/utils/__tests__/priceMath.test.ts
+   - parseMoneyLoose("$1,234.50") → 1234.5
+   - parseSharesLoose("10,000.123456") → 10000.123456
+   - derivePpsFromValuation(10_000_000, 10_000_000) → 1.0000
+   - derivePpsFromConsideration(1_000_000, 1_000_000) → 1.0000
+   - reconcilePps shows warningDeltaPct when divergence > 0.5%
+
+Acceptance
+- Tests pass; no UI or server changes.

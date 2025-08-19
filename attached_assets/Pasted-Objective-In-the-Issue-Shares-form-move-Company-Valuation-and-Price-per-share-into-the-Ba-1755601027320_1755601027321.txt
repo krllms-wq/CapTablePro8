@@ -1,0 +1,36 @@
+Objective
+In the Issue Shares form, move **Company Valuation** and **Price per share** into the **Basic** section, derive PPS by default using priceMath, add an “Override price per share” toggle to make PPS editable, and show a non-blocking warning when valuation-implied and consideration-implied PPS diverge.
+
+Repo assumptions
+- Client: client/src/**
+- Existing Issue Shares form component (adjust exact path if different).
+
+Tasks
+1) Edit Issue Shares form (e.g., client/src/features/transactions/IssueSharesForm.tsx):
+   - Basic section now includes:
+     * Round Name (req), Issue Date (req), Stakeholder (req), Security Class (req), Quantity (req)
+     * Company Valuation (optional, visible)
+     * Price per share (visible; read-only by default with “Derived” pill)
+     * Consideration (optional, still in Basic)
+     * Checkbox: “Override price per share”
+   - When override is **OFF**:
+     * Use priceMath.derivePpsFromValuation({ valuation, preRoundFD? }) and priceMath.derivePpsFromConsideration({ consideration, quantity })
+     * Reconcile via priceMath.reconcilePps; display callout if warningDeltaPct present.
+     * PPS input is read-only with aria-readonly and tooltip “Derived from valuation/consideration”.
+   - When override is **ON**:
+     * PPS input becomes editable; value sanitized with parseMoneyLoose.
+   - Parse/sanitize all money inputs with parseMoneyLoose & shares with parseSharesLoose on blur/change.
+   - Do **not** add new payload keys unless `pricePerShare` already exists in the API; otherwise submit same fields as before (valuation/quantity/consideration).
+   - Always re-enable button on error; show server message in toast.
+
+2) UI polish
+   - Tiny “Derived” pill component inline (local in file or small helper component).
+   - Non-blocking divergence info text if warningDeltaPct is set.
+
+3) E2E tests (or component tests if no E2E):
+   - Only Quantity+Consideration filled → PPS derived → submit succeeds.
+   - Valuation set → PPS derived from valuation → submit succeeds.
+   - Toggle override, edit PPS, submit → still succeeds; payload compatible.
+
+Acceptance
+- Valuation & PPS visible in Basic; PPS derived by default; override works; number parsing accepts commas/$.
