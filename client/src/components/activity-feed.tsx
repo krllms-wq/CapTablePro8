@@ -58,15 +58,27 @@ const formatEventDescription = (event: ActivityEvent) => {
   }
   
   if (eventType === 'stakeholder.updated') {
-    return `Updated stakeholder: ${metadata?.stakeholderName || 'Unknown'}`;
+    const stakeholderName = metadata?.stakeholderName || 'Unknown';
+    const changes = metadata?.changes;
+    
+    if (changes?.type) {
+      return `Updated ${stakeholderName} type from ${changes.type.from} to ${changes.type.to}`;
+    }
+    
+    return `Updated stakeholder: ${stakeholderName}`;
   }
   
   if (eventType === 'transaction.shares_issued') {
     return `Issued ${metadata?.quantity || 'N/A'} shares to ${metadata?.stakeholderName || 'Unknown'}`;
   }
   
-  // Default formatting
-  return eventType.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  if (eventType === 'demo.seeded') {
+    return `Demo data seeded: ${metadata?.stakeholders || 0} stakeholders, ${metadata?.shareIssuances || 0} share issuances`;
+  }
+  
+  // Default formatting - handle any unrecognized event types
+  const formattedType = eventType.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return `${formattedType}${metadata?.stakeholderName ? ` - ${metadata.stakeholderName}` : ''}`;
 };
 
 const groupEventsByDate = (events: ActivityEvent[]) => {
