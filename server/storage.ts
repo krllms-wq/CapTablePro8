@@ -457,11 +457,28 @@ export class MemStorage implements IStorage {
   }
 
   async getCompaniesForUser(userId: string): Promise<Company[]> {
-    const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
-    console.log(`Getting companies for user ${userId}: found ${companies.length} companies`);
-    console.log('Company details:', companies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo}, owner: ${c.ownerId})`));
-    console.log('All companies in storage:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
-    return companies;
+    // Force refresh from database to get latest ownership
+    console.log(`FORCE REFRESH: Getting companies for user ${userId}`);
+    try {
+      const dbCompanies = await db.select().from(companies).where(eq(companies.ownerId, userId));
+      console.log(`Found ${dbCompanies.length} companies in DB for user ${userId}`);
+      console.log('DB Companies:', dbCompanies.map(c => `${c.name} (demo: ${c.isDemo})`));
+      
+      // Update in-memory storage with fresh data
+      for (const company of dbCompanies) {
+        this.companies.set(company.id, company);
+      }
+      
+      const memoryCompanies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+      console.log('Company details:', memoryCompanies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo}, owner: ${c.ownerId})`));
+      
+      return memoryCompanies;
+    } catch (error) {
+      console.error('Error refreshing companies from DB:', error);
+      // Fallback to memory
+      const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+      return companies;
+    }
   }
 
   async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
