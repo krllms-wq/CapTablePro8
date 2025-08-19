@@ -51,6 +51,12 @@ import {
   roundMoney,
   type ReconcileResult 
 } from "@/utils/priceMath";
+import { 
+  sanitizeMoneyInput, 
+  formatDisplayValue, 
+  createMoneyBlurHandler, 
+  createSharesBlurHandler 
+} from "@/utils/formatters";
 
 const issueSharesSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
@@ -457,11 +463,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         type="text" 
                         placeholder="100,000" 
                         {...field}
-                        onBlur={(e) => {
-                          const sanitized = sanitizeSharesInput(e.target.value);
-                          field.onChange(sanitized);
-                          e.target.value = formatDisplayValue(sanitized, true);
-                        }}
+                        onBlur={createSharesBlurHandler(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -488,11 +490,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         type="text" 
                         placeholder="10,000,000" 
                         {...field}
-                        onBlur={(e) => {
-                          const sanitized = sanitizeMoneyInput(e.target.value);
-                          field.onChange(sanitized);
-                          e.target.value = formatDisplayValue(sanitized);
-                        }}
+                        onBlur={createMoneyBlurHandler(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -574,11 +572,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         type="text" 
                         placeholder="1,000,000" 
                         {...field}
-                        onBlur={(e) => {
-                          const sanitized = sanitizeMoneyInput(e.target.value);
-                          field.onChange(sanitized);
-                          e.target.value = formatDisplayValue(sanitized);
-                        }}
+                        onBlur={createMoneyBlurHandler(field)}
                       />
                     </FormControl>
                     <FormMessage />
