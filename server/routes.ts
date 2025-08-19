@@ -345,6 +345,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId
       });
       const stakeholder = await storage.createStakeholder(validated);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        companyId: req.params.companyId,
+        actorId: req.user?.id || 'system',
+        action: 'stakeholder_created',
+        payloadDiff: {
+          entityType: 'stakeholder',
+          entityId: stakeholder.id,
+          details: `Created stakeholder: ${stakeholder.name}`,
+          stakeholderType: stakeholder.type,
+          stakeholderName: stakeholder.name
+        }
+      });
+      
       res.status(201).json(stakeholder);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -402,6 +417,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const entry = await storage.createShareLedgerEntry(validated);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        companyId: req.params.companyId,
+        actorId: req.user?.id || 'system',
+        action: 'shares_issued',
+        payloadDiff: {
+          entityType: 'share_ledger_entry',
+          entityId: entry.id,
+          details: `Issued ${entry.quantity} shares to ${stakeholder.name}`,
+          quantity: entry.quantity,
+          stakeholderName: stakeholder.name,
+          securityClassName: securityClass.name,
+          consideration: entry.consideration
+        }
+      });
+      
       res.status(201).json(entry);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -429,6 +461,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId
       });
       const award = await storage.createEquityAward(validated);
+      
+      // Get stakeholder for audit log
+      const stakeholder = await storage.getStakeholder(award.holderId);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        companyId: req.params.companyId,
+        actorId: req.user?.id || 'system',
+        action: 'equity_award_granted',
+        payloadDiff: {
+          entityType: 'equity_award',
+          entityId: award.id,
+          details: `Granted ${award.quantityGranted} ${award.type} options to ${stakeholder?.name || 'unknown'}`,
+          awardType: award.type,
+          quantity: award.quantityGranted,
+          stakeholderName: stakeholder?.name,
+          strikePrice: award.strikePrice,
+          grantDate: award.grantDate
+        }
+      });
+      
       res.status(201).json(award);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -455,6 +508,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId
       });
       const instrument = await storage.createConvertibleInstrument(validated);
+      
+      // Get stakeholder for audit log
+      const stakeholder = await storage.getStakeholder(instrument.holderId);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        companyId: req.params.companyId,
+        actorId: req.user?.id || 'system',
+        action: 'convertible_created',
+        payloadDiff: {
+          entityType: 'convertible_instrument',
+          entityId: instrument.id,
+          details: `Created ${instrument.type} for ${stakeholder?.name || 'unknown'} with principal ${instrument.principal}`,
+          instrumentType: instrument.type,
+          framework: instrument.framework,
+          principal: instrument.principal,
+          stakeholderName: stakeholder?.name,
+          issueDate: instrument.issueDate
+        }
+      });
+      
       res.status(201).json(instrument);
     } catch (error) {
       if (error instanceof z.ZodError) {

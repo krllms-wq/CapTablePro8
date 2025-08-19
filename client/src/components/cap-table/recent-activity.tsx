@@ -13,47 +13,62 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
   });
 
   // Transform audit logs into activities
-  const activities = auditLogs?.slice(0, 4).map((log: any) => ({
-    id: log.id,
-    type: log.action,
-    title: log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-    description: log.details || `${log.entityType} ${log.action}`,
-    details: log.metadata ? JSON.stringify(log.metadata) : "No details available",
-    timestamp: new Date(log.timestamp),
-    icon: getActivityIcon(log.action),
-    iconColor: getActivityIconColor(log.action),
-    iconBg: getActivityIconBg(log.action)
-  })) || [];
+  const activities = auditLogs?.slice(0, 4).map((log: any) => {
+    const payload = log.payloadDiff || {};
+    const details = payload.details || `${payload.entityType || 'Unknown'} ${log.action}`;
+    
+    return {
+      id: log.id,
+      type: log.action,
+      title: log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      description: details,
+      details: payload.stakeholderName 
+        ? `Stakeholder: ${payload.stakeholderName}` 
+        : payload.quantity 
+        ? `Quantity: ${payload.quantity}` 
+        : "No details available",
+      timestamp: new Date(log.timestamp),
+      icon: getActivityIcon(log.action),
+      iconColor: getActivityIconColor(log.action),
+      iconBg: getActivityIconBg(log.action)
+    };
+  }) || [];
 
   function getActivityIcon(action: string) {
     switch (action) {
+      case 'stakeholder_created': return "fas fa-user-plus";
+      case 'shares_issued': return "fas fa-certificate";
+      case 'equity_award_granted': return "fas fa-gift";
+      case 'convertible_created': return "fas fa-exchange-alt";
       case 'create': return "fas fa-plus";
       case 'update': return "fas fa-edit";
       case 'delete': return "fas fa-trash";
-      case 'issue_shares': return "fas fa-certificate";
-      case 'grant_options': return "fas fa-gift";
       default: return "fas fa-file";
     }
   }
 
   function getActivityIconColor(action: string) {
     switch (action) {
+      case 'stakeholder_created': return "text-green-600";
+      case 'shares_issued': return "text-purple-600";
+      case 'equity_award_granted': return "text-orange-600";
+      case 'convertible_created': return "text-blue-600";
       case 'create': return "text-green-600";
       case 'update': return "text-blue-600";
       case 'delete': return "text-red-600";
-      case 'issue_shares': return "text-purple-600";
-      case 'grant_options': return "text-orange-600";
       default: return "text-neutral-600";
     }
   }
 
   function getActivityIconBg(action: string) {
     switch (action) {
+      case 'stakeholder_created': return "bg-green-100";
+      case 'shares_issued': return "bg-purple-100";
+      case 'equity_award_granted': return "bg-orange-100";
+      case 'convertible_created': return "bg-blue-100";
       case 'create': return "bg-green-100";
       case 'update': return "bg-blue-100";
       case 'delete': return "bg-red-100";
-      case 'issue_shares': return "bg-purple-100";
-      case 'grant_options': return "bg-orange-100";
       default: return "bg-neutral-100";
     }
   }
