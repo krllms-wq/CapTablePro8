@@ -1,0 +1,24 @@
+Error: capTable?.map is not a function
+Stack:
+TypeError: capTable?.map is not a function
+    at ScenariosPage (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/src/pages/scenarios.tsx:246:23)
+    at renderWithHooks (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:11548:26)
+    at mountIndeterminateComponent (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:14926:21)
+    at beginWork (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:15914:22)
+    at beginWork$1 (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:19753:22)
+    at performUnitOfWork (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:19198:20)
+    at workLoopSync (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:19137:13)
+    at renderRootSync (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:19116:15)
+    at recoverFromConcurrentError (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:18736:28)
+    at performSyncWorkOnRoot (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=aba37fb2:18879:28)
+Component Stack:
+
+    at ScenariosPage (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/src/pages/scenarios.tsx:33:25)
+    at Route (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=aba37fb2:323:16)
+    at Switch (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=aba37fb2:379:17)
+    at Router (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/src/App.tsx?v=ZIqcBib5GOznR3rshDkHN:46:42)
+    at Provider (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5AJU3CG7.js?v=aba37fb2:38:15)
+    at TooltipProvider (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=aba37fb2:63:5)
+    at GlobalErrorBoundary (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/src/components/ui/global-error-boundary.tsx:25:5)
+    at QueryClientProvider (https://6ed98504-447d-4761-a6e0-8654c2f83c3a-00-97a5oeg3we8u.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=aba37fb2:2805:3)
+    at App

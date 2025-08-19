@@ -195,10 +195,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const validated = insertCompanySchema.parse({
-        ...req.body,
+      // Validate required fields first
+      const { name, incorporationDate } = req.body;
+      
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ 
+          error: "Company name is required and cannot be empty" 
+        });
+      }
+      
+      if (!incorporationDate) {
+        return res.status(400).json({ 
+          error: "Incorporation date is required" 
+        });
+      }
+
+      // Normalize incorporation date to date-only UTC
+      let normalizedDate: Date;
+      try {
+        normalizedDate = toDateOnlyUTC(incorporationDate);
+      } catch (dateError) {
+        return res.status(400).json({ 
+          error: "Invalid incorporation date format. Please provide a valid date." 
+        });
+      }
+
+      // Prepare data for validation with normalized date and defaults
+      const companyData = {
+        name: name.trim(),
+        description: req.body.description || undefined,
+        country: req.body.country || "US",
+        jurisdiction: req.body.jurisdiction || "Delaware", 
+        currency: req.body.currency || "USD",
+        parValue: req.body.parValue || "0.0001",
+        incorporationDate: normalizedDate,
+        authorizedShares: req.body.authorizedShares || 10000000,
         ownerId: req.user!.id
-      });
+      };
+
+      // Validate with schema (this will catch any remaining validation issues)
+      const validated = insertCompanySchema.parse(companyData);
+      
+      // Create company
       const company = await storage.createCompany(validated);
       
       // Grant owner access to the creator
@@ -219,6 +257,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(company);
     } catch (error) {
       console.error("Error creating company:", error);
+      
+      // Handle Zod validation errors with more specific messages
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        const fieldName = firstError.path.join('.');
+        
+        // Map common validation errors to user-friendly messages
+        if (fieldName === 'name' && firstError.code === 'too_small') {
+          return res.status(400).json({ 
+            error: "Company name is required and cannot be empty" 
+          });
+        }
+        
+        if (fieldName === 'incorporationDate') {
+          return res.status(400).json({ 
+            error: "Invalid incorporation date format. Please provide a valid date." 
+          });
+        }
+        
+        if (fieldName === 'authorizedShares' && firstError.code === 'invalid_type') {
+          return res.status(400).json({ 
+            error: "Authorized shares must be a valid number" 
+          });
+        }
+        
+        // Generic validation error
+        return res.status(400).json({ 
+          error: `Validation failed: ${fieldName} ${firstError.message}` 
+        });
+      }
+      
+      // Handle duplicate company names or other known errors
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+          return res.status(400).json({ 
+            error: "A company with this name already exists" 
+          });
+        }
+        
+        return res.status(400).json({ 
+          error: error.message 
+        });
+      }
+      
+      // Generic server error
       res.status(500).json({ error: "Failed to create company" });
     }
   });
