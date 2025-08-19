@@ -62,7 +62,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-seed demo company if enabled
       if (process.env.DEMO_SEED_ON_SIGNUP === 'true') {
         try {
-          await seedExampleCompany({ userId: user.id });
+          console.log('Seeding demo company on signup for user:', user.id);
+          const { seedMinimalDemo } = await import('./domain/onboarding/seedMinimalDemo');
+          const result = await seedMinimalDemo({ userId: user.id });
+          console.log('Demo company seeded on signup:', result.companyId);
         } catch (error) {
           console.error('Error seeding demo company on signup:', error);
         }
@@ -126,10 +129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Auto-seed demo company if enabled
+      // Auto-seed demo company if enabled  
       if (process.env.DEMO_SEED_ON_LOGIN_FOR_ALL === 'true') {
         try {
-          await seedExampleCompany({ userId: user.id });
+          console.log('Auto-seeding demo company for user:', user.id);
+          const { seedMinimalDemo } = await import('./domain/onboarding/seedMinimalDemo');
+          const result = await seedMinimalDemo({ userId: user.id });
+          console.log('Demo company seeded successfully:', result.companyId);
         } catch (error) {
           console.error('Error auto-seeding demo company:', error);
         }

@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { requireAuth, AuthenticatedRequest } from "../auth";
 import { seedExampleCompany } from "../domain/onboarding/seedExampleCompany";
+import { seedMinimalDemo } from "../domain/onboarding/seedMinimalDemo";
+import { storage } from "../storage";
 
 const router = Router();
 
@@ -8,7 +10,9 @@ const router = Router();
 router.post("/seed/ensure", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
-    const result = await seedExampleCompany({ userId });
+    console.log('Creating demo company for user:', userId);
+    const result = await seedMinimalDemo({ userId });
+    console.log('Demo company created:', result.companyId);
     
     res.json({ 
       success: true, 
