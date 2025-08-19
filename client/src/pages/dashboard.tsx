@@ -80,19 +80,36 @@ export default function Dashboard() {
 
         {/* Stats */}
         <CapTableStats 
-          stats={capTableData?.stats || { totalShares: 0, totalOptions: 0, totalConvertibles: 0, stakeholderCount: 0 }} 
+          stats={capTableData?.stats ? {
+            totalShares: capTableData.stats.totalShares,
+            fullyDilutedShares: capTableData.stats.totalShares + capTableData.stats.totalOptions,
+            currentValuation: 0, // Default valuation - can be enhanced later
+            optionPoolAvailable: capTableData.stats.totalOptions
+          } : undefined} 
           isLoading={capTableLoading} 
         />
 
         {/* Main Cap Table */}
         <CapTableMain 
-          capTable={capTableData?.capTable || []} 
+          capTable={capTableData?.capTable?.map(row => ({
+            stakeholder: { name: row.stakeholder },
+            securityClass: { name: "Common Stock" }, // Default security class
+            shares: row.shares,
+            ownership: parseFloat(row.percentage) / 100,
+            value: row.value
+          })) || []} 
           isLoading={capTableLoading}
         />
 
         {/* Charts and Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <OwnershipChart capTable={capTableData?.capTable || []} />
+          <OwnershipChart capTable={capTableData?.capTable?.map(row => ({
+            stakeholder: { name: row.stakeholder },
+            securityClass: { name: "Common Stock" },
+            shares: row.shares,
+            ownership: parseFloat(row.percentage) / 100,
+            value: row.value
+          })) || []} />
           <RecentActivity companyId={companyId!} />
         </div>
 
