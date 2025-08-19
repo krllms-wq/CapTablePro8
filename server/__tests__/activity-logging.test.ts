@@ -46,13 +46,7 @@ describe('Activity Logging Integration Tests', () => {
      *    - Real-time updates with 30-second intervals
      */
   });
-  let stakeholderId: string;
-  let classId: string;
-
-  beforeAll(async () => {
-    // Login to get auth token
-    const loginResponse = await request(app)
-      .post('/api/auth/login')
+});
       .send({ email: 'demo@example.com', password: 'hello' });
     
     authToken = loginResponse.body.token;

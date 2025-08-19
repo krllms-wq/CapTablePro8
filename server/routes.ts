@@ -909,7 +909,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rounds = await storage.getRounds(companyId);
       
       // Import valuation calculator
-      const { calculateFullyDilutedValuation } = await import("./utils/valuationCalculator");
+      const { calculateFullyDilutedValuation, calculateCurrentValuation } = await import("./utils/valuationCalculator");
+      
+      // Get valuation source information
+      console.log('Cap table endpoint - rounds found:', rounds.length);
+      const currentValuationInfo = calculateCurrentValuation(rounds, shareLedger);
+      console.log('Cap table endpoint - valuation result:', currentValuationInfo);
       
       // Calculate proper valuation with corrected math (prevent double counting)
       const valuationResult = calculateFullyDilutedValuation(
@@ -987,7 +992,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fullyDilutedShares: valuationResult.fullyDilutedShares,
           currentValuation: valuationResult.currentValuation,
           fullyDilutedValuation: valuationResult.fullyDilutedValuation,
-          pricePerShare: valuationResult.pricePerShare
+          optionPoolAvailable: Math.max(0, 10000000 - totalOptionsOutstanding), // Unallocated pool
+          pricePerShare: valuationResult.pricePerShare,
+          valuationSource: currentValuationInfo.sourceDescription,
+          rsuInclusionMode: 'granted'
         },
         capTable,
         valuationInfo: {
@@ -995,7 +1003,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sharesOutstanding: valuationResult.sharesOutstanding,
           fullyDilutedShares: valuationResult.fullyDilutedShares,
           currentValuation: valuationResult.currentValuation,
-          fullyDilutedValuation: valuationResult.fullyDilutedValuation
+          fullyDilutedValuation: valuationResult.fullyDilutedValuation,
+          source: currentValuationInfo.source,
+          sourceDescription: currentValuationInfo.sourceDescription,
+          lastRoundDate: currentValuationInfo.lastRoundDate,
+          lastRoundName: currentValuationInfo.lastRoundName
         }
       });
     } catch (error) {

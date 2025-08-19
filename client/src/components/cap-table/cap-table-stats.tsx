@@ -1,11 +1,16 @@
 import { formatCurrency, formatNumber } from "@/lib/formatters";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface CapTableStatsProps {
   stats?: {
     totalShares: number;
     fullyDilutedShares: number;
-    currentValuation: number;
+    currentValuation: number | null;
+    fullyDilutedValuation: number | null;
     optionPoolAvailable: number;
+    valuationSource?: string;
+    rsuInclusionMode?: 'none' | 'granted' | 'vested';
   };
   isLoading: boolean;
 }
@@ -28,6 +33,22 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
 
   if (!stats) return null;
 
+  // Helper to format valuation with N/A handling
+  const formatValuation = (value: number | null, fallback: string = "N/A") => {
+    if (value === null || value === undefined || value <= 0) return fallback;
+    return formatCurrency(value);
+  };
+
+  // Helper to get RSU inclusion description
+  const getRsuModeDescription = (mode: string = 'granted') => {
+    switch (mode) {
+      case 'none': return 'excluding RSUs';
+      case 'granted': return 'including granted RSUs';
+      case 'vested': return 'including vested RSUs only';
+      default: return 'including granted RSUs';
+    }
+  };
+
   const statCards = [
     {
       title: "Total Shares Outstanding",
@@ -35,20 +56,31 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
       icon: "fas fa-certificate",
       iconColor: "text-primary",
       bgColor: "bg-primary/10",
+      tooltip: "Total issued and outstanding shares"
     },
     {
       title: "Fully Diluted Shares",
       value: formatNumber(stats.fullyDilutedShares),
       icon: "fas fa-expand-arrows-alt",
-      iconColor: "text-secondary",
+      iconColor: "text-secondary", 
       bgColor: "bg-secondary/10",
+      tooltip: `Total shares assuming all options are exercised (${getRsuModeDescription(stats.rsuInclusionMode)})`
     },
     {
       title: "Current Valuation",
-      value: formatCurrency(stats.currentValuation),
+      value: formatValuation(stats.currentValuation),
       icon: "fas fa-dollar-sign",
       iconColor: "text-accent",
       bgColor: "bg-accent/10",
+      tooltip: stats.valuationSource || "Current company valuation based on latest pricing data"
+    },
+    {
+      title: "Fully Diluted Valuation",
+      value: formatValuation(stats.fullyDilutedValuation),
+      icon: "fas fa-expand-arrows-alt", 
+      iconColor: "text-green-600",
+      bgColor: "bg-green-100",
+      tooltip: `Valuation assuming all options are exercised (${getRsuModeDescription(stats.rsuInclusionMode)})`
     },
     {
       title: "Option Pool Available",
@@ -56,24 +88,37 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
       icon: "fas fa-gift",
       iconColor: "text-purple-600",
       bgColor: "bg-purple-100",
+      tooltip: "Unallocated shares available for future equity grants"
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      {statCards.map((card, index) => (
-        <div key={index} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-neutral-600 text-sm font-medium">{card.title}</p>
-              <p className="text-2xl font-bold text-neutral-900 mt-1">{card.value}</p>
-            </div>
-            <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
-              <i className={`${card.icon} ${card.iconColor} text-xl`}></i>
+    <TooltipProvider>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+        {statCards.map((card, index) => (
+          <div key={index} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-neutral-600 text-sm font-medium">{card.title}</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-neutral-400 hover:text-neutral-600" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{card.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{card.value}</p>
+              </div>
+              <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
+                <i className={`${card.icon} ${card.iconColor} text-xl`}></i>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

@@ -9,6 +9,7 @@ export interface ValuationResult {
   source: 'latest_round' | 'explicit_valuation' | 'none';
   lastRoundDate?: Date;
   lastRoundName?: string;
+  sourceDescription?: string;
 }
 
 /**
@@ -25,20 +26,32 @@ export function calculateCurrentValuation(
     return {
       currentValuation: explicitValuation,
       pricePerShare: null, // Would need shares outstanding to calculate
-      source: 'explicit_valuation'
+      source: 'explicit_valuation',
+      sourceDescription: 'Explicit company valuation'
     };
   }
 
   // Find latest priced round
   const pricedRounds = rounds
-    .filter(round => round.roundType === 'priced' && round.pricePerShare && round.pricePerShare > 0)
+    .filter(round => 
+      round.roundType === 'priced' && 
+      round.pricePerShare && 
+      Number(round.pricePerShare) > 0
+    )
     .sort((a, b) => new Date(b.closeDate).getTime() - new Date(a.closeDate).getTime());
+
+  console.log('Valuation Calculator - Total rounds:', rounds.length);
+  console.log('Valuation Calculator - Priced rounds:', pricedRounds.length);
+  if (pricedRounds.length > 0) {
+    console.log('Valuation Calculator - Latest round:', pricedRounds[0]);
+  }
 
   if (pricedRounds.length === 0) {
     return {
       currentValuation: null,
       pricePerShare: null,
-      source: 'none'
+      source: 'none',
+      sourceDescription: 'No priced rounds available'
     };
   }
 
@@ -53,7 +66,8 @@ export function calculateCurrentValuation(
       pricePerShare: latestRound.pricePerShare,
       source: 'latest_round',
       lastRoundDate: latestRound.closeDate,
-      lastRoundName: latestRound.name
+      lastRoundName: latestRound.name,
+      sourceDescription: `Price from ${latestRound.name} round (no shares outstanding)`
     };
   }
 
@@ -65,7 +79,8 @@ export function calculateCurrentValuation(
     pricePerShare: latestRound.pricePerShare,
     source: 'latest_round',
     lastRoundDate: latestRound.closeDate,
-    lastRoundName: latestRound.name
+    lastRoundName: latestRound.name,
+    sourceDescription: `Based on ${latestRound.name} round at $${Number(latestRound.pricePerShare).toFixed(2)}/share`
   };
 }
 
