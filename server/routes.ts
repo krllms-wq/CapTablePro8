@@ -21,6 +21,7 @@ import { seedExampleCompany } from "./domain/onboarding/seedExampleCompany";
 import demoRoutes from "./routes/demo";
 import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numberParser";
 import { toDateOnlyUTC } from "./utils/dateParser";
+import { ensurePricePerShare } from "./domain/util/price";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -484,7 +485,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : new Date()
       };
 
-      const validated = insertShareLedgerEntrySchema.parse(sanitizedBody);
+      // Ensure price per share is computed if missing but derivable
+      const withPricePerShare = ensurePricePerShare(sanitizedBody);
+
+      const validated = insertShareLedgerEntrySchema.parse(withPricePerShare);
       
       const entry = await storage.createShareLedgerEntry(validated);
       
