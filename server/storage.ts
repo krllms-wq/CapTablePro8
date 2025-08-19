@@ -215,10 +215,12 @@ export class MemStorage implements IStorage {
 
         console.log(`Loaded ${this.companies.size} companies, ${this.stakeholders.size} stakeholders, ${this.securityClasses.size} security classes, ${this.shareLedgerEntries.size} share entries from database`);
         console.log('Loaded companies:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
+        console.log('Demo companies:', Array.from(this.companies.values()).filter(c => c.isDemo).map(c => `${c.name} (owner: ${c.ownerId})`));
         return; // Exit early if data loaded from DB
       }
     } catch (error) {
-      console.log('Could not load from database, using seed data:', error);
+      console.error('ERROR loading from database:', error);
+      console.log('Falling back to seed data');
     }
 
     // Create a sample company (fallback)
@@ -457,7 +459,8 @@ export class MemStorage implements IStorage {
   async getCompaniesForUser(userId: string): Promise<Company[]> {
     const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
     console.log(`Getting companies for user ${userId}: found ${companies.length} companies`);
-    console.log('Company IDs:', companies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo})`));
+    console.log('Company details:', companies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo}, owner: ${c.ownerId})`));
+    console.log('All companies in storage:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
     return companies;
   }
 
@@ -855,9 +858,24 @@ export class MemStorage implements IStorage {
   }
 
   async getUserCompanies(userId: string): Promise<Company[]> {
+    // First try to get companies by ownership
+    const ownedCompanies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+    
+    // Then add companies with explicit access
     const userAccess = Array.from(this.userCompanyAccess.values()).filter(a => a.userId === userId);
-    const companyIds = userAccess.map(a => a.companyId);
-    return Array.from(this.companies.values()).filter(c => companyIds.includes(c.id));
+    const accessCompanyIds = userAccess.map(a => a.companyId);
+    const accessCompanies = Array.from(this.companies.values()).filter(c => accessCompanyIds.includes(c.id));
+    
+    // Combine and deduplicate
+    const allCompanies = [...ownedCompanies, ...accessCompanies];
+    const uniqueCompanies = allCompanies.filter((company, index, self) => 
+      index === self.findIndex(c => c.id === company.id)
+    );
+    
+    console.log(`getUserCompanies for ${userId}: owned=${ownedCompanies.length}, access=${accessCompanies.length}, total=${uniqueCompanies.length}`);
+    console.log('Company details:', uniqueCompanies.map(c => `${c.name} (demo: ${c.isDemo})`));
+    
+    return uniqueCompanies;
   }
 
   async getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]> {
