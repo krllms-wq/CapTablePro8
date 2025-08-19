@@ -617,12 +617,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transactionDate: req.body.transactionDate ? toDateOnlyUTC(req.body.transactionDate) : new Date()
       };
 
-      const { sellerId, buyerId, classId, quantity, pricePerShare, transactionDate } = sanitizedBody;
+      let { sellerId, buyerId, classId, quantity, pricePerShare, transactionDate } = sanitizedBody;
 
       if (!sellerId || !buyerId || !classId || quantity <= 0) {
         return res.status(400).json({ 
           error: "Missing required fields: sellerId, buyerId, classId, and positive quantity" 
         });
+      }
+
+      // Handle new stakeholder creation if buyerId is "NEW_STAKEHOLDER"
+      if (buyerId === "NEW_STAKEHOLDER") {
+        // Create new stakeholder from the request data
+        if (req.body.newBuyer && req.body.newBuyer.name) {
+          const newStakeholder = await storage.createStakeholder({
+            companyId: req.params.companyId,
+            name: req.body.newBuyer.name,
+            email: req.body.newBuyer.email || null,
+            type: req.body.newBuyer.type || "individual"
+          });
+          buyerId = newStakeholder.id;
+        } else {
+          return res.status(400).json({
+            error: "New buyer name is required when creating a new stakeholder",
+            code: "MISSING_BUYER_NAME"
+          });
+        }
+      } else {
+        // Verify existing buyer exists
+        const existingBuyer = await storage.getStakeholder(buyerId);
+        if (!existingBuyer) {
+          return res.status(400).json({
+            error: "Buyer stakeholder not found",
+            code: "BUYER_NOT_FOUND"
+          });
+        }
       }
 
       // Get current seller holdings to validate balance

@@ -17,6 +17,7 @@ interface SecondaryTransactionDialogProps {
 
 export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: SecondaryTransactionDialogProps) {
   const { toast } = useToast();
+  const [validationError, setValidationError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     sellerId: "",
@@ -59,16 +60,28 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
       }
 
       // Use new atomic secondary transfer endpoint
+      const requestBody: any = {
+        sellerId: data.sellerId,
+        buyerId,
+        classId: data.classId,
+        quantity: data.quantity, // Server will sanitize formatted numbers
+        pricePerShare: data.pricePerShare, // Server will sanitize formatted numbers
+        transactionDate: data.transactionDate
+      };
+
+      // If we're creating a new buyer, send "NEW_STAKEHOLDER" as buyerId and include details
+      if (data.buyerType === "new") {
+        requestBody.buyerId = "NEW_STAKEHOLDER";
+        requestBody.newBuyer = {
+          name: data.newBuyerName,
+          email: data.newBuyerEmail || null,
+          type: data.newBuyerType
+        };
+      }
+
       const result = await apiRequest(`/api/companies/${companyId}/secondary-transfer`, {
         method: "POST",
-        body: {
-          sellerId: data.sellerId,
-          buyerId,
-          classId: data.classId,
-          quantity: data.quantity, // Server will sanitize formatted numbers
-          pricePerShare: data.pricePerShare, // Server will sanitize formatted numbers
-          transactionDate: data.transactionDate
-        }
+        body: requestBody
       });
 
       return result;
@@ -102,6 +115,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
       
       if (error?.code === "INSUFFICIENT_SHARES") {
         errorMessage = `Insufficient shares for transfer. Available: ${error.details?.available || 0}, Requested: ${error.details?.requested || 0}`;
+        setValidationError(errorMessage); // Show inline error for validation issues
       } else if (error?.message) {
         errorMessage = error.message;
       }
@@ -116,6 +130,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null); // Clear previous errors
     
     if (!formData.sellerId || !formData.classId || !formData.quantity || !formData.pricePerShare) {
       toast({
@@ -268,6 +283,25 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
               </SelectContent>
             </Select>
           </div>
+
+          {/* Inline validation error display */}
+          {validationError && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Transfer Error</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>{validationError}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
