@@ -1,0 +1,110 @@
+Objective
+Ensure every user has a normal, editable sample company “Example LLC” with rich seed data. Create it:
+1) on sign-up (if user has no demo),
+2) on login for ANY user who doesn’t yet have a demo (even if they already have other companies),
+3) via a backfill script and a protected endpoint for one-off seeding.
+
+Stack/structure assumptions
+- Server domain: server/domain/**
+- Drizzle ORM; schema under server/db/**
+- Client: client/src/**
+- Keep existing styles/components; reuse domain services (no raw SQL)
+
+Config & idempotency
+- Add env flags:
+  DEMO_SEED_ON_SIGNUP=true
+  DEMO_SEED_ON_LOGIN_FOR_ALL=true        # seed on next login for any user w/o demo
+  DEMO_SEED_BULK_ENABLED=true            # allow admin backfill endpoint
+- Add company column: isDemo boolean (default false).
+- Unique constraint: at most one demo per (ownerId). (Partial/compound index or application-level guard.)
+- All seed ops must be idempotent and transactional.
+
+Server
+
+1) Schema & migration
+- server/db/schema.ts: add company.isDemo (boolean, default false).
+- Migration for isDemo + unique/partial index to enforce <=1 demo per owner (or fallback: application check with transaction).
+
+2) Seed module
+- New file: server/domain/onboarding/seedExampleCompany.ts
+  export async function seedExampleCompany({ userId }: { userId: string }): Promise<{ companyId: string }>
+  Behavior:
+  - If user already has a company with isDemo=true → return its id (no-op).
+  - Else create “Example LLC” (jurisdiction "US-DE", incorporationDate ≈ now() - 18m, isDemo=true).
+  - Create stakeholders: Alice Founder, Bob Founder, Jane Employee, Demo Ventures (entity).
+  - Security/classes/plan:
+      * Common Stock
+      * Preferred Seed (1x liq. pref., 1:1 conversion)
+      * Option Plan authorized = 2,000,000
+  - Transactions (use existing domain services so audit logs fire):
+      * Issue Shares: 3,000,000 Common → Alice; 2,000,000 Common → Bob
+      * Grants: 200,000 Stock Options (strike $1.00, 4y, 1y cliff, start = incDate+1m); 50,000 RSU (3y, no cliff)
+      * SAFE (pre-money): $250,000; cap $10,000,000; discount 20%; date = now()-9m
+      * Convertible Note: $100,000; 8% simple A/365; discount 20%; cap $12,000,000; issue = now()-12m; maturity = now()+12m
+      * Secondary: Alice → Demo Ventures: 50,000 Common @ $2.50 (now()-2m)
+      * Stock Split: 2:1 (now()-6m)
+      * Priced Round (Seed): pre $8,000,000; new $2,000,000; poolTopUp 15% post; issue Preferred Seed; date = now()-3m
+  - Option plan accounting: grants consume available; (no exercises initially).
+  - Return { companyId }.
+
+3) Hook on sign-up AND on login
+- After successful sign-up: if DEMO_SEED_ON_SIGNUP → await seedExampleCompany({ userId }).
+- On login/session-establish (central auth middleware or /api/me handler):
+    if DEMO_SEED_ON_LOGIN_FOR_ALL && user has NO isDemo company → await seedExampleCompany({ userId }).
+
+4) Admin backfill & self-service ensure
+- Protected admin endpoint (dev/preview only): POST /api/demo/seed/backfill
+  Loops all users; for each without demo → seedExampleCompany. Stream progress.
+- Self-service ensure for current user (auth required): POST /api/demo/seed/ensure
+  Calls seedExampleCompany for req.user.id.
+- Both endpoints must be idempotent.
+
+5) Activity/audit
+- If logEvent utility exists: write company.created (isDemo:true) + transaction.* events as they are created.
+
+Client
+
+6) First-login UX (existing & new users)
+- Companies list: if user has a demo → show “Sample” badge.
+- On first login after auto-seed, show dismissible toast/banner:
+  “We added a sample company ‘Example LLC’ so you can explore features. You can rename or delete it anytime.”
+  Buttons: [Open] → /company/:id/cap-table, [Rename] → Company Settings, [Delete] → confirm dialog then delete.
+- Add manual action on Companies page (visible if no demo exists):
+  “Add Sample Company” → calls POST /api/demo/seed/ensure → toast + list refresh.
+
+7) Cap Table & consistency (light touch)
+- Ensure the same NewTransactionButton component is used on Cap Table and Transactions (reuse your shared component).
+- No QuickActions block on Cap Table (if still present, remove).
+
+Dates/formatting
+
+8) Deterministic sample dates
+- Helper to generate relative dates; store date-only UTC where applicable.
+- Use Intl.NumberFormat/DateTimeFormat on client for display.
+
+Testing
+
+9) Server unit/integration
+- seedExampleCompany: creates exactly one demo per user; safe on repeated calls.
+- Signup flow: new user → demo created.
+- Login flow: existing user with companies but no demo → demo created on first login.
+- Admin backfill: seeds missing demos; skips users that already have one.
+
+10) E2E (Playwright)
+- Existing user with companies, no demo → login → banner appears; “Example LLC” visible; pages (Cap Table, Awards, Convertibles, Transactions) show non-empty data.
+- Delete demo company works; list updates.
+- Manual “Add Sample Company” appears when no demo exists; hides after creation.
+
+Acceptance Criteria
+- Every user ends up with exactly one sample company (unless deleted by the user).
+- New users: seeded on sign-up; existing users: seeded on first login or via backfill.
+- Demo company is fully editable/deletable; activity/audit populated by seed.
+- No duplicate demos; operations are transactional and idempotent.
+- No regressions in existing flows.
+
+Deliverables
+- Migration adding company.isDemo (+ index/constraint).
+- server/domain/onboarding/seedExampleCompany.ts
+- Wiring in signup and login flows; two endpoints for ensure/backfill.
+- Client: banner/toast + “Add Sample Company” action; “Sample” badge on card.
+- Unified diff patches only.
