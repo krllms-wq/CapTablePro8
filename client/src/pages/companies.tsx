@@ -9,26 +9,41 @@ import { EmptyState } from "@/components/ui/empty-state";
 import Navigation from "@/components/layout/navigation";
 import { queryClient } from "@/lib/queryClient";
 import { Building2, Search, Plus } from "lucide-react";
+import DemoBanner from "@/components/demo-banner";
+import AddSampleCompanyButton from "@/components/add-sample-company-button";
 
 type Company = {
   id: string;
   name: string;
   description?: string;
+  isDemo?: boolean;
 };
 
 export default function CompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [dismissedDemoBanner, setDismissedDemoBanner] = useState(() => {
+    return localStorage.getItem("demoBannerDismissed") === "true";
+  });
 
-  const { data: companies = [], isLoading, error } = useQuery({
+  const { data: companies = [], isLoading, error } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
     retry: 3,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const filteredCompanies = (companies as Company[]).filter((company: Company) =>
+  const filteredCompanies = companies.filter((company: Company) =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Find demo companies for banner
+  const demoCompanies = companies.filter(c => c.isDemo);
+  const showDemoBanner = !dismissedDemoBanner && demoCompanies.length > 0;
+
+  const handleDismissBanner = () => {
+    setDismissedDemoBanner(true);
+    localStorage.setItem("demoBannerDismissed", "true");
+  };
 
   const CompanySkeleton = () => (
     <Card>
@@ -106,6 +121,15 @@ export default function CompaniesPage() {
           </Link>
         </div>
 
+        {/* Demo Banner */}
+        {showDemoBanner && demoCompanies[0] && (
+          <DemoBanner
+            companyId={demoCompanies[0].id}
+            companyName={demoCompanies[0].name}
+            onDismiss={handleDismissBanner}
+          />
+        )}
+
         {/* Companies Grid */}
         {filteredCompanies.length === 0 ? (
           <EmptyState
@@ -117,8 +141,8 @@ export default function CompaniesPage() {
                 : `No companies match "${searchTerm}". Try a different search term.`
             }
             action={companies.length === 0 ? {
-              label: "Create your first company",
-              onClick: () => window.location.href = "/setup"
+              label: "Create your first company", 
+              onClick: () => { window.location.href = "/setup"; }
             } : undefined}
           />
         ) : (
@@ -152,6 +176,15 @@ export default function CompaniesPage() {
                 </Card>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Add sample company button for empty state */}
+        {companies.length === 0 && (
+          <div className="mt-6 flex justify-center">
+            <div className="max-w-xs w-full">
+              <AddSampleCompanyButton />
+            </div>
           </div>
         )}
       </div>

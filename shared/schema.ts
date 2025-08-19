@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -56,8 +57,12 @@ export const companies = pgTable("companies", {
   parValue: decimal("par_value", { precision: 10, scale: 4 }).notNull().default("0.0001"),
   incorporationDate: timestamp("incorporation_date").notNull(),
   authorizedShares: integer("authorized_shares").notNull().default(10000000),
+  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  isDemo: boolean("is_demo").notNull().default(false),
   createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-});
+}, (table) => ({
+  ownerDemoIdx: index("companies_owner_demo_unique").on(table.ownerId, table.isDemo).where(sql`${table.isDemo} = true`),
+}));
 
 // Security Classes (Common, Preferred A, B, etc.)
 export const securityClasses = pgTable("security_classes", {

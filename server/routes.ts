@@ -17,8 +17,13 @@ import {
 import { z } from "zod";
 import { insertScenarioSchema } from "@shared/schema";
 import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest } from "./auth";
+import { seedExampleCompany } from "./domain/onboarding/seedExampleCompany";
+import demoRoutes from "./routes/demo";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Demo routes
+  app.use("/api/demo", demoRoutes);
   
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
@@ -53,6 +58,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate token
       const token = generateToken(user);
+      
+      // Auto-seed demo company if enabled
+      if (process.env.DEMO_SEED_ON_SIGNUP === 'true') {
+        try {
+          await seedExampleCompany({ userId: user.id });
+        } catch (error) {
+          console.error('Error seeding demo company on signup:', error);
+        }
+      }
       
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = user;
@@ -110,6 +124,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Auto-seed demo company if enabled
+      if (process.env.DEMO_SEED_ON_LOGIN_FOR_ALL === 'true') {
+        try {
+          await seedExampleCompany({ userId: user.id });
+        } catch (error) {
+          console.error('Error auto-seeding demo company:', error);
+        }
       }
       
       // Remove password hash from response

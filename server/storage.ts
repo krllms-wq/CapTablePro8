@@ -130,6 +130,8 @@ export class MemStorage implements IStorage {
       parValue: "0.0001",
       incorporationDate: new Date("2022-01-15"),
       authorizedShares: 15000000,
+      ownerId: "sample-user-id",
+      isDemo: false,
       createdAt: new Date(),
     };
     this.companies.set(companyId, company);
@@ -328,10 +330,13 @@ export class MemStorage implements IStorage {
       name: insertCompany.name,
       description: insertCompany.description ?? null,
       country: insertCompany.country ?? "US",
+      jurisdiction: insertCompany.jurisdiction ?? "Delaware",
       currency: insertCompany.currency ?? "USD", 
       parValue: insertCompany.parValue ?? "0.0001",
       incorporationDate: insertCompany.incorporationDate,
       authorizedShares: insertCompany.authorizedShares ?? 10000000,
+      ownerId: insertCompany.ownerId,
+      isDemo: insertCompany.isDemo ?? false,
       createdAt: new Date(),
     };
     this.companies.set(id, company);
@@ -344,6 +349,10 @@ export class MemStorage implements IStorage {
 
   async getCompanies(): Promise<Company[]> {
     return Array.from(this.companies.values());
+  }
+
+  async getCompaniesForUser(userId: string): Promise<Company[]> {
+    return Array.from(this.companies.values()).filter(c => c.ownerId === userId);
   }
 
   async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
