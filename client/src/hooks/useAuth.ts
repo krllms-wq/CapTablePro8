@@ -24,8 +24,25 @@ export function useAuth() {
   };
 }
 
-export function logout(): void {
+export async function logout(): Promise<void> {
+  try {
+    // Call server logout endpoint
+    await fetch('/api/auth/logout', { 
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  } catch (error) {
+    console.error('Logout API call failed:', error);
+    // Continue with client-side logout even if server call fails
+  }
+  
+  // Clear client-side auth data
   localStorage.removeItem("auth_token");
   localStorage.removeItem("user");
-  window.location.href = "/";
+  
+  // Redirect to login page
+  window.location.href = "/login";
 }

@@ -1,0 +1,39 @@
+Objective
+Resolve three blocking issues in the CapTable app: (1) implement a proper logout/sign‑out flow, (2) fix the sample company seeding so that “Example LLC” actually appears in the Companies list, and (3) fix the company‑creation wizard (POST /setup) so it no longer returns 500 errors. Keep the rest of the business logic unchanged.
+
+## 1) Logout / Sign‑out flow
+- **Server**: Add an auth route (`POST /api/auth/logout` or `GET /api/logout`) that destroys the user session and clears auth cookies. If you’re using NextAuth or a similar library, call its signout method. Respond with 204 and no body.
+- **Client**: In the header component (e.g., `client/src/components/Header.tsx` or wherever the user avatar is rendered), add a dropdown menu when the user clicks the avatar. Include a “Log Out” item. On click, `fetch('/api/auth/logout', { method:'POST' })` then redirect to `/login`. Use keyboard‑accessible menu primitives (Radix/Headless UI) and show focus outlines. Hide the sign‑up link if self‑service sign‑up is disabled.
+
+## 2) Fix Add Sample Company / seeding
+- **Server**: Ensure the demo seeding function (`seedExampleCompany`) can be invoked through an endpoint such as `POST /api/demo/seed/ensure`. Check `DEMO_SEED_ON_LOGIN_FOR_ALL` and `DEMO_SEED_ON_SIGNUP` flags. When called, create a demo company if the user has none with `isDemo=true` and return its details.
+- **Client**: Make the “Add Sample Company” button call this endpoint. After success, refresh the companies query (e.g., via React Query’s `queryClient.invalidateQueries('companies')`) so the list updates. Display the sample company row with a “Sample” badge using the `isDemo` flag. Avoid showing the success toast if the company does not actually appear.
+- Ensure only one demo company exists per user and that repeated clicks do not create duplicates.
+
+## 3) Fix company creation (setup wizard)
+- **Server**: The route handling company creation (likely `POST /api/companies` or `/api/setup`) currently throws 500. Ensure it:
+  * Validates required fields (name, country/jurisdiction, incorporationDate, authorizedShares).
+  * Normalizes the `incorporationDate` to an ISO date string (YYYY‑MM‑DD). If your date picker only selects a month, choose the first day of the month.
+  * Inserts a new company row via Drizzle and returns the created company with 201 status.
+  * Handles any database errors gracefully and returns a 400 with a message instead of 500.
+- **Client**: In the Cap Table Setup page (`client/src/pages/CapTableSetup.tsx` or equivalent), make sure the form posts to the correct API route with all required fields. Convert the user‑selected month/year into a valid ISO date (e.g., March 2025 → `2025-03-01`). Show a spinner on submit and clear it on error. Display toast notifications for success/failure. After a successful response, navigate to the next step (e.g., founders share issuance) or back to the Companies list.
+
+## 4) Tests
+- **E2E** (Playwright):
+  - Log out flow: clicking “Log Out” signs the user out and shows the login page.
+  - Sample company: clicking “Add Sample Company” adds “Example LLC” to the list (verify it appears), and repeated clicks don’t add duplicates.
+  - Company creation: filling in all fields of the setup wizard creates a company without error and redirects to the next step.
+- **Server unit/integration**:
+  - `/api/auth/logout` clears the session and returns 204.
+  - `/api/demo/seed/ensure` creates one demo company per user and returns its data.
+  - `/api/companies` accepts name/country/date/shares and returns a new company or a 400 with errors.
+
+Non‑goals
+- Do not overhaul the cap table calculation logic or any other business logic unrelated to sign‑out, seeding, or creation.
+- Do not redesign the UI; reuse existing header and form components where possible.
+
+Deliverables
+- Modify relevant server routes (auth/logout, demo seed, company creation) and client components (header/dropdown, sample button, setup form). Keep modifications localized.
+- Add or update tests as described.
+- Provide a unified diff patch only; no additional prose.
+

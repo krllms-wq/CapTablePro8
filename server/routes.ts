@@ -150,6 +150,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      // Clear any server-side session if using session-based auth
+      // Since we're using JWT tokens, logout is primarily client-side
+      // We could implement token blacklisting here if needed
+      
+      // Return 204 No Content as per specification
+      res.status(204).send();
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  });
+
   // Company routes
   app.get("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
