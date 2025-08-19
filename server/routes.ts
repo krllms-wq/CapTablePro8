@@ -153,7 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company routes
   app.get("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log(`Fetching companies for user: ${req.user!.id}`);
       const companies = await storage.getUserCompanies(req.user!.id);
+      console.log(`Found ${companies.length} companies for user ${req.user!.id}`);
       res.json(companies);
     } catch (error) {
       console.error("Error fetching companies:", error);

@@ -130,12 +130,15 @@ export class MemStorage implements IStorage {
   }
 
   private async seedData() {
+    console.log('=== STARTING STORAGE SEED DATA ===');
     // Load existing companies from database first
     try {
       const dbConnection = await this.getDbConnection();
+      console.log('Database connection:', dbConnection ? 'SUCCESS' : 'FAILED');
       if (dbConnection) {
         // Load all companies
         const companies = await dbConnection`SELECT * FROM companies`;
+        console.log(`Found ${companies.length} companies in database`);
         for (const row of companies) {
           const company: Company = {
             id: row.id,
@@ -211,6 +214,7 @@ export class MemStorage implements IStorage {
         }
 
         console.log(`Loaded ${this.companies.size} companies, ${this.stakeholders.size} stakeholders, ${this.securityClasses.size} security classes, ${this.shareLedgerEntries.size} share entries from database`);
+        console.log('Loaded companies:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
         return; // Exit early if data loaded from DB
       }
     } catch (error) {
@@ -451,7 +455,10 @@ export class MemStorage implements IStorage {
   }
 
   async getCompaniesForUser(userId: string): Promise<Company[]> {
-    return Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+    const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+    console.log(`Getting companies for user ${userId}: found ${companies.length} companies`);
+    console.log('Company IDs:', companies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo})`));
+    return companies;
   }
 
   async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
