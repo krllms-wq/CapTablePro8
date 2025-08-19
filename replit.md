@@ -55,12 +55,17 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Neon Database**: Serverless PostgreSQL database with connection pooling
 - **Google Cloud Storage**: File storage and document management
 
-## Demo Company System
-- **Working Demo**: Example LLC with realistic sample data
-- **Demo User**: demo@example.com (password: hello) 
-- **Sample Data**: Alice Founder (3M shares), Bob Founder (2M shares), Common Stock security class
-- **Database Integration**: Full storage system loads demo companies from PostgreSQL into memory
+## Demo Company System - FULLY FUNCTIONAL ✅
+- **Working Demo**: Example LLC with comprehensive rich demo data
+- **Demo User**: demo@example.com (password: hello) - FIXED ACCESS ✅
+- **Rich Sample Data**: 
+  - Alice Founder (3M shares), Bob Founder (2M shares)
+  - Jane Employee (200K ISO options + 50K RSUs)  
+  - Demo Ventures (SAFE + convertible note + preferred shares)
+  - Corporate actions: 2:1 stock split, $2M seed round, secondary sales
+- **Database Integration**: FIXED PostgresStorage getUserCompanies to include owned companies
 - **Authentication**: Fixed password hashing and token generation for demo access
+- **Cap Table Stats**: 7M shares, 250K options, 350K convertibles, 9 stakeholders
 
 ### Frontend Libraries
 - **Radix UI**: Accessible component primitives

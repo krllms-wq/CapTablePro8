@@ -55,7 +55,7 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       dividendRate: '8.0',
       dividendType: 'cumulative',
       convertToCommonRatio: '1.0',
-      votingRights: 'full'
+      votingRights: '1.0'
     });
 
     // Calculate key dates
@@ -84,7 +84,7 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       holderId: jane.id,
       type: 'ISO',
       quantityGranted: 200000,
-      strikePrice: '1.00',
+      strikePrice: 1.00,
       grantDate: optionsGrantDate,
       vestingStartDate: optionsGrantDate,
       cliffMonths: 12, // 1 year cliff
@@ -99,7 +99,7 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       holderId: jane.id,
       type: 'RSU',
       quantityGranted: 50000,
-      strikePrice: '0.00',
+      strikePrice: 0.00,
       grantDate: optionsGrantDate,
       vestingStartDate: optionsGrantDate,
       cliffMonths: 0, // no cliff
@@ -116,12 +116,12 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       holderId: demoVentures.id,
       type: 'safe',
       framework: 'YC pre-money SAFE',
-      principal: '250000.00',
+      principal: 250000.00,
       interestRate: '0.00', // SAFEs typically don't have interest
-      discountRate: '0.20', // 20% discount
-      valuationCap: '10000000.00',
+      discountRate: 0.20, // 20% discount
+      valuationCap: 10000000.00,
       issueDate: safeDate,
-      maturityDate: null, // SAFEs typically don't have maturity
+      maturityDate: undefined, // SAFEs typically don't have maturity
       postMoney: false
     });
 
@@ -131,10 +131,10 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       holderId: demoVentures.id,
       type: 'note',
       framework: 'custom',
-      principal: '100000.00',
+      principal: 100000.00,
       interestRate: '0.08',
-      discountRate: '0.20',
-      valuationCap: '12000000.00',
+      discountRate: 0.20,
+      valuationCap: 12000000.00,
       issueDate: convertibleDate,
       maturityDate: maturityDate,
       postMoney: false
@@ -158,7 +158,6 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       companyId,
       name: 'Seed Round',
       roundType: 'seed',
-      status: 'closed',
       raiseAmount: '2000000.00',
       preMoneyValuation: '8000000.00',
       closeDate: prizedRoundDate

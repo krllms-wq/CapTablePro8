@@ -1204,14 +1204,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserCompanies(userId: string): Promise<Company[]> {
-    const result = await db.select({
+    // Get companies user owns directly (like demo companies)
+    const ownedCompanies = await db.select().from(companies).where(eq(companies.ownerId, userId));
+    
+    // Get companies user has explicit access to
+    const accessResult = await db.select({
       company: companies
     })
     .from(userCompanyAccess)
     .innerJoin(companies, eq(userCompanyAccess.companyId, companies.id))
     .where(eq(userCompanyAccess.userId, userId));
     
-    return result.map(row => row.company);
+    const accessCompanies = accessResult.map(row => row.company);
+    
+    // Combine and deduplicate
+    const allCompanies = [...ownedCompanies, ...accessCompanies];
+    const uniqueCompanies = allCompanies.filter((company, index, self) => 
+      index === self.findIndex(c => c.id === company.id)
+    );
+    
+    console.log(`getUserCompanies for ${userId}: owned=${ownedCompanies.length}, access=${accessCompanies.length}, total=${uniqueCompanies.length}`);
+    
+    return uniqueCompanies;
   }
 
   async getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]> {
