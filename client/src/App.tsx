@@ -23,6 +23,8 @@ import NotFound from "@/pages/not-found";
 import Error404 from "@/pages/error-404";
 import Error500 from "@/pages/error-500";
 import UXShowcase from "@/pages/ux-showcase";
+import CompanyActivity from "@/pages/company-activity";
+import CompanySettings from "@/pages/company-settings";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -58,6 +60,8 @@ function Router() {
           <Route path="/companies/:companyId/transactions/:transactionId" component={TransactionDetail} />
           <Route path="/companies/:companyId/equity-awards" component={EquityAwards} />
           <Route path="/companies/:companyId/scenarios" component={Scenarios} />
+          <Route path="/companies/:companyId/activity" component={CompanyActivity} />
+          <Route path="/companies/:companyId/settings" component={CompanySettings} />
           <Route path="/setup" component={CompanySetup} />
           <Route path="/profile" component={Profile} />
           <Route path="/ux-showcase" component={UXShowcase} />

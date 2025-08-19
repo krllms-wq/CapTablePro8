@@ -68,8 +68,8 @@ export interface IStorage {
   getCorporateActions(companyId: string): Promise<CorporateAction[]>;
 
   // Audit Logs
-  createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog>;
-  getAuditLogs(companyId: string): Promise<AuditLog[]>;
+  createAuditLog(log: Omit<AuditLog, 'id' | 'createdAt'>): Promise<AuditLog>;
+  getAuditLogs(companyId: string, options?: { cursor?: string; limit?: number; event?: string; resourceType?: string; actorId?: string; from?: Date; to?: Date }): Promise<AuditLog[]>;
 
   // Scenarios
   createScenario(scenario: InsertScenario): Promise<Scenario>;
@@ -123,6 +123,7 @@ export class MemStorage implements IStorage {
     const company: Company = {
       id: companyId,
       name: "TechStart Inc.",
+      jurisdiction: "Delaware",
       description: "Series A SaaS Startup • Delaware C-Corp",
       country: "US",
       currency: "USD",
@@ -590,19 +591,54 @@ export class MemStorage implements IStorage {
   }
 
   // Audit Logs
-  async createAuditLog(insertLog: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog> {
+  async createAuditLog(insertLog: Omit<AuditLog, 'id' | 'createdAt'>): Promise<AuditLog> {
     const id = randomUUID();
     const log: AuditLog = {
       ...insertLog,
       id,
-      timestamp: new Date(),
+      createdAt: new Date(),
     };
     this.auditLogs.set(id, log);
     return log;
   }
 
-  async getAuditLogs(companyId: string): Promise<AuditLog[]> {
-    return Array.from(this.auditLogs.values()).filter(l => l.companyId === companyId);
+  async getAuditLogs(companyId: string, options?: { cursor?: string; limit?: number; event?: string; resourceType?: string; actorId?: string; from?: Date; to?: Date }): Promise<AuditLog[]> {
+    let logs = Array.from(this.auditLogs.values()).filter(l => l.companyId === companyId);
+    
+    // Apply filters
+    if (options?.event) {
+      logs = logs.filter(l => l.event === options.event);
+    }
+    if (options?.resourceType) {
+      logs = logs.filter(l => l.resourceType === options.resourceType);
+    }
+    if (options?.actorId) {
+      logs = logs.filter(l => l.actorId === options.actorId);
+    }
+    if (options?.from) {
+      logs = logs.filter(l => l.createdAt >= options.from!);
+    }
+    if (options?.to) {
+      logs = logs.filter(l => l.createdAt <= options.to!);
+    }
+    
+    // Sort by created date descending
+    logs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    // Apply cursor pagination
+    if (options?.cursor) {
+      const cursorIndex = logs.findIndex(l => l.id === options.cursor);
+      if (cursorIndex >= 0) {
+        logs = logs.slice(cursorIndex + 1);
+      }
+    }
+    
+    // Apply limit
+    if (options?.limit) {
+      logs = logs.slice(0, options.limit);
+    }
+    
+    return logs;
   }
 
   // Scenarios
@@ -898,17 +934,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Audit Logs
-  async createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog> {
+  async createAuditLog(log: Omit<AuditLog, 'id' | 'createdAt'>): Promise<AuditLog> {
     const [auditLog] = await db.insert(auditLogs).values({
       ...log,
       id: randomUUID(),
-      timestamp: new Date()
+      createdAt: new Date()
     }).returning();
     return auditLog;
   }
 
-  async getAuditLogs(companyId: string): Promise<AuditLog[]> {
-    return await db.select().from(auditLogs).where(eq(auditLogs.companyId, companyId));
+  async getAuditLogs(companyId: string, options?: { cursor?: string; limit?: number; event?: string; resourceType?: string; actorId?: string; from?: Date; to?: Date }): Promise<AuditLog[]> {
+    let query = db.select().from(auditLogs).where(eq(auditLogs.companyId, companyId));
+    
+    // Apply filters would need more complex Drizzle queries - for now just basic filtering
+    // In a real implementation, you'd build the query with conditional where clauses
+    
+    const result = await query;
+    let logs = result;
+    
+    // Apply client-side filtering for now (in production, this should be done in the database)
+    if (options?.event) {
+      logs = logs.filter(l => l.event === options.event);
+    }
+    if (options?.resourceType) {
+      logs = logs.filter(l => l.resourceType === options.resourceType);
+    }
+    if (options?.actorId) {
+      logs = logs.filter(l => l.actorId === options.actorId);
+    }
+    if (options?.from) {
+      logs = logs.filter(l => l.createdAt >= options.from!);
+    }
+    if (options?.to) {
+      logs = logs.filter(l => l.createdAt <= options.to!);
+    }
+    
+    // Sort by created date descending
+    logs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    // Apply cursor pagination
+    if (options?.cursor) {
+      const cursorIndex = logs.findIndex(l => l.id === options.cursor);
+      if (cursorIndex >= 0) {
+        logs = logs.slice(cursorIndex + 1);
+      }
+    }
+    
+    // Apply limit
+    if (options?.limit) {
+      logs = logs.slice(0, options.limit);
+    }
+    
+    return logs;
   }
 
   // Scenarios

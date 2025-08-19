@@ -5,7 +5,7 @@ export default function Navigation() {
   const [location] = useLocation();
   const { companyId } = useParams();
   
-  const { data: company } = useQuery({
+  const { data: company } = useQuery<{ name: string; id: string }>({
     queryKey: ["/api/companies", companyId],
     enabled: !!companyId,
   });
@@ -23,6 +23,8 @@ export default function Navigation() {
       { path: `/companies/${companyId}/transactions`, label: "Transactions", icon: "fas fa-file-text" },
       { path: `/companies/${companyId}/equity-awards`, label: "Equity Awards", icon: "fas fa-gift" },
       { path: `/companies/${companyId}/scenarios`, label: "Scenarios", icon: "fas fa-exchange-alt" },
+      { path: `/companies/${companyId}/activity`, label: "Activity", icon: "fas fa-history" },
+      { path: `/companies/${companyId}/settings`, label: "Settings", icon: "fas fa-cog" },
     ];
   };
 

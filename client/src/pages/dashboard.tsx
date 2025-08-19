@@ -6,7 +6,8 @@ import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
 import RecentActivity from "@/components/cap-table/recent-activity";
-import QuickActions from "@/components/cap-table/quick-actions";
+import NewTransactionButton from "@/components/new-transaction-button";
+import { Button } from "@/components/ui/button";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import type { Company } from "@shared/schema";
@@ -15,7 +16,7 @@ export default function Dashboard() {
   const { companyId } = useParams();
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
-  const [showTransactionMenu, setShowTransactionMenu] = useState(false);
+
 
   const { data: company } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -60,36 +61,13 @@ export default function Dashboard() {
               <p className="text-neutral-600 mt-1">{company.description}</p>
             </div>
             <div className="flex space-x-3">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowTransactionMenu(!showTransactionMenu)}
-                  className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors"
-                >
-                  <i className="fas fa-plus mr-2"></i>New Transaction
-                </button>
-                {showTransactionMenu && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 z-10">
-                    <button
-                      onClick={() => {
-                        setShowIssueShares(true);
-                        setShowTransactionMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 first:rounded-t-lg"
-                    >
-                      <i className="fas fa-plus-circle mr-2 text-primary"></i>Issue Shares
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowGrantOptions(true);
-                        setShowTransactionMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-neutral-50 last:rounded-b-lg"
-                    >
-                      <i className="fas fa-gift mr-2 text-secondary"></i>Grant Options
-                    </button>
-                  </div>
-                )}
-              </div>
+              <NewTransactionButton 
+                onTransactionSelect={(type) => {
+                  if (type === "shares") setShowIssueShares(true);
+                  if (type === "options") setShowGrantOptions(true);
+                  // Add more transaction types as needed
+                }}
+              />
               <button className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors">
                 <i className="fas fa-download mr-2"></i>Export
               </button>
@@ -116,7 +94,24 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <QuickActions companyId={companyId!} />
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <div className="flex flex-wrap gap-3">
+            <NewTransactionButton 
+              onTransactionSelect={(type) => {
+                if (type === "shares") setShowIssueShares(true);
+                if (type === "options") setShowGrantOptions(true);
+                // Add more transaction types as needed
+              }}
+            />
+            <Button variant="outline">
+              Add Stakeholder
+            </Button>
+            <Button variant="outline">
+              View Activity
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Transaction Dialogs */}

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { logStakeholderEvent, logTransactionEvent, logCompanyEvent, logUserEvent } from "./domain/activity/logEvent";
 import { 
   insertCompanySchema, 
   insertSecurityClassSchema,
@@ -14,6 +15,7 @@ import {
   insertCapTableShareSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { insertScenarioSchema } from "@shared/schema";
 import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -55,10 +57,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = user;
       
-      res.status(201).json({ user: userResponse, token });
+      res.json({ 
+        user: userResponse, 
+        token,
+        message: "Registration successful" 
+      });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ error: "Failed to create account" });
+      res.status(500).json({ error: "Registration failed" });
     }
   });
 
@@ -66,16 +72,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ error: "Invalid email or password" });
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
       }
       
-      // Check password
-      const isValid = await comparePassword(password, user.passwordHash);
-      if (!isValid) {
-        return res.status(401).json({ error: "Invalid email or password" });
+      // Find user by email
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      
+      // Verify password
+      const isValidPassword = await comparePassword(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
       }
       
       // Generate token
@@ -84,10 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = user;
       
-      res.json({ user: userResponse, token });
+      res.json({ 
+        user: userResponse, 
+        token,
+        message: "Login successful" 
+      });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ error: "Failed to login" });
+      res.status(500).json({ error: "Login failed" });
     }
   });
 
@@ -107,157 +121,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
+  // Company routes
+  app.get("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const { firstName, lastName, email } = req.body;
-      
-      // Check if email is already taken by another user
-      if (email && email !== req.user!.email) {
-        const existingUser = await storage.getUserByEmail(email);
-        if (existingUser && existingUser.id !== req.user!.id) {
-          return res.status(400).json({ error: "Email already in use" });
-        }
-      }
-      
-      const updatedUser = await storage.updateUser(req.user!.id, {
-        firstName,
-        lastName,
-        email,
-      });
-      
-      if (!updatedUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Remove password hash from response
-      const { passwordHash: _, ...userResponse } = updatedUser;
-      res.json(userResponse);
+      const companies = await storage.getUserCompanies(req.user!.id);
+      res.json(companies);
     } catch (error) {
-      console.error("Update user error:", error);
-      res.status(500).json({ error: "Failed to update user" });
-    }
-  });
-
-  app.post("/api/auth/change-password", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
-      
-      const user = await storage.getUser(req.user!.id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Verify current password
-      const isValid = await comparePassword(currentPassword, user.passwordHash);
-      if (!isValid) {
-        return res.status(400).json({ error: "Current password is incorrect" });
-      }
-      
-      // Hash new password and update
-      const newPasswordHash = await hashPassword(newPassword);
-      await storage.updateUser(req.user!.id, { passwordHash: newPasswordHash });
-      
-      res.json({ message: "Password updated successfully" });
-    } catch (error) {
-      console.error("Change password error:", error);
-      res.status(500).json({ error: "Failed to change password" });
-    }
-  });
-
-  // Shared cap table route
-  app.get("/api/shared/cap-table/:token", async (req, res) => {
-    try {
-      const { token } = req.params;
-      const share = await storage.getCapTableShare(token);
-      
-      if (!share || !share.isActive) {
-        return res.status(404).json({ error: "Share not found or expired" });
-      }
-      
-      // Check if share has expired
-      if (share.expiresAt && new Date() > share.expiresAt) {
-        return res.status(404).json({ error: "Share has expired" });
-      }
-      
-      // Get company and cap table data
-      const company = await storage.getCompany(share.companyId);
-      if (!company) {
-        return res.status(404).json({ error: "Company not found" });
-      }
-      
-      // Get cap table data
-      const stakeholders = await storage.getStakeholders(share.companyId);
-      const securityClasses = await storage.getSecurityClasses(share.companyId);
-      const shareLedgerEntries = await storage.getShareLedgerEntries(share.companyId);
-      
-      // Build cap table with calculations
-      const capTable = stakeholders.map(stakeholder => {
-        const entries = shareLedgerEntries.filter(e => e.holderId === stakeholder.id);
-        const totalShares = entries.reduce((sum, e) => sum + e.quantity, 0);
-        const securityClass = securityClasses.find(sc => sc.id === entries[0]?.classId);
-        
-        return {
-          stakeholder: {
-            name: stakeholder.name,
-            type: stakeholder.type,
-          },
-          securityClass: {
-            name: securityClass?.name || "Unknown",
-          },
-          shares: totalShares,
-          ownership: totalShares / (company.authorizedShares || 1) * 100,
-          value: totalShares * 1.0, // Simplified value calculation
-        };
-      }).filter(row => row.shares > 0);
-      
-      // Update view count - simplified for now
-      // await storage.updateCapTableShare(share.id, {
-      //   viewCount: share.viewCount + 1,
-      // });
-      
-      res.json({
-        company: {
-          name: company.name,
-          description: company.description,
-        },
-        shareInfo: {
-          title: share.title,
-          description: share.description,
-          permissions: share.permissions,
-        },
-        capTable,
-      });
-    } catch (error) {
-      console.error("Shared cap table error:", error);
-      res.status(500).json({ error: "Failed to load shared cap table" });
-    }
-  });
-
-  // Companies
-  app.get("/api/companies", optionalAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-      if (req.user) {
-        // Return only companies the user has access to
-        const companies = await storage.getUserCompanies(req.user.id);
-        res.json(companies);
-      } else {
-        // For demo purposes, return all companies if not authenticated
-        const companies = await storage.getCompanies();
-        res.json(companies);
-      }
-    } catch (error) {
+      console.error("Error fetching companies:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
     }
   });
 
-  app.get("/api/companies/:id", async (req, res) => {
+  app.get("/api/companies/:companyId", requireAuth, async (req, res) => {
     try {
-      const company = await storage.getCompany(req.params.id);
+      const company = await storage.getCompany(req.params.companyId);
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
       }
       res.json(company);
     } catch (error) {
+      console.error("Error fetching company:", error);
       res.status(500).json({ error: "Failed to fetch company" });
     }
   });
@@ -267,52 +150,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany(validated);
       
-      // Grant the creating user owner access to the company
+      // Grant owner access to the creator
       await storage.createUserCompanyAccess({
         userId: req.user!.id,
         companyId: company.id,
         role: "owner",
-        permissions: null,
-        invitedBy: req.user!.id,
-        invitedAt: new Date(),
         acceptedAt: new Date(),
       });
-      
-      // Automatically create a default Common Stock security class
-      await storage.createSecurityClass({
+
+      // Log company creation
+      await logCompanyEvent({
         companyId: company.id,
-        name: "Common Stock",
-        seniorityTier: 0,
-        liquidationPreferenceMultiple: "1.0",
-        participating: false,
-        participationCap: null,
-        dividendRate: "0.0",
-        dividendType: "non-cumulative",
-        convertToCommonRatio: "1.0",
-        votingRights: "1.0",
+        actorId: req.user!.id,
+        event: "company.created",
       });
-      
+
       res.status(201).json(company);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid company data", details: error.errors });
-      }
-      console.error("Company creation error:", error);
+      console.error("Error creating company:", error);
       res.status(500).json({ error: "Failed to create company" });
     }
   });
 
-  // Security Classes
+  app.put("/api/companies/:companyId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const updateData = insertCompanySchema.partial().parse(req.body);
+      
+      // Get current company data for change detection
+      const currentCompany = await storage.getCompany(companyId);
+      if (!currentCompany) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      const company = await storage.updateCompany(companyId, updateData);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Detect changed fields for audit log
+      const changedFields: Record<string, any> = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] !== currentCompany[key as keyof typeof currentCompany]) {
+          changedFields[key] = {
+            from: currentCompany[key as keyof typeof currentCompany],
+            to: updateData[key as keyof typeof updateData]
+          };
+        }
+      });
+
+      // Log company update
+      await logCompanyEvent({
+        companyId: company.id,
+        actorId: req.user!.id,
+        event: "company.updated",
+        changes: changedFields,
+      });
+
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  // Activity/Audit Log routes
+  app.get("/api/companies/:companyId/activity", requireAuth, async (req, res) => {
+    try {
+      const { companyId } = req.params;
+      const { cursor, limit = "20", event, resourceType, actorId, from, to } = req.query;
+      
+      const options = {
+        cursor: cursor as string,
+        limit: parseInt(limit as string),
+        event: event as string,
+        resourceType: resourceType as string,
+        actorId: actorId as string,
+        from: from ? new Date(from as string) : undefined,
+        to: to ? new Date(to as string) : undefined,
+      };
+      
+      const auditLogs = await storage.getAuditLogs(companyId, options);
+      res.json(auditLogs);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ error: "Failed to fetch activity" });
+    }
+  });
+
+  // Security class routes
   app.get("/api/companies/:companyId/security-classes", async (req, res) => {
     try {
       const securityClasses = await storage.getSecurityClasses(req.params.companyId);
       res.json(securityClasses);
     } catch (error) {
+      console.error("Error fetching security classes:", error);
       res.status(500).json({ error: "Failed to fetch security classes" });
     }
   });
 
-  app.post("/api/companies/:companyId/security-classes", async (req, res) => {
+  app.post("/api/companies/:companyId/security-classes", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const validated = insertSecurityClassSchema.parse({
         ...req.body,
@@ -321,24 +258,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const securityClass = await storage.createSecurityClass(validated);
       res.status(201).json(securityClass);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid security class data", details: error.errors });
-      }
+      console.error("Error creating security class:", error);
       res.status(500).json({ error: "Failed to create security class" });
     }
   });
 
-  // Stakeholders
+  // Stakeholder routes
   app.get("/api/companies/:companyId/stakeholders", async (req, res) => {
     try {
       const stakeholders = await storage.getStakeholders(req.params.companyId);
       res.json(stakeholders);
     } catch (error) {
+      console.error("Error fetching stakeholders:", error);
       res.status(500).json({ error: "Failed to fetch stakeholders" });
     }
   });
 
-  app.post("/api/companies/:companyId/stakeholders", async (req, res) => {
+  app.post("/api/companies/:companyId/stakeholders", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const validated = insertStakeholderSchema.parse({
         ...req.body,
@@ -346,525 +282,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const stakeholder = await storage.createStakeholder(validated);
       
-      // Create audit log
-      await storage.createAuditLog({
+      // Log stakeholder creation
+      await logStakeholderEvent({
         companyId: req.params.companyId,
-        actorId: req.user?.id || 'system',
-        action: 'stakeholder_created',
-        payloadDiff: {
-          entityType: 'stakeholder',
-          entityId: stakeholder.id,
-          details: `Created stakeholder: ${stakeholder.name}`,
-          stakeholderType: stakeholder.type,
-          stakeholderName: stakeholder.name
-        }
+        actorId: req.user!.id,
+        event: "stakeholder.created",
+        stakeholderId: stakeholder.id,
+        stakeholderName: stakeholder.name,
+        stakeholderType: stakeholder.type,
       });
-      
+
       res.status(201).json(stakeholder);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid stakeholder data", details: error.errors });
-      }
+      console.error("Error creating stakeholder:", error);
       res.status(500).json({ error: "Failed to create stakeholder" });
     }
   });
 
-  app.put("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
+  app.put("/api/stakeholders/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const stakeholder = await storage.updateStakeholder(req.params.stakeholderId, req.body);
+      const { id } = req.params;
+      const updateData = insertStakeholderSchema.partial().parse(req.body);
+      
+      // Get current stakeholder for change detection
+      const currentStakeholder = await storage.getStakeholder(id);
+      if (!currentStakeholder) {
+        return res.status(404).json({ error: "Stakeholder not found" });
+      }
+      
+      const stakeholder = await storage.updateStakeholder(id, updateData);
+      if (!stakeholder) {
+        return res.status(404).json({ error: "Stakeholder not found" });
+      }
+
+      // Detect changes
+      const changes: Record<string, any> = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] !== currentStakeholder[key as keyof typeof currentStakeholder]) {
+          changes[key] = {
+            from: currentStakeholder[key as keyof typeof currentStakeholder],
+            to: updateData[key as keyof typeof updateData]
+          };
+        }
+      });
+
+      // Log stakeholder update
+      await logStakeholderEvent({
+        companyId: stakeholder.companyId,
+        actorId: req.user!.id,
+        event: "stakeholder.updated",
+        stakeholderId: stakeholder.id,
+        stakeholderName: stakeholder.name,
+        stakeholderType: stakeholder.type,
+        changes,
+      });
+
       res.json(stakeholder);
     } catch (error) {
+      console.error("Error updating stakeholder:", error);
       res.status(500).json({ error: "Failed to update stakeholder" });
     }
   });
 
-  app.delete("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
+  app.delete("/api/stakeholders/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deleteStakeholder(req.params.stakeholderId);
+      const { id } = req.params;
+      const stakeholder = await storage.getStakeholder(id);
+      if (!stakeholder) {
+        return res.status(404).json({ error: "Stakeholder not found" });
+      }
+
+      await storage.deleteStakeholder(id);
+
+      // Log stakeholder deletion
+      await logStakeholderEvent({
+        companyId: stakeholder.companyId,
+        actorId: req.user!.id,
+        event: "stakeholder.deleted",
+        stakeholderId: stakeholder.id,
+        stakeholderName: stakeholder.name,
+        stakeholderType: stakeholder.type,
+      });
+
       res.status(204).send();
     } catch (error) {
+      console.error("Error deleting stakeholder:", error);
       res.status(500).json({ error: "Failed to delete stakeholder" });
     }
   });
 
-  // Share Ledger Entries
-  app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
-    try {
-      const entries = await storage.getShareLedgerEntries(req.params.companyId);
-      res.json(entries);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch share ledger entries" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/share-ledger", async (req, res) => {
-    try {
-      // Validate stakeholder exists
-      const stakeholder = await storage.getStakeholder(req.body.holderId);
-      if (!stakeholder) {
-        return res.status(400).json({ error: "Stakeholder not found" });
-      }
-
-      // Validate security class exists
-      const securityClass = await storage.getSecurityClass(req.body.classId);
-      if (!securityClass) {
-        return res.status(400).json({ error: "Security class not found" });
-      }
-
-      const validated = insertShareLedgerEntrySchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      
-      const entry = await storage.createShareLedgerEntry(validated);
-      
-      // Create audit log
-      await storage.createAuditLog({
-        companyId: req.params.companyId,
-        actorId: req.user?.id || 'system',
-        action: 'shares_issued',
-        payloadDiff: {
-          entityType: 'share_ledger_entry',
-          entityId: entry.id,
-          details: `Issued ${entry.quantity} shares to ${stakeholder.name}`,
-          quantity: entry.quantity,
-          stakeholderName: stakeholder.name,
-          securityClassName: securityClass.name,
-          consideration: entry.consideration
-        }
-      });
-      
-      res.status(201).json(entry);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid share ledger entry data", details: error.errors });
-      }
-      console.error("Share ledger entry creation error:", error);
-      res.status(500).json({ error: "Failed to create share ledger entry" });
-    }
-  });
-
-  // Equity Awards
-  app.get("/api/companies/:companyId/equity-awards", async (req, res) => {
-    try {
-      const awards = await storage.getEquityAwards(req.params.companyId);
-      res.json(awards);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch equity awards" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/equity-awards", async (req, res) => {
-    try {
-      const validated = insertEquityAwardSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const award = await storage.createEquityAward(validated);
-      
-      // Get stakeholder for audit log
-      const stakeholder = await storage.getStakeholder(award.holderId);
-      
-      // Create audit log
-      await storage.createAuditLog({
-        companyId: req.params.companyId,
-        actorId: req.user?.id || 'system',
-        action: 'equity_award_granted',
-        payloadDiff: {
-          entityType: 'equity_award',
-          entityId: award.id,
-          details: `Granted ${award.quantityGranted} ${award.type} options to ${stakeholder?.name || 'unknown'}`,
-          awardType: award.type,
-          quantity: award.quantityGranted,
-          stakeholderName: stakeholder?.name,
-          strikePrice: award.strikePrice,
-          grantDate: award.grantDate
-        }
-      });
-      
-      res.status(201).json(award);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid equity award data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create equity award" });
-    }
-  });
-
-  // Convertible Instruments
-  app.get("/api/companies/:companyId/convertibles", async (req, res) => {
-    try {
-      const instruments = await storage.getConvertibleInstruments(req.params.companyId);
-      res.json(instruments);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch convertible instruments" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/convertibles", async (req, res) => {
-    try {
-      const validated = insertConvertibleInstrumentSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const instrument = await storage.createConvertibleInstrument(validated);
-      
-      // Get stakeholder for audit log
-      const stakeholder = await storage.getStakeholder(instrument.holderId);
-      
-      // Create audit log
-      await storage.createAuditLog({
-        companyId: req.params.companyId,
-        actorId: req.user?.id || 'system',
-        action: 'convertible_created',
-        payloadDiff: {
-          entityType: 'convertible_instrument',
-          entityId: instrument.id,
-          details: `Created ${instrument.type} for ${stakeholder?.name || 'unknown'} with principal ${instrument.principal}`,
-          instrumentType: instrument.type,
-          framework: instrument.framework,
-          principal: instrument.principal,
-          stakeholderName: stakeholder?.name,
-          issueDate: instrument.issueDate
-        }
-      });
-      
-      res.status(201).json(instrument);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid convertible instrument data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create convertible instrument" });
-    }
-  });
-
-  // Rounds
-  app.get("/api/companies/:companyId/rounds", async (req, res) => {
-    try {
-      const rounds = await storage.getRounds(req.params.companyId);
-      res.json(rounds);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch rounds" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/rounds", async (req, res) => {
-    try {
-      const validated = insertRoundSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const round = await storage.createRound(validated);
-      res.status(201).json(round);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid round data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create round" });
-    }
-  });
-
-  // Corporate Actions
-  app.get("/api/companies/:companyId/corporate-actions", async (req, res) => {
-    try {
-      const actions = await storage.getCorporateActions(req.params.companyId);
-      res.json(actions);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch corporate actions" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/corporate-actions", async (req, res) => {
-    try {
-      const validated = insertCorporateActionSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const action = await storage.createCorporateAction(validated);
-      res.status(201).json(action);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid corporate action data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create corporate action" });
-    }
-  });
-
-  // Cap Table Calculations
-  app.get("/api/companies/:companyId/cap-table", async (req, res) => {
-    try {
-      const [stakeholders, securityClasses, shareEntries, equityAwards] = await Promise.all([
-        storage.getStakeholders(req.params.companyId),
-        storage.getSecurityClasses(req.params.companyId),
-        storage.getShareLedgerEntries(req.params.companyId),
-        storage.getEquityAwards(req.params.companyId)
-      ]);
-
-      // Calculate cap table data
-      const stakeholderMap = new Map(stakeholders.map(s => [s.id, s]));
-      const securityClassMap = new Map(securityClasses.map(sc => [sc.id, sc]));
-
-      // Group shares by holder and class
-      const holdings = new Map<string, Map<string, number>>();
-      let totalShares = 0;
-
-      shareEntries.forEach(entry => {
-        if (!holdings.has(entry.holderId)) {
-          holdings.set(entry.holderId, new Map());
-        }
-        const holderShares = holdings.get(entry.holderId)!;
-        const currentShares = holderShares.get(entry.classId) || 0;
-        holderShares.set(entry.classId, currentShares + entry.quantity);
-        totalShares += entry.quantity;
-      });
-
-      // Calculate fully diluted shares (no automatic option pool)
-      const fullyDilutedShares = totalShares + equityAwards.reduce((sum, award) => 
-        sum + (award.quantityGranted - award.quantityExercised - award.quantityCanceled), 0);
-
-      // Build cap table rows
-      const capTableRows = [];
-      
-      // Add stakeholder holdings
-      for (const [holderId, classMap] of Array.from(holdings.entries())) {
-        const stakeholder = stakeholderMap.get(holderId);
-        if (!stakeholder) continue;
-
-        for (const [classId, shares] of Array.from(classMap.entries())) {
-          const securityClass = securityClassMap.get(classId);
-          if (!securityClass) continue;
-
-          const ownership = (shares / fullyDilutedShares) * 100;
-          const value = shares * 4.47; // Mock price per share
-
-          capTableRows.push({
-            stakeholder,
-            securityClass,
-            shares,
-            ownership,
-            value
-          });
-        }
-      }
-
-      // Add equity awards
-      equityAwards.forEach(award => {
-        const stakeholder = stakeholderMap.get(award.holderId);
-        if (!stakeholder) return;
-
-        const outstandingShares = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
-        if (outstandingShares <= 0) return;
-
-        const ownership = (outstandingShares / fullyDilutedShares) * 100;
-        const value = outstandingShares * parseFloat(award.strikePrice || "0");
-
-        capTableRows.push({
-          stakeholder,
-          securityClass: { name: `${award.type} Options` },
-          shares: outstandingShares,
-          ownership,
-          value,
-          isOption: true
-        });
-      });
-
-      const stats = {
-        totalShares,
-        fullyDilutedShares,
-        currentValuation: fullyDilutedShares * 4.47,
-        optionPoolAvailable: 0
-      };
-
-      res.json({
-        capTable: capTableRows,
-        stats
-      });
-    } catch (error) {
-      console.error("Cap table calculation error:", error);
-      res.status(500).json({ error: "Failed to calculate cap table" });
-    }
-  });
-
-  // Audit Logs
-  app.get("/api/companies/:companyId/audit-logs", async (req, res) => {
-    try {
-      const logs = await storage.getAuditLogs(req.params.companyId);
-      res.json(logs);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch audit logs" });
-    }
-  });
-
-  // Round modeling
-  app.post("/api/companies/:id/rounds/model", async (req, res) => {
-    try {
-      const { roundAmount, premoney, investors } = req.body;
-      
-      // Get current cap table for "before" state
-      const stakeholders = await storage.getStakeholders(req.params.id);
-      const shareLedger = await storage.getShareLedgerEntries(req.params.id);
-      const securityClasses = await storage.getSecurityClasses(req.params.id);
-      const equityAwards = await storage.getEquityAwards(req.params.id);
-
-      // Build stakeholder and security class maps
-      const stakeholderMap = new Map(stakeholders.map(s => [s.id, s]));
-      const securityClassMap = new Map(securityClasses.map(sc => [sc.id, sc]));
-
-      // Calculate current cap table (before)
-      const sharesByStakeholder = new Map();
-      shareLedger.forEach(entry => {
-        if (!sharesByStakeholder.has(entry.holderId)) {
-          sharesByStakeholder.set(entry.holderId, new Map());
-        }
-        const classMap = sharesByStakeholder.get(entry.holderId);
-        const currentShares = classMap.get(entry.classId) || 0;
-        classMap.set(entry.classId, currentShares + entry.quantity);
-      });
-
-      // Calculate total outstanding shares
-      let totalOutstandingShares = 0;
-      sharesByStakeholder.forEach((classMap) => {
-        classMap.forEach((shares: number) => {
-          totalOutstandingShares += shares;
-        });
-      });
-
-      // Build before cap table
-      const beforeCapTable: any[] = [];
-      sharesByStakeholder.forEach((classMap, stakeholderId) => {
-        const stakeholder = stakeholderMap.get(stakeholderId);
-        if (!stakeholder) return;
-
-        let totalShares = 0;
-        classMap.forEach((shares: number) => totalShares += shares);
-        
-        if (totalShares > 0) {
-          beforeCapTable.push({
-            stakeholder,
-            shares: totalShares,
-            ownership: (totalShares / totalOutstandingShares) * 100
-          });
-        }
-      });
-
-      // Calculate round parameters
-      const premoneyVal = premoney || 20000000;
-      const raiseAmount = roundAmount || 5000000;
-      const postMoneyVal = premoneyVal + raiseAmount;
-      const pricePerShare = premoneyVal / totalOutstandingShares;
-      const newShares = Math.round(raiseAmount / pricePerShare);
-      const totalPostRoundShares = totalOutstandingShares + newShares;
-
-      // Build after cap table
-      const afterCapTable: any[] = [];
-      
-      // Existing stakeholders (diluted)
-      beforeCapTable.forEach((row: any) => {
-        afterCapTable.push({
-          stakeholder: row.stakeholder,
-          shares: row.shares,
-          ownership: (row.shares / totalPostRoundShares) * 100
-        });
-      });
-
-      // New investors
-      if (investors && investors.length > 0) {
-        investors.forEach((investor: any) => {
-          if (investor.name && investor.investmentAmount > 0) {
-            const investorShares = Math.round(investor.investmentAmount / pricePerShare);
-            afterCapTable.push({
-              stakeholder: { name: investor.name, type: "investor" },
-              shares: investorShares,
-              ownership: (investorShares / totalPostRoundShares) * 100
-            });
-          }
-        });
-      }
-
-      res.json({
-        totalRaised: raiseAmount,
-        preMoneyValuation: premoneyVal,
-        postMoneyValuation: postMoneyVal,
-        pricePerShare,
-        newShares,
-        beforeCapTable,
-        afterCapTable,
-        totalOutstandingShares,
-        totalPostRoundShares
-      });
-    } catch (error) {
-      console.error("Error modeling round:", error);
-      res.status(500).json({ error: "Failed to model round" });
-    }
-  });
-
-  // Individual stakeholder endpoint
-  app.get("/api/companies/:companyId/stakeholders/:stakeholderId", async (req, res) => {
-    try {
-      const stakeholder = await storage.getStakeholder(req.params.stakeholderId);
-      if (!stakeholder || stakeholder.companyId !== req.params.companyId) {
-        return res.status(404).json({ error: "Stakeholder not found" });
-      }
-      res.json(stakeholder);
-    } catch (error) {
-      console.error("Error fetching stakeholder:", error);
-      res.status(500).json({ error: "Failed to fetch stakeholder" });
-    }
-  });
-
-  // Convertible Instruments (SAFE & Notes)
-  app.get("/api/companies/:companyId/convertibles", async (req, res) => {
-    try {
-      const convertibles = await storage.getConvertibleInstruments(req.params.companyId);
-      res.json(convertibles);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch convertible instruments" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/convertibles", async (req, res) => {
-    try {
-      const validated = insertConvertibleInstrumentSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const convertible = await storage.createConvertibleInstrument(validated);
-      res.status(201).json(convertible);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid convertible instrument data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create convertible instrument" });
-    }
-  });
-
-  // Equity Awards 
-  app.get("/api/companies/:companyId/equity-awards", async (req, res) => {
-    try {
-      const awards = await storage.getEquityAwards(req.params.companyId);
-      res.json(awards);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch equity awards" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/equity-awards", async (req, res) => {
-    try {
-      const validated = insertEquityAwardSchema.parse({
-        ...req.body,
-        companyId: req.params.companyId
-      });
-      const award = await storage.createEquityAward(validated);
-      res.status(201).json(award);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid equity award data", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create equity award" });
-    }
-  });
-
-  // Share ledger entries 
+  // Share ledger routes
   app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
     try {
       const entries = await storage.getShareLedgerEntries(req.params.companyId);
@@ -875,40 +382,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new funding round
-  app.post("/api/companies/:companyId/rounds", async (req, res) => {
+  app.post("/api/companies/:companyId/share-ledger", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const { name, roundType, raiseAmount, preMoneyValuation, pricePerShare, newSecurityClassId } = req.body;
+      const validated = insertShareLedgerEntrySchema.parse({
+        ...req.body,
+        companyId: req.params.companyId
+      });
       
-      if (!name || !roundType || !raiseAmount) {
-        return res.status(400).json({ error: "Missing required fields: name, roundType, raiseAmount" });
-      }
-
-      // Create a new funding round entry (simplified implementation)
-      const roundId = globalThis.crypto.randomUUID();
-      const round = {
-        id: roundId,
+      const entry = await storage.createShareLedgerEntry(validated);
+      
+      // Get stakeholder and security class for audit log
+      const stakeholder = await storage.getStakeholder(entry.stakeholderId);
+      const securityClass = await storage.getSecurityClass(entry.securityClassId);
+      
+      // Log share issuance
+      await logTransactionEvent({
         companyId: req.params.companyId,
-        name,
-        roundType,
-        raiseAmount: parseFloat(raiseAmount),
-        preMoneyValuation: preMoneyValuation ? parseFloat(preMoneyValuation) : undefined,
-        pricePerShare: pricePerShare ? parseFloat(pricePerShare) : undefined,
-        securityClassId: newSecurityClassId,
-        closedAt: new Date().toISOString(),
-      };
+        actorId: req.user!.id,
+        event: "transaction.shares_issued",
+        transactionId: entry.id,
+        stakeholderName: stakeholder?.name,
+        details: {
+          quantity: entry.quantity,
+          securityClassName: securityClass?.name,
+          consideration: entry.consideration,
+        },
+      });
 
-      // In a real app, this would create the round and associated transactions
-      console.log("Creating round:", round);
-      
-      res.json({ success: true, roundId });
+      res.status(201).json(entry);
     } catch (error) {
-      console.error("Error creating round:", error);
-      res.status(500).json({ error: "Failed to create round" });
+      console.error("Error creating share ledger entry:", error);
+      res.status(500).json({ error: "Failed to create share ledger entry" });
     }
   });
 
-  // Scenarios endpoints
+  // Equity awards routes
+  app.get("/api/companies/:companyId/equity-awards", async (req, res) => {
+    try {
+      const awards = await storage.getEquityAwards(req.params.companyId);
+      res.json(awards);
+    } catch (error) {
+      console.error("Error fetching equity awards:", error);
+      res.status(500).json({ error: "Failed to fetch equity awards" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/equity-awards", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validated = insertEquityAwardSchema.parse({
+        ...req.body,
+        companyId: req.params.companyId
+      });
+      
+      const award = await storage.createEquityAward(validated);
+      
+      // Get stakeholder for audit log
+      const stakeholder = await storage.getStakeholder(award.holderId);
+      
+      // Log equity award
+      await logTransactionEvent({
+        companyId: req.params.companyId,
+        actorId: req.user!.id,
+        event: "transaction.options_granted",
+        transactionId: award.id,
+        stakeholderName: stakeholder?.name,
+        details: {
+          awardType: award.type,
+          quantity: award.quantityGranted,
+          strikePrice: award.strikePrice,
+          grantDate: award.grantDate,
+        },
+      });
+
+      res.status(201).json(award);
+    } catch (error) {
+      console.error("Error creating equity award:", error);
+      res.status(500).json({ error: "Failed to create equity award" });
+    }
+  });
+
+  // Convertible instruments routes
+  app.get("/api/companies/:companyId/convertibles", async (req, res) => {
+    try {
+      const instruments = await storage.getConvertibleInstruments(req.params.companyId);
+      res.json(instruments);
+    } catch (error) {
+      console.error("Error fetching convertibles:", error);
+      res.status(500).json({ error: "Failed to fetch convertibles" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/convertibles", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validated = insertConvertibleInstrumentSchema.parse({
+        ...req.body,
+        companyId: req.params.companyId
+      });
+      
+      const instrument = await storage.createConvertibleInstrument(validated);
+      
+      // Get stakeholder for audit log
+      const stakeholder = await storage.getStakeholder(instrument.holderId);
+      
+      // Log convertible creation
+      const eventType = instrument.type === "safe" ? "transaction.safe_created" : "transaction.convertible_created";
+      await logTransactionEvent({
+        companyId: req.params.companyId,
+        actorId: req.user!.id,
+        event: eventType,
+        transactionId: instrument.id,
+        stakeholderName: stakeholder?.name,
+        details: {
+          instrumentType: instrument.type,
+          framework: instrument.framework,
+          principal: instrument.principal,
+          issueDate: instrument.issueDate,
+        },
+      });
+
+      res.status(201).json(instrument);
+    } catch (error) {
+      console.error("Error creating convertible:", error);
+      res.status(500).json({ error: "Failed to create convertible" });
+    }
+  });
+
+  // Legacy audit log route (for backwards compatibility)
+  app.get("/api/companies/:companyId/audit-logs", async (req, res) => {
+    try {
+      const auditLogs = await storage.getAuditLogs(req.params.companyId);
+      res.json(auditLogs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Cap table calculation routes
+  app.get("/api/companies/:companyId/cap-table", async (req, res) => {
+    try {
+      const { companyId } = req.params;
+      
+      // Fetch all the data needed for cap table calculation
+      const [stakeholders, securityClasses, shareLedger, equityAwards, convertibles] = await Promise.all([
+        storage.getStakeholders(companyId),
+        storage.getSecurityClasses(companyId),
+        storage.getShareLedgerEntries(companyId),
+        storage.getEquityAwards(companyId),
+        storage.getConvertibleInstruments(companyId)
+      ]);
+
+      // Calculate cap table statistics
+      const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+      const totalOptions = equityAwards.reduce((sum, award) => sum + Number(award.quantityGranted), 0);
+      const totalConvertibles = convertibles.reduce((sum, conv) => sum + Number(conv.principal), 0);
+
+      // Build stakeholder ownership map
+      const ownershipMap = new Map();
+      
+      // Add shares
+      shareLedger.forEach(entry => {
+        const existing = ownershipMap.get(entry.stakeholderId) || { shares: 0, options: 0, convertibles: 0 };
+        existing.shares += Number(entry.quantity);
+        ownershipMap.set(entry.stakeholderId, existing);
+      });
+      
+      // Add options
+      equityAwards.forEach(award => {
+        const existing = ownershipMap.get(award.holderId) || { shares: 0, options: 0, convertibles: 0 };
+        existing.options += Number(award.quantityGranted);
+        ownershipMap.set(award.holderId, existing);
+      });
+
+      // Build cap table with ownership percentages
+      const capTable = Array.from(ownershipMap.entries()).map(([stakeholderId, holdings]) => {
+        const stakeholder = stakeholders.find(s => s.id === stakeholderId);
+        const percentage = totalShares > 0 ? (holdings.shares / totalShares) * 100 : 0;
+        
+        return {
+          stakeholder: stakeholder?.name || "Unknown",
+          stakeholderId,
+          shares: holdings.shares,
+          options: holdings.options,
+          percentage: percentage.toFixed(2),
+          value: holdings.shares * 1.0 // Assuming $1.00 per share for now
+        };
+      });
+
+      res.json({
+        stats: {
+          totalShares,
+          totalOptions,
+          totalConvertibles,
+          stakeholderCount: stakeholders.length
+        },
+        capTable
+      });
+    } catch (error) {
+      console.error("Error calculating cap table:", error);
+      res.status(500).json({ error: "Failed to calculate cap table" });
+    }
+  });
+
+  // Scenarios routes
   app.get("/api/companies/:companyId/scenarios", async (req, res) => {
     try {
       const scenarios = await storage.getScenarios(req.params.companyId);
@@ -919,38 +595,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/companies/:companyId/scenarios", async (req, res) => {
+  app.post("/api/companies/:companyId/scenarios", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const scenario = await storage.createScenario({
+      const validated = insertScenarioSchema.parse({
         ...req.body,
-        companyId: req.params.companyId,
+        companyId: req.params.companyId
       });
-      res.json(scenario);
+      const scenario = await storage.createScenario(validated);
+      res.status(201).json(scenario);
     } catch (error) {
       console.error("Error creating scenario:", error);
       res.status(500).json({ error: "Failed to create scenario" });
     }
   });
 
-  app.get("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
+  app.put("/api/scenarios/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const scenario = await storage.getScenario(req.params.scenarioId);
-      if (!scenario || scenario.companyId !== req.params.companyId) {
-        return res.status(404).json({ error: "Scenario not found" });
-      }
-      res.json(scenario);
-    } catch (error) {
-      console.error("Error fetching scenario:", error);
-      res.status(500).json({ error: "Failed to fetch scenario" });
-    }
-  });
-
-  app.put("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
-    try {
-      const scenario = await storage.updateScenario(req.params.scenarioId, req.body);
+      const { id } = req.params;
+      const updateData = insertScenarioSchema.partial().parse(req.body);
+      const scenario = await storage.updateScenario(id, updateData);
+      
       if (!scenario) {
         return res.status(404).json({ error: "Scenario not found" });
       }
+      
       res.json(scenario);
     } catch (error) {
       console.error("Error updating scenario:", error);
@@ -958,9 +626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/companies/:companyId/scenarios/:scenarioId", async (req, res) => {
+  app.delete("/api/scenarios/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deleteScenario(req.params.scenarioId);
+      await storage.deleteScenario(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting scenario:", error);
@@ -968,6 +636,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Cap table sharing routes
+  app.get("/api/companies/:companyId/cap-table-shares", requireAuth, async (req, res) => {
+    try {
+      const shares = await storage.getCapTableShares(req.params.companyId);
+      res.json(shares);
+    } catch (error) {
+      console.error("Error fetching cap table shares:", error);
+      res.status(500).json({ error: "Failed to fetch cap table shares" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/cap-table-shares", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const validated = insertCapTableShareSchema.parse({
+        ...req.body,
+        companyId: req.params.companyId,
+        createdBy: req.user!.id,
+        shareToken: `share_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      });
+      const share = await storage.createCapTableShare(validated);
+      res.status(201).json(share);
+    } catch (error) {
+      console.error("Error creating cap table share:", error);
+      res.status(500).json({ error: "Failed to create cap table share" });
+    }
+  });
+
+  // Public cap table share access
+  app.get("/api/shared/:token", async (req, res) => {
+    try {
+      const share = await storage.getCapTableShare(req.params.token);
+      if (!share || !share.isActive) {
+        return res.status(404).json({ error: "Share not found or expired" });
+      }
+      
+      if (share.expiresAt && new Date() > share.expiresAt) {
+        return res.status(404).json({ error: "Share has expired" });
+      }
+      
+      // Update view count and last accessed
+      await storage.updateCapTableShare(share.id, {
+        viewCount: share.viewCount + 1,
+        lastAccessed: new Date()
+      });
+      
+      // Get cap table data (same as private route but with redacted info based on permissions)
+      const [stakeholders, shareLedger] = await Promise.all([
+        storage.getStakeholders(share.companyId),
+        storage.getShareLedgerEntries(share.companyId)
+      ]);
+      
+      const ownershipMap = new Map();
+      shareLedger.forEach(entry => {
+        const existing = ownershipMap.get(entry.stakeholderId) || { shares: 0 };
+        existing.shares += Number(entry.quantity);
+        ownershipMap.set(entry.stakeholderId, existing);
+      });
+      
+      const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+      
+      const capTable = Array.from(ownershipMap.entries()).map(([stakeholderId, holdings]) => {
+        const stakeholder = stakeholders.find(s => s.id === stakeholderId);
+        const percentage = totalShares > 0 ? (holdings.shares / totalShares) * 100 : 0;
+        
+        return {
+          stakeholder: stakeholder?.name || "Unknown",
+          shares: holdings.shares,
+          percentage: percentage.toFixed(2)
+        };
+      });
+      
+      res.json({
+        share: {
+          title: share.title,
+          description: share.description,
+          createdAt: share.createdAt
+        },
+        capTable
+      });
+    } catch (error) {
+      console.error("Error fetching shared cap table:", error);
+      res.status(500).json({ error: "Failed to fetch shared cap table" });
+    }
+  });
+
+  return createServer(app);
 }

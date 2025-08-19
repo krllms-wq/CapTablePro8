@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -51,6 +51,7 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   description: text("description"),
   country: varchar("country", { length: 2 }).notNull().default("US"),
+  jurisdiction: text("jurisdiction").notNull().default("Delaware"),
   currency: varchar("currency", { length: 3 }).notNull().default("USD"),
   parValue: decimal("par_value", { precision: 10, scale: 4 }).notNull().default("0.0001"),
   incorporationDate: timestamp("incorporation_date").notNull(),
@@ -182,11 +183,15 @@ export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull().references(() => companies.id),
   actorId: varchar("actor_id"),
-  action: text("action").notNull(),
-  payloadDiff: jsonb("payload_diff"),
-  ipHash: text("ip_hash"),
-  timestamp: timestamp("timestamp").default(sql`now()`).notNull(),
-});
+  event: text("event").notNull(),
+  resourceType: varchar("resource_type", { length: 20 }).notNull(), // user, stakeholder, transaction, company
+  resourceId: varchar("resource_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+}, (table) => ({
+  companyCreatedAtIdx: index("audit_logs_company_created_at_idx").on(table.companyId, table.createdAt.desc()),
+  resourceIdx: index("audit_logs_resource_idx").on(table.resourceType, table.resourceId),
+}));
 
 // Scenarios table for saving round modeling scenarios
 export const scenarios = pgTable("scenarios", {
@@ -207,6 +212,7 @@ export const insertCompanySchema = createInsertSchema(companies).omit({
   createdAt: true,
 }).extend({
   incorporationDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  jurisdiction: z.string().min(1),
 });
 
 export const insertSecurityClassSchema = createInsertSchema(securityClasses).omit({
@@ -282,7 +288,7 @@ export const insertCorporateActionSchema = createInsertSchema(corporateActions).
 
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
-  timestamp: true,
+  createdAt: true,
 });
 
 export const insertScenarioSchema = createInsertSchema(scenarios).omit({

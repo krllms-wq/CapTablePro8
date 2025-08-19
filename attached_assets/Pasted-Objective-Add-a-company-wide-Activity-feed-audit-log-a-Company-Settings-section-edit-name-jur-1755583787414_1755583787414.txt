@@ -1,0 +1,88 @@
+Objective
+Add a company-wide Activity feed (audit log), a “Company Settings” section (edit name, jurisdiction, incorporationDate), remove QuickActions from the Cap Table page, and make the Cap Table “New Transaction” button identical to the one on the Transactions page. Keep the current stack (TypeScript, Drizzle, Express, React, Tailwind/Headless) and existing styles.
+
+Repo structure assumptions to follow
+- Server domain logic resides under: server/domain/**
+- Drizzle is used (drizzle.config.ts exists at repo root).
+- Client code under: client/src/**
+If actual file locations differ, detect-and-match the existing patterns before creating/renaming files.
+
+Scope
+
+1) Activity feed (Audit Log)
+Server
+- Add Drizzle table in server/db/schema.ts (or the file where other tables live). Table: auditLog
+  Columns: id (pk), companyId (uuid/serial), actorId (nullable), event (text or enum), resourceType (text enum: "user"|"stakeholder"|"transaction"|"company"), resourceId (nullable), metadata (json), createdAt (timestamp default now).
+  Indexes: (companyId, createdAt desc), (resourceType, resourceId).
+- Create utility server/domain/activity/logEvent.ts:
+  export async function logEvent({ companyId, actorId, event, resourceType, resourceId, metadata }): Promise<void>
+- Call logEvent in existing mutations:
+  * user invited/created
+  * stakeholder created/updated/deleted
+  * transaction created/updated/deleted (issue_shares, grant_option, grant_rsu, grant_warrant, safe, note, secondary, split)
+  * company updated (settings changes)
+- Add route: GET /api/companies/:companyId/activity?cursor=&limit=&event=&resourceType=&actorId=&from=&to=
+  Keyset pagination by (createdAt,id). Return normalized items with linkable ids.
+
+Client
+- Add page (or tab) client/src/pages/CompanyActivity.tsx with <ActivityFeed>.
+  * Infinite scroll or “Load more”, filters (event, resource type, date range), and keyword search on metadata.
+  * Human-readable messages, e.g., “Alice issued 100,000 Common to Bob (Seed)”.
+  * Links to stakeholders, transactions, company settings.
+  * Redact PII (e.g., mask emails in metadata unless explicitly revealed).
+- Add route and navigation entry (Company → Activity).
+
+2) Company Settings
+Server
+- Extend/update PUT /api/companies/:companyId to accept { name, jurisdiction, incorporationDate } (date-only, UTC). Validate:
+  * name: required, non-empty
+  * jurisdiction: required (string from fixed list + “Other” text allowed)
+  * incorporationDate: required, not in the future; store as date-only (normalize to UTC midnight)
+- On success: logEvent({ event: "company.updated", metadata: { changedFields } })
+
+Client
+- Add page client/src/pages/CompanySettings.tsx with a simple form:
+  * Fields: Name (text), Jurisdiction (select + “Other”), Incorporation Date (date-only)
+  * Buttons: Save / Cancel; toast on success/failure
+  * Always send ISO date-only (YYYY-MM-DD). Strip time.
+- Link the page from the company header menu (e.g., “Settings”).
+
+3) Remove QuickActions from Cap Table
+- Locate the Cap Table page component (e.g., client/src/pages/CapTable*.tsx). Remove the QuickActions block from this page only.
+- Ensure layout compacts correctly after removal (no empty gaps).
+
+4) Unify “New Transaction” button
+- Create a shared component client/src/components/NewTransactionButton.tsx that encapsulates the exact markup/behavior used on the Transactions page (menu items, ARIA, testid, handlers).
+- Replace the Cap Table page’s button with this shared component so both pages render the identical button and menu (same props, same styles).
+- Ensure focus/keyboard behavior matches the Transactions page.
+
+5) Dates & number formatting (minimal polish)
+- For Activity and Settings, display dates via Intl.DateTimeFormat and currency/quantities via Intl.NumberFormat.
+- Ensure the client always posts date-only strings for incorporationDate and any server date fields that are date-only.
+
+Tests
+Server (Jest)
+- Audit log insertion is called for each mutation type above.
+- GET /activity returns items in correct order, respects filters, and paginates by cursor.
+- PUT /companies/:id validates fields and writes a company.updated audit row.
+
+Client (Jest + RTL / existing framework)
+- CompanySettings: validates required fields, saves successfully, shows toast, redirects or stays with “Saved” state.
+- ActivityFeed: renders items, loads more, filters by event/resourceType; link clicks navigate correctly.
+- Cap Table page: QuickActions is absent; NewTransactionButton renders and opens the same menu as on Transactions (match by role/name/testid).
+
+Acceptance Criteria
+- Activity page shows a live, filterable, paginated feed of company events with working links.
+- Company Settings updates name, jurisdiction, and incorporation date; changes appear across the app and are logged.
+- Cap Table has no QuickActions block.
+- “New Transaction” on Cap Table is visually and behaviorally identical to the one on Transactions (markup, handlers, ARIA).
+- No regressions in existing flows.
+
+Deliverables
+- Drizzle schema/migration for auditLog plus integration into existing server/db schema files.
+- server/domain/activity/logEvent.ts and route handler for GET /api/companies/:companyId/activity.
+- Updated PUT /api/companies/:companyId handler.
+- New client pages: CompanyActivity.tsx, CompanySettings.tsx.
+- Shared client component: NewTransactionButton.tsx.
+- Removal of QuickActions from Cap Table page.
+- Tests added/updated. Return unified diff patches only (no extra prose).
