@@ -7,6 +7,20 @@ export type ReconcileResult = {
   pps?: number;
   source: "valuation" | "consideration" | "override" | "unknown";
   warningDeltaPct?: number;
+  hasConflict?: boolean;
+  conflictMessage?: string;
+};
+
+export type DerivedPpsSource = {
+  pps: number;
+  source: "valuation" | "consideration";
+};
+
+export type ReconcileOptions = {
+  fromValuation?: number;
+  fromConsideration?: number;
+  overridePps?: number;
+  toleranceBps?: number; // basis points (100 = 1%)
 };
 
 /**
@@ -137,13 +151,8 @@ export function derivePpsFromConsideration(args: {
  * @param args - Object with potential PPS sources and tolerance
  * @returns ReconcileResult with chosen PPS, source, and warning if applicable
  */
-export function reconcilePps(args: {
-  fromValuation?: number;
-  fromConsideration?: number;
-  overridePps?: number;
-  toleranceBps?: number; // basis points, default 50 (=0.50%)
-}): ReconcileResult {
-  const { fromValuation, fromConsideration, overridePps, toleranceBps = 50 } = args;
+export function reconcilePps(options: ReconcileOptions): ReconcileResult {
+  const { fromValuation, fromConsideration, overridePps, toleranceBps = 50 } = options;
 
   // Override takes precedence
   if (overridePps !== undefined && overridePps > 0) {
@@ -172,6 +181,8 @@ export function reconcilePps(args: {
 
     if (deltaPct > tolerancePct) {
       result.warningDeltaPct = Math.round(deltaPct * 100) / 100; // Round to 2 decimal places
+      result.hasConflict = true;
+      result.conflictMessage = `Price mismatch: Valuation suggests $${fromValuation.toFixed(4)}, but consideration/quantity suggests $${fromConsideration.toFixed(4)} (${deltaPct.toFixed(1)}% difference)`;
     }
 
     return result;
@@ -193,7 +204,29 @@ export function reconcilePps(args: {
   }
 
   // No valid sources
-  return {
-    source: "unknown"
-  };
+  return { source: "unknown" };
+}
+
+/**
+ * Format PPS reconcile result for display
+ * @param result - ReconcileResult from reconcilePps
+ * @returns Human-readable description
+ */
+export function formatReconcileResult(result: ReconcileResult): string {
+  if (result.source === "override") {
+    return "Manual override";
+  }
+  
+  if (result.source === "valuation") {
+    if (result.hasConflict) {
+      return `From valuation (conflict detected: ${result.warningDeltaPct?.toFixed(1)}% difference)`;
+    }
+    return result.warningDeltaPct ? `From valuation (${result.warningDeltaPct.toFixed(1)}% variance)` : "From valuation";
+  }
+  
+  if (result.source === "consideration") {
+    return "From consideration";
+  }
+  
+  return "Unable to determine";
 }

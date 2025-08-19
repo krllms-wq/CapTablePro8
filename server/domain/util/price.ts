@@ -34,8 +34,8 @@ export function ensurePricePerShare<T extends {
   quantity?: number;
   pricePerShare?: number;
 }>(data: T): T {
-  // If PPS already provided, return as-is
-  if (data.pricePerShare !== undefined) {
+  // If PPS already provided and valid, return as-is
+  if (data.pricePerShare !== undefined && data.pricePerShare > 0) {
     return data;
   }
   
@@ -43,10 +43,16 @@ export function ensurePricePerShare<T extends {
   const computedPps = computePpsFromConsideration(data.consideration, data.quantity);
   
   if (computedPps !== undefined) {
+    console.log(`[Server PPS Fallback] Computed PPS ${computedPps} from consideration ${data.consideration} and quantity ${data.quantity}`);
     return {
       ...data,
       pricePerShare: computedPps
     };
+  }
+  
+  // Log when no PPS can be derived  
+  if (data.consideration && data.quantity) {
+    console.log(`[Server PPS Fallback] Could not derive PPS from consideration ${data.consideration} and quantity ${data.quantity}`);
   }
   
   return data;

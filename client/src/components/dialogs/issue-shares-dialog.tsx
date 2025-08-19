@@ -49,6 +49,7 @@ import {
   derivePpsFromConsideration,
   reconcilePps,
   roundMoney,
+  formatReconcileResult,
   type ReconcileResult 
 } from "@/utils/priceMath";
 import { 
@@ -582,15 +583,45 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
 
 
 
-              {/* PPS Divergence Warning */}
-              {ppsReconcileResult.warningDeltaPct && (
-                <Alert className="border-amber-200 bg-amber-50">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
-                    Price per share calculated from valuation and consideration diverge by {ppsReconcileResult.warningDeltaPct}%. 
-                    You may want to verify your inputs.
-                  </AlertDescription>
-                </Alert>
+              {/* PPS Reconciliation Status */}
+              {ppsReconcileResult.source !== "unknown" && (
+                <div className="text-sm text-gray-600 bg-gray-50 rounded p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Price Calculation:</span>
+                    <span>{formatReconcileResult(ppsReconcileResult)}</span>
+                    {!overridePps && (
+                      <button
+                        type="button"
+                        onClick={() => setOverridePps(true)}
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Override
+                      </button>
+                    )}
+                  </div>
+                  {ppsReconcileResult.hasConflict && (
+                    <div className="mt-1 text-amber-600 text-xs">
+                      {ppsReconcileResult.conflictMessage}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Override Mode Controls */}
+              {overridePps && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-amber-600">Manual price override active</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOverridePps(false);
+                      updateDerivedPps();
+                    }}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Revert to auto-calculation
+                  </button>
+                </div>
               )}
             </div>
 
