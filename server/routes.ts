@@ -423,8 +423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entry = await storage.createShareLedgerEntry(validated);
       
       // Get stakeholder and security class for audit log
-      const stakeholder = await storage.getStakeholder(entry.stakeholderId);
-      const securityClass = await storage.getSecurityClass(entry.securityClassId);
+      const stakeholder = await storage.getStakeholder(entry.holderId);
+      const securityClass = await storage.getSecurityClass(entry.classId);
       
       // Log share issuance
       await logTransactionEvent({
@@ -710,10 +710,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Share has expired" });
       }
       
-      // Update view count and last accessed
+      // Update view count and last accessed (removed viewCount as it's not in schema)
       await storage.updateCapTableShare(share.id, {
-        viewCount: share.viewCount + 1,
-        lastAccessed: new Date()
+        // viewCount: share.viewCount + 1,  // Not in schema
       });
       
       // Get cap table data (same as private route but with redacted info based on permissions)
@@ -724,15 +723,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const ownershipMap = new Map();
       shareLedger.forEach(entry => {
-        const existing = ownershipMap.get(entry.stakeholderId) || { shares: 0 };
+        const existing = ownershipMap.get(entry.holderId) || { shares: 0 };
         existing.shares += Number(entry.quantity);
-        ownershipMap.set(entry.stakeholderId, existing);
+        ownershipMap.set(entry.holderId, existing);
       });
       
       const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
       
-      const capTable = Array.from(ownershipMap.entries()).map(([stakeholderId, holdings]) => {
-        const stakeholder = stakeholders.find(s => s.id === stakeholderId);
+      const capTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
+        const stakeholder = stakeholders.find(s => s.id === holderId);
         const percentage = totalShares > 0 ? (holdings.shares / totalShares) * 100 : 0;
         
         return {
@@ -753,6 +752,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching shared cap table:", error);
       res.status(500).json({ error: "Failed to fetch shared cap table" });
+    }
+  });
+
+  // Rich demo seeding endpoint
+  app.post("/api/companies/:companyId/seed-rich-demo", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      
+      // Verify company ownership
+      const company = await storage.getCompany(companyId);
+      if (!company || company.ownerId !== req.user!.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      if (!company.isDemo) {
+        return res.status(400).json({ error: "Can only seed rich data for demo companies" });
+      }
+      
+      const { seedRichDemoTransactions } = await import("./domain/onboarding/seedRichDemo");
+      await seedRichDemoTransactions(storage, companyId);
+      
+      res.json({ message: "Rich demo transactions seeded successfully" });
+    } catch (error) {
+      console.error("Error seeding rich demo:", error);
+      res.status(500).json({ error: "Failed to seed rich demo transactions" });
     }
   });
 

@@ -1,5 +1,6 @@
 import { storage } from "../../storage";
 import { logEvent } from "../activity/logEvent";
+import { seedRichDemoTransactions } from "./seedRichDemo";
 
 export async function seedExampleCompany({ userId }: { userId: string }): Promise<{ companyId: string }> {
   // Check if user already has a demo company
@@ -130,6 +131,15 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
       consideration: "20000.00",
       considerationType: "cash",
     });
+
+    // Add rich demo transactions if requested
+    try {
+      await seedRichDemoTransactions(storage, companyId);
+      console.log('✅ Rich demo transactions added successfully');
+    } catch (error) {
+      console.error('Warning: Failed to add rich demo transactions:', error);
+      // Continue without failing the whole seeding process
+    }
 
     // Log final seeding completion
     await logEvent({

@@ -1234,6 +1234,10 @@ export class DatabaseStorage implements IStorage {
     return share;
   }
 
+  async getCapTableShares(companyId: string): Promise<CapTableShare[]> {
+    return await db.select().from(capTableShares).where(eq(capTableShares.companyId, companyId));
+  }
+
   async deleteCapTableShare(id: string): Promise<void> {
     await db.delete(capTableShares).where(eq(capTableShares.id, id));
   }
