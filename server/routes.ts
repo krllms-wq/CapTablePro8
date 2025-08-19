@@ -563,6 +563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getConvertibleInstruments(companyId)
       ]);
 
+
+
       // Calculate cap table statistics
       const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
       const totalOptions = equityAwards.reduce((sum, award) => sum + Number(award.quantityGranted), 0);
@@ -573,9 +575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add shares
       shareLedger.forEach(entry => {
-        const existing = ownershipMap.get(entry.stakeholderId) || { shares: 0, options: 0, convertibles: 0 };
+        const existing = ownershipMap.get(entry.holderId) || { shares: 0, options: 0, convertibles: 0 };
         existing.shares += Number(entry.quantity);
-        ownershipMap.set(entry.stakeholderId, existing);
+        ownershipMap.set(entry.holderId, existing);
       });
       
       // Add options
@@ -586,13 +588,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Build cap table with ownership percentages
-      const capTable = Array.from(ownershipMap.entries()).map(([stakeholderId, holdings]) => {
-        const stakeholder = stakeholders.find(s => s.id === stakeholderId);
+      const capTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
+        const stakeholder = stakeholders.find(s => s.id === holderId);
         const percentage = totalShares > 0 ? (holdings.shares / totalShares) * 100 : 0;
+        
+
         
         return {
           stakeholder: stakeholder?.name || "Unknown",
-          stakeholderId,
+          stakeholderId: holderId,
           shares: holdings.shares,
           options: holdings.options,
           percentage: percentage.toFixed(2),
