@@ -236,7 +236,7 @@ export default function ScenariosPage() {
                   <tbody>
                     {!modelingResults ? (
                       // Show current cap table only
-                      capTable?.map((row: any) => (
+                      (Array.isArray(capTable) ? capTable : capTable?.capTable || [])?.map((row: any) => (
                         <tr key={row.stakeholder?.id || Math.random()} className="border-b">
                           <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
                           <td className="text-right p-2">{(row.ownership || 0).toFixed(2)}%</td>
@@ -493,7 +493,7 @@ export default function ScenariosPage() {
                 <CardTitle>Saved Scenarios</CardTitle>
               </CardHeader>
               <CardContent>
-                {scenarios && scenarios.length > 0 ? (
+                {scenarios && Array.isArray(scenarios) && scenarios.length > 0 ? (
                   <div className="space-y-3">
                     {scenarios.map((scenario: any) => (
                       <div key={scenario.id} className="border rounded-lg p-4">
