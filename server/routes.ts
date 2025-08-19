@@ -178,7 +178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const validated = insertCompanySchema.parse(req.body);
+      const validated = insertCompanySchema.parse({
+        ...req.body,
+        ownerId: req.user!.id
+      });
       const company = await storage.createCompany(validated);
       
       // Grant owner access to the creator
