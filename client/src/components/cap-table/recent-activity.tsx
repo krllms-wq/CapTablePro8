@@ -13,14 +13,14 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
   });
 
   // Transform audit logs into activities
-  const activities = auditLogs?.slice(0, 4).map((log: any) => {
+  const activities = (auditLogs as any[])?.slice(0, 4)?.map((log: any) => {
     const payload = log.payloadDiff || {};
     const details = payload.details || `${payload.entityType || 'Unknown'} ${log.action}`;
     
     return {
       id: log.id,
       type: log.action,
-      title: log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      title: log.action?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown Action',
       description: details,
       details: payload.stakeholderName 
         ? `Stakeholder: ${payload.stakeholderName}` 
@@ -28,9 +28,9 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
         ? `Quantity: ${payload.quantity}` 
         : "No details available",
       timestamp: new Date(log.timestamp),
-      icon: getActivityIcon(log.action),
-      iconColor: getActivityIconColor(log.action),
-      iconBg: getActivityIconBg(log.action)
+      icon: getActivityIcon(log.action || ''),
+      iconColor: getActivityIconColor(log.action || ''),
+      iconBg: getActivityIconBg(log.action || '')
     };
   }) || [];
 
@@ -102,7 +102,7 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {activities.map((activity) => (
+          {activities.map((activity: any) => (
             <div key={activity.id} className="flex items-start space-x-3">
               <div className={`w-8 h-8 ${activity.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
                 <i className={`${activity.icon} ${activity.iconColor} text-sm`}></i>
