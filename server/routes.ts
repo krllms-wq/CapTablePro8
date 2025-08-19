@@ -567,7 +567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           classId,
           quantity: -quantity,
           issueDate: transactionDate,
-          consideration: totalValue.toFixed(2),
+          consideration: parseFloat(totalValue.toFixed(2)),
           considerationType: "cash",
           sourceTransactionId: transactionId,
           transactionType: "transfer-out"
@@ -579,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           classId,
           quantity: quantity,
           issueDate: transactionDate,
-          consideration: totalValue.toFixed(2),
+          consideration: parseFloat(totalValue.toFixed(2)),
           considerationType: "cash",
           sourceTransactionId: transactionId,
           transactionType: "transfer-in"
@@ -644,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sanitizedBody = {
         ...req.body,
         companyId: req.params.companyId,
-        quantityGranted: sanitizeQuantity(req.body.quantityGranted),
+        quantityGranted: typeof req.body.quantityGranted === 'string' ? parseInt(req.body.quantityGranted.replace(/,/g, ''), 10) : req.body.quantityGranted,
         strikePrice: (req.body.type === 'RSU' || !req.body.strikePrice) ? null : sanitizeDecimal(req.body.strikePrice),
         grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : new Date(),
         vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : null,
@@ -778,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rounds = await storage.getRounds(companyId);
       
       // Import valuation calculator
-      const { calculateFullyDilutedValuation } = await import("../utils/valuationCalculator");
+      const { calculateFullyDilutedValuation } = await import("./utils/valuationCalculator");
       
       // Calculate proper valuation with corrected math (prevent double counting)
       const valuationResult = calculateFullyDilutedValuation(
