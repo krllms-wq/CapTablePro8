@@ -1,0 +1,49 @@
+Objective
+Fix RSU strike-price bug and flaky award validation, make activity feed reliable, and correct cap-table valuation + fully-diluted math (no double-count). Return unified diff patches only.
+
+Repo assumptions
+- Server: server/domain/**  • Client: client/src/**
+
+Tasks
+
+A) Equity Awards
+Server
+- For `type==='RSU'`, allow `strikePrice` = null; do not validate as required.
+- Ensure award create/update joins stakeholder so recipient names render correctly; if missing stakeholder, show “(Deleted stakeholder)”.
+
+Client
+- Award form: when `type==='RSU'`, **hide** strike field and do not submit it.
+- Fix “must retype” friction: controlled inputs, single parsed source of truth; allow comma-formatted quantities, coerce to numbers on submit.
+
+B) Activity / Audit feed
+Server
+- Ensure each mutation logs an event via `logEvent` with { companyId, actorId, event, resourceType, resourceId, metadata }.
+- GET /companies/:id/activity: order by `createdAt DESC, id DESC`; add cursor pagination.
+
+Client
+- After any mutation, refetch the feed. Visually group entries by date.
+
+C) Cap Table — valuation & fully diluted
+Server
+- Valuation: derive from latest priced round or explicit valuation snapshot; if none, return null. Do **not** display $0.
+- Fully diluted math:
+  * Unallocated pool only in the denominator (when toggled), never as a holder.
+  * RSUs: include per toggle (`none` | `granted` | `vested`)—don’t subtract “exercised” for RSUs.
+  * Prevent double counting across As-Issued / As-Converted / FD views.
+
+Client
+- If valuation is null → display “N/A” with tooltip “Set via priced round or valuation input”.
+- FD options UI: short help tooltip explaining what’s included.
+
+Shared utils (if not already present)
+- `client/src/utils/number.ts`: `parseNumberLoose`, `formatShares`, `formatMoney`.
+- `client/src/utils/date.ts`: `formatDate` that renders date-only consistently.
+
+Tests
+- Server unit: RSU awards without strike save; feed ordering stable; valuation derived correctly; FD view has no double counting.
+- E2E: Grant RSU (no strike) succeeds; Activity shows entries immediately; Cap Table valuation shows N/A until set; FD toggles change totals as expected.
+
+Acceptance
+- RSUs can be granted without a strike; award forms feel reliable (no “retype” quirks).
+- Activity feed lists latest events first and updates after actions.
+- Cap Table shows meaningful valuation or N/A; FD math correct with no double counting.

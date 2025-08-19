@@ -1,0 +1,40 @@
+Objective
+Fix stakeholder edit/delete failures and stabilize transaction flows: number parsing, date handling, ordering, and secondary transfer validation. Return unified diff patches only.
+
+Repo assumptions
+- Server: server/domain/**  • Client: client/src/**
+
+Tasks
+
+A) Stakeholders
+Server
+- PUT /stakeholders/:id: validate payload; return 200 with updated record.
+- DELETE /stakeholders/:id: if stakeholder holds any shares/awards, return 409 {code:"HAS_HOLDINGS"}; else delete and return 204.
+Client
+- Edit modal: on success close + refetch list. Show server error messages.
+- Delete: confirm → call DELETE; on 204 remove row; on 409 show friendly message “Cannot delete a stakeholder with holdings.”
+
+B) Transactions — Issue Shares & general inputs
+Server
+- Accept comma/currency-formatted numbers: add sanitizer for quantities/valuation/consideration (strip commas and symbols; enforce ≥ 0).
+- Store transaction dates as **date-only UTC**; never as local DateTime.
+- Default list ordering: `ORDER BY issueDate DESC, createdAt DESC`.
+
+Client
+- Inputs for numbers: on blur sanitize (“1,000,000” → 1000000), but keep user-friendly display while editing.
+- After successful create/edit, invalidate/refresh Transactions + Cap Table queries so totals update.
+
+C) Secondary transfers (seller → buyer)
+Server
+- Single atomic operation: subtract from seller ledger, add to buyer. Validate seller balance ≥ qty; else return 400 {code:"INSUFFICIENT_SHARES"}.
+Client
+- If Buyer Type = “New Stakeholder”, require name+email; show server errors inline.
+
+Tests
+- Server unit: stakeholders DELETE 409 when holdings exist; numbers parse correctly; dates persisted as UTC date-only; secondary fails/passes with correct balances.
+- E2E: edit stakeholder title → persists; delete stakeholder w/o holdings → removed; Issue Shares accepts “1,000,000”; newest transactions on top; secondary reassigns shares and Cap Table updates.
+
+Acceptance
+- Stakeholder edit/delete works with clear errors on constraints.
+- Transactions accept comma/currency inputs; consistent ordering; Cap Table refreshes.
+- Secondary validates balances and updates both parties atomically.

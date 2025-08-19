@@ -1,0 +1,49 @@
+Objective
+Implement a working logout flow, make “Add Sample Company” actually create/show a demo company, and fix the company-creation wizard 500s. Keep stack: TypeScript, Express, Drizzle; client React + Tailwind/Headless. Return unified diff patches only.
+
+Repo layout assumptions
+- Server: server/domain/**  • DB/migrations: server/db/**  • Client: client/src/**
+- Use existing auth/session middleware; don’t change authentication provider.
+
+Tasks
+
+A) Logout / session clear
+Server
+- Add endpoint: POST /api/auth/logout → destroy session + clear auth cookies → return 204.
+Client
+- Header avatar menu: add “Log out”. On click: `await fetch('/api/auth/logout',{method:'POST'})` → `location.href='/login'`.
+- If self-service sign-up is disabled, hide any sign-up link.
+
+B) Sample company (seed ensure)
+Server
+- Add idempotent endpoint: POST /api/demo/seed/ensure → if user has no `isDemo=true` company, create one; else return existing. Return { id, name, isDemo }.
+- Guarantee one demo per user. Handle with transaction/unique guard.
+
+Client
+- “Add Sample Company” button calls POST /api/demo/seed/ensure; on success, **refetch companies list** (React Query invalidate) so the card appears immediately.
+- Show a subtle “Sample” badge when `isDemo` is true.
+
+C) Company creation wizard (500s)
+Server
+- Fix create company route handler:
+  * Validate: `name` (required), `jurisdiction`/`country` (required), `incorporationDate` (required).
+  * Normalize date to **date-only UTC** (YYYY-MM-DD). If picker gives only Month/Year, default day = 01.
+  * On DB errors return 400 with message (not 500). On success return 201 + payload.
+
+Client
+- Wizard submit:
+  * If Month/Year picker, convert to `YYYY-MM-01`.
+  * Sanitize inputs, show spinner only during request; always re-enable on error; show toast.
+  * On success, navigate to the company (or next step) and refetch companies.
+
+Shared utils
+- Add client `utils/date.ts`: `toDateOnlyUTC(dateish): string` and use in wizard.
+
+Tests (add/adjust)
+- Server unit/integration: logout returns 204; seed ensure idempotent; create company validates + returns 201; bad payload → 400.
+- E2E: Log out → shows /login; “Add Sample Company” adds visible card instantly (no duplicates); Create Company succeeds and navigates forward.
+
+Acceptance
+- User can log out and reach login screen.
+- Sample company appears immediately after clicking the button.
+- Company creation no longer returns 500; dates saved as date-only in UTC.
