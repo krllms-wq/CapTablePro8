@@ -1,6 +1,81 @@
 import { storage } from "../../storage";
 import { logEvent } from "../activity/logEvent";
-import { seedRichDemoTransactions } from "./seedRichDemo";
+import type { Stakeholder, SecurityClass } from "@shared/schema";
+
+// Inline rich demo data creation to avoid schema mismatches
+async function createRichDemoData({
+  storage,
+  companyId,
+  alice,
+  bob,
+  jane,
+  demoVentures,
+  commonStock,
+  incorporationDate
+}: {
+  storage: any;
+  companyId: string;
+  alice: Stakeholder;
+  bob: Stakeholder;
+  jane: Stakeholder;
+  demoVentures: Stakeholder;
+  commonStock: SecurityClass;
+  incorporationDate: Date;
+}) {
+  const now = new Date();
+  const optionsGrantDate = new Date(incorporationDate.getTime() + (60 * 24 * 60 * 60 * 1000)); // 2 months after incorporation
+  const safeDate = new Date(incorporationDate.getTime() + (90 * 24 * 60 * 60 * 1000)); // 3 months after incorporation
+  
+  console.log('Creating equity awards...');
+  
+  // Jane's Stock Options: 200,000 options, $1.00 strike, 4y vest, 1y cliff
+  await storage.createEquityAward({
+    companyId,
+    holderId: jane.id,
+    type: 'ISO',
+    quantityGranted: 200000,
+    strikePrice: '1.00',
+    grantDate: optionsGrantDate,
+    vestingStartDate: optionsGrantDate,
+    cliffMonths: 12,
+    totalMonths: 48,
+    quantityExercised: 0,
+    quantityCanceled: 0
+  });
+
+  // Jane's RSUs: 50,000 RSUs
+  await storage.createEquityAward({
+    companyId,
+    holderId: jane.id,
+    type: 'RSU',
+    quantityGranted: 50000,
+    strikePrice: '0.00',
+    grantDate: optionsGrantDate,
+    vestingStartDate: optionsGrantDate,
+    cliffMonths: 0,
+    totalMonths: 36,
+    quantityExercised: 0,
+    quantityCanceled: 0
+  });
+  
+  console.log('Creating convertible instruments...');
+
+  // SAFE: $250,000, $10M cap, 20% discount
+  await storage.createConvertibleInstrument({
+    companyId,
+    holderId: demoVentures.id,
+    type: 'safe',
+    framework: 'YC pre-money SAFE',
+    principal: '250000.00',
+    interestRate: '0.00',
+    discountRate: '0.20',
+    valuationCap: '10000000.00',
+    issueDate: safeDate,
+    postMoney: false
+  });
+  
+  console.log('Rich demo data creation completed');
+}
 
 export async function seedExampleCompany({ userId }: { userId: string }): Promise<{ companyId: string }> {
   // Check if user already has a demo company
@@ -132,10 +207,34 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
       considerationType: "cash",
     });
 
-    // Add rich demo transactions if requested
+    // Add rich demo transactions automatically for comprehensive demo data
     try {
-      await seedRichDemoTransactions(storage, companyId);
-      console.log('✅ Rich demo transactions added successfully');
+      console.log('🌱 Seeding comprehensive demo transactions...');
+      
+      // Get existing stakeholders and security classes
+      const stakeholders = await storage.getStakeholders(companyId);
+      const securityClasses = await storage.getSecurityClasses(companyId);
+      
+      const alice = stakeholders.find(s => s.name === "Alice Founder");
+      const bob = stakeholders.find(s => s.name === "Bob Founder");
+      const jane = stakeholders.find(s => s.name === "Jane Employee");
+      const demoVentures = stakeholders.find(s => s.name === "Demo Ventures");
+      const commonStock = securityClasses.find(c => c.name === "Common Stock");
+      
+      if (alice && bob && jane && demoVentures && commonStock) {
+        // Create rich demo transactions directly here with proper schema
+        await createRichDemoData({
+          storage,
+          companyId,
+          alice,
+          bob,
+          jane,
+          demoVentures,
+          commonStock,
+          incorporationDate
+        });
+        console.log('✅ Rich demo transactions added successfully');
+      }
     } catch (error) {
       console.error('Warning: Failed to add rich demo transactions:', error);
       // Continue without failing the whole seeding process

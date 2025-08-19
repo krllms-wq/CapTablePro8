@@ -760,9 +760,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { companyId } = req.params;
       
-      // Verify company ownership
+      // Verify company ownership - allow demo user access to demo companies
       const company = await storage.getCompany(companyId);
-      if (!company || company.ownerId !== req.user!.id) {
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Allow access if user owns the company OR it's a demo company and user is demo user
+      const isDemoUser = req.user!.email === 'demo@example.com';
+      const hasAccess = company.ownerId === req.user!.id || (company.isDemo && isDemoUser);
+      
+      if (!hasAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
       

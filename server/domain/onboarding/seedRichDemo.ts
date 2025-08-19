@@ -82,36 +82,30 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
     await storage.createEquityAward({
       companyId,
       holderId: jane.id,
-      securityClassId: commonStock.id,
-      type: 'stock_option',
+      type: 'ISO',
       quantityGranted: 200000,
-      strikePrice: 1.00,
+      strikePrice: '1.00',
       grantDate: optionsGrantDate,
-      vestingScheduleType: 'time_based',
       vestingStartDate: optionsGrantDate,
-      vestingDurationMonths: 48, // 4 years
       cliffMonths: 12, // 1 year cliff
+      totalMonths: 48, // 4 years
       quantityExercised: 0,
-      quantityCancelled: 0,
-      expirationDate: new Date(optionsGrantDate.getTime() + 10 * 365 * 24 * 60 * 60 * 1000) // 10 years
+      quantityCanceled: 0
     });
 
     // Jane's RSUs: 50,000 RSUs, no strike, 3y vest, no cliff
     await storage.createEquityAward({
       companyId,
       holderId: jane.id,
-      securityClassId: commonStock.id,
-      type: 'rsu',
+      type: 'RSU',
       quantityGranted: 50000,
-      strikePrice: 0.00,
+      strikePrice: '0.00',
       grantDate: optionsGrantDate,
-      vestingScheduleType: 'time_based',
       vestingStartDate: optionsGrantDate,
-      vestingDurationMonths: 36, // 3 years
       cliffMonths: 0, // no cliff
+      totalMonths: 36, // 3 years
       quantityExercised: 0,
-      quantityCancelled: 0,
-      expirationDate: new Date(optionsGrantDate.getTime() + 7 * 365 * 24 * 60 * 60 * 1000) // 7 years
+      quantityCanceled: 0
     });
 
     console.log('Creating convertible instruments...');
@@ -121,29 +115,29 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       companyId,
       holderId: demoVentures.id,
       type: 'safe',
-      principal: 250000.00,
-      interestRate: 0.00, // SAFEs typically don't have interest
-      discount: 20.00, // 20% discount
-      valuationCap: 10000000.00,
+      framework: 'YC pre-money SAFE',
+      principal: '250000.00',
+      interestRate: '0.00', // SAFEs typically don't have interest
+      discountRate: '0.20', // 20% discount
+      valuationCap: '10000000.00',
       issueDate: safeDate,
-      maturityDate: undefined, // SAFEs typically don't have maturity
-      conversionTriggers: ['equity_financing', 'liquidity_event'],
-      status: 'outstanding'
+      maturityDate: null, // SAFEs typically don't have maturity
+      postMoney: false
     });
 
     // Convertible Note: $100,000, 8% interest, 20% discount, $12M cap
     await storage.createConvertibleInstrument({
       companyId,
       holderId: demoVentures.id,
-      type: 'convertible_note',
-      principal: 100000.00,
-      interestRate: 8.00,
-      discount: 20.00,
-      valuationCap: 12000000.00,
+      type: 'note',
+      framework: 'custom',
+      principal: '100000.00',
+      interestRate: '0.08',
+      discountRate: '0.20',
+      valuationCap: '12000000.00',
       issueDate: convertibleDate,
       maturityDate: maturityDate,
-      conversionTriggers: ['equity_financing', 'maturity', 'liquidity_event'],
-      status: 'outstanding'
+      postMoney: false
     });
 
     console.log('Creating corporate actions...');
@@ -153,7 +147,7 @@ export async function seedRichDemoTransactions(storage: IStorage, companyId: str
       companyId,
       type: 'stock_split',
       effectiveDate: stockSplitDate,
-      ratio: '2:1',
+      ratio: '2.0',
       affectedClasses: [commonStock.id]
     });
 
