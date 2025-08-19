@@ -40,6 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, AlertTriangle } from "lucide-react";
 import type { Stakeholder, SecurityClass } from "@shared/schema";
 import DerivedPill from "@/components/DerivedPill";
+import AdditionalSettings from "@/components/AdditionalSettings";
+import { useAdvancedOpen } from "@/components/form/useAdvancedOpen";
 import { 
   parseMoneyLoose, 
   parseSharesLoose, 
@@ -114,6 +116,17 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       valuation: "",
       pricePerShare: "",
       certificateNo: "",
+    },
+  });
+
+  // Advanced fields accordion state
+  const advancedOpen = useAdvancedOpen({
+    errors: form.formState.errors,
+    values: { ...form.watch(), overridePps },
+    advancedFields: ['certificateNo', 'overridePps'],
+    defaultValues: {
+      certificateNo: "",
+      overridePps: false,
     },
   });
 
@@ -573,23 +586,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
-              {/* Override PPS Checkbox */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="override-pps"
-                  checked={overridePps}
-                  onCheckedChange={(checked) => {
-                    setOverridePps(!!checked);
-                    if (!checked) {
-                      // Reset to derived value when disabling override
-                      updateDerivedPps();
-                    }
-                  }}
-                />
-                <Label htmlFor="override-pps" className="text-sm cursor-pointer">
-                  Override price per share
-                </Label>
-              </div>
+
 
               {/* PPS Divergence Warning */}
               {ppsReconcileResult.warningDeltaPct && (
@@ -702,10 +699,13 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               </div>
             )}
 
-            {/* Additional Details */}
-            <div className="space-y-4 border-b pb-4">
-              <h4 className="font-medium text-sm">Additional Details</h4>
-              
+            {/* Additional Settings */}
+            <AdditionalSettings
+              open={advancedOpen.isOpen}
+              onOpenChange={advancedOpen.setIsOpen}
+              title="Additional Settings"
+              description="Optional certificate details and advanced configuration"
+            >
               <FormField
                 control={form.control}
                 name="certificateNo"
@@ -713,13 +713,31 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   <FormItem>
                     <FormLabel>Certificate Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Optional" {...field} />
+                      <Input placeholder="Optional certificate identifier" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+              
+              {/* Override PPS Checkbox - moved to additional settings */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="override-pps-advanced"
+                  checked={overridePps}
+                  onCheckedChange={(checked) => {
+                    setOverridePps(!!checked);
+                    if (!checked) {
+                      // Reset to derived value when disabling override
+                      updateDerivedPps();
+                    }
+                  }}
+                />
+                <Label htmlFor="override-pps-advanced" className="text-sm cursor-pointer">
+                  Override price per share calculations
+                </Label>
+              </div>
+            </AdditionalSettings>
 
             {/* Form Actions */}
             <div className="flex justify-end gap-3 pt-4">

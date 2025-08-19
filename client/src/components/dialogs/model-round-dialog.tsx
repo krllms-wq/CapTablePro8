@@ -40,6 +40,8 @@ import { formatCurrency, formatPercentage } from "@/lib/formatters";
 import { AlertTriangle } from "lucide-react";
 import type { SecurityClass } from "@shared/schema";
 import DerivedPill from "@/components/DerivedPill";
+import AdditionalSettings from "@/components/AdditionalSettings";
+import { useAdvancedOpen } from "@/components/form/useAdvancedOpen";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   parseMoneyLoose, 
@@ -78,12 +80,7 @@ interface RoundProjection {
   optionPoolShares?: number;
 }
 
-// Small Derived pill component
-const DerivedPill = () => (
-  <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-    Derived
-  </Badge>
-);
+
 
 export default function ModelRoundDialog({ open, onOpenChange, companyId }: ModelRoundDialogProps) {
   const { toast } = useToast();
@@ -113,10 +110,18 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
       pricePerShare: "",
       newSecurityClassId: "",
       optionPoolIncrease: "",
-      preMoneyValuation: "",
-      pricePerShare: "",
+    },
+  });
+
+  // Advanced fields accordion state
+  const advancedOpen = useAdvancedOpen({
+    errors: form.formState.errors,
+    values: { ...form.watch(), overridePps },
+    advancedFields: ['newSecurityClassId', 'optionPoolIncrease', 'overridePps'],
+    defaultValues: {
       newSecurityClassId: "",
       optionPoolIncrease: "",
+      overridePps: false,
     },
   });
 
@@ -401,23 +406,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                       )}
                     />
 
-                    {/* Override PPS Checkbox */}
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="override-pps-model"
-                        checked={overridePps}
-                        onCheckedChange={(checked) => {
-                          setOverridePps(!!checked);
-                          if (!checked) {
-                            // Reset to derived value when disabling override
-                            updateDerivedPps();
-                          }
-                        }}
-                      />
-                      <Label htmlFor="override-pps-model" className="text-sm cursor-pointer">
-                        Override price per share
-                      </Label>
-                    </div>
+
 
                     {/* PPS Divergence Warning */}
                     {ppsReconcileResult.warningDeltaPct && (
@@ -433,56 +422,79 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                 )}
               </div>
 
-              {/* Round Details Section */}
-              {watchedRoundType === "priced" && (
-                <div className="space-y-4 border-b pb-4">
-                  <h4 className="font-medium text-sm">Round Details</h4>
-                  
-                  <FormField
-                    control={form.control}
-                    name="newSecurityClassId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Security Class</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select security class" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {securityClasses?.map((securityClass) => (
-                              <SelectItem key={securityClass.id} value={securityClass.id}>
-                                {securityClass.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              {/* Additional Settings */}
+              <AdditionalSettings
+                open={advancedOpen.isOpen}
+                onOpenChange={advancedOpen.setIsOpen}
+                title="Additional Settings"
+                description="Optional round configuration and advanced options"
+              >
+                {/* Override PPS Checkbox - moved to additional settings */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="override-pps-model-advanced"
+                    checked={overridePps}
+                    onCheckedChange={(checked) => {
+                      setOverridePps(!!checked);
+                      if (!checked) {
+                        // Reset to derived value when disabling override
+                        updateDerivedPps();
+                      }
+                    }}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="optionPoolIncrease"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Option Pool Increase (%)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="e.g., 15"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <Label htmlFor="override-pps-model-advanced" className="text-sm cursor-pointer">
+                    Override price per share calculations
+                  </Label>
                 </div>
-              )}
+
+                {watchedRoundType === "priced" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="newSecurityClassId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Security Class</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select security class" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {securityClasses?.map((securityClass) => (
+                                <SelectItem key={securityClass.id} value={securityClass.id}>
+                                  {securityClass.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="optionPoolIncrease"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Option Pool Increase (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              placeholder="e.g., 15"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </AdditionalSettings>
 
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
