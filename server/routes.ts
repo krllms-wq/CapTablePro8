@@ -19,6 +19,8 @@ import { insertScenarioSchema } from "@shared/schema";
 import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest } from "./auth";
 import { seedExampleCompany } from "./domain/onboarding/seedExampleCompany";
 import demoRoutes from "./routes/demo";
+import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numberParser";
+import { toDateOnlyUTC } from "./utils/dateParser";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -400,6 +402,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Stakeholder not found" });
       }
 
+      // Check if stakeholder has any holdings (shares, equity awards, convertibles)
+      const [shareEntries, equityAwards, convertibles] = await Promise.all([
+        storage.getShareLedgerEntries(stakeholder.companyId),
+        storage.getEquityAwards(stakeholder.companyId),
+        storage.getConvertibleInstruments(stakeholder.companyId)
+      ]);
+
+      const hasShares = shareEntries.some(entry => entry.holderId === id);
+      const hasEquityAwards = equityAwards.some(award => award.holderId === id);
+      const hasConvertibles = convertibles.some(convertible => convertible.holderId === id);
+
+      if (hasShares || hasEquityAwards || hasConvertibles) {
+        return res.status(409).json({ 
+          error: "Cannot delete stakeholder with holdings",
+          code: "HAS_HOLDINGS",
+          details: {
+            hasShares,
+            hasEquityAwards,
+            hasConvertibles
+          }
+        });
+      }
+
       await storage.deleteStakeholder(id);
 
       // Log stakeholder deletion
@@ -423,7 +448,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/companies/:companyId/share-ledger", async (req, res) => {
     try {
       const entries = await storage.getShareLedgerEntries(req.params.companyId);
-      res.json(entries);
+      // Order by issueDate DESC, then createdAt DESC for consistent ordering
+      const sortedEntries = entries.sort((a, b) => {
+        const dateA = new Date(a.issueDate).getTime();
+        const dateB = new Date(b.issueDate).getTime();
+        if (dateA !== dateB) {
+          return dateB - dateA; // issueDate DESC
+        }
+        // If issue dates are equal, sort by createdAt DESC
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      res.json(sortedEntries);
     } catch (error) {
       console.error("Error fetching share ledger:", error);
       res.status(500).json({ error: "Failed to fetch share ledger" });
@@ -432,10 +467,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/share-ledger", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const validated = insertShareLedgerEntrySchema.parse({
+      // Sanitize numeric inputs
+      const sanitizedBody = {
         ...req.body,
-        companyId: req.params.companyId
-      });
+        companyId: req.params.companyId,
+        quantity: sanitizeQuantity(req.body.quantity),
+        consideration: req.body.consideration ? sanitizeDecimal(req.body.consideration) : null,
+        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : new Date()
+      };
+
+      const validated = insertShareLedgerEntrySchema.parse(sanitizedBody);
       
       const entry = await storage.createShareLedgerEntry(validated);
       
@@ -460,7 +501,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(entry);
     } catch (error) {
       console.error("Error creating share ledger entry:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
       res.status(500).json({ error: "Failed to create share ledger entry" });
+    }
+  });
+
+  // Secondary transfer route (atomic seller -> buyer transaction)
+  app.post("/api/companies/:companyId/secondary-transfer", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const sanitizedBody = {
+        ...req.body,
+        companyId: req.params.companyId,
+        quantity: sanitizeQuantity(req.body.quantity),
+        pricePerShare: req.body.pricePerShare ? sanitizeDecimal(req.body.pricePerShare) : "0.00",
+        transactionDate: req.body.transactionDate ? toDateOnlyUTC(req.body.transactionDate) : new Date()
+      };
+
+      const { sellerId, buyerId, classId, quantity, pricePerShare, transactionDate } = sanitizedBody;
+
+      if (!sellerId || !buyerId || !classId || quantity <= 0) {
+        return res.status(400).json({ 
+          error: "Missing required fields: sellerId, buyerId, classId, and positive quantity" 
+        });
+      }
+
+      // Get current seller holdings to validate balance
+      const sellerEntries = await storage.getShareLedgerEntries(req.params.companyId);
+      const sellerBalance = sellerEntries
+        .filter(entry => entry.holderId === sellerId && entry.classId === classId)
+        .reduce((sum, entry) => sum + Number(entry.quantity), 0);
+
+      if (sellerBalance < quantity) {
+        return res.status(400).json({
+          error: "Insufficient shares for transfer",
+          code: "INSUFFICIENT_SHARES",
+          details: {
+            requested: quantity,
+            available: sellerBalance
+          }
+        });
+      }
+
+      const totalValue = parseFloat(pricePerShare) * quantity;
+      const transactionId = `transfer-${Date.now()}`;
+
+      // Atomic transaction: create both ledger entries
+      const [reductionEntry, additionEntry] = await Promise.all([
+        // Subtract from seller
+        storage.createShareLedgerEntry({
+          companyId: req.params.companyId,
+          holderId: sellerId,
+          classId,
+          quantity: -quantity,
+          issueDate: transactionDate,
+          consideration: totalValue.toFixed(2),
+          considerationType: "cash",
+          sourceTransactionId: transactionId,
+          transactionType: "transfer-out"
+        }),
+        // Add to buyer
+        storage.createShareLedgerEntry({
+          companyId: req.params.companyId,
+          holderId: buyerId,
+          classId,
+          quantity: quantity,
+          issueDate: transactionDate,
+          consideration: totalValue.toFixed(2),
+          considerationType: "cash",
+          sourceTransactionId: transactionId,
+          transactionType: "transfer-in"
+        })
+      ]);
+
+      // Log secondary transfer event
+      const [seller, buyer, securityClass] = await Promise.all([
+        storage.getStakeholder(sellerId),
+        storage.getStakeholder(buyerId),
+        storage.getSecurityClass(classId)
+      ]);
+
+      await logTransactionEvent({
+        companyId: req.params.companyId,
+        actorId: req.user!.id,
+        event: "transaction.secondary_transfer",
+        transactionId,
+        stakeholderName: `${seller?.name} → ${buyer?.name}`,
+        details: {
+          seller: seller?.name,
+          buyer: buyer?.name,
+          quantity,
+          pricePerShare,
+          totalValue,
+          securityClassName: securityClass?.name
+        }
+      });
+
+      res.status(201).json({
+        transactionId,
+        reductionEntry,
+        additionEntry,
+        totalValue
+      });
+    } catch (error) {
+      console.error("Error creating secondary transfer:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      res.status(500).json({ error: "Failed to create secondary transfer" });
     }
   });
 
@@ -477,10 +632,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/equity-awards", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const validated = insertEquityAwardSchema.parse({
+      // Sanitize numeric inputs
+      const sanitizedBody = {
         ...req.body,
-        companyId: req.params.companyId
-      });
+        companyId: req.params.companyId,
+        quantityGranted: sanitizeQuantity(req.body.quantityGranted),
+        strikePrice: req.body.strikePrice ? sanitizeDecimal(req.body.strikePrice) : null,
+        grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : new Date(),
+        vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : null,
+        exercisePrice: req.body.exercisePrice ? sanitizeDecimal(req.body.exercisePrice) : null
+      };
+
+      const validated = insertEquityAwardSchema.parse(sanitizedBody);
       
       const award = await storage.createEquityAward(validated);
       
@@ -505,6 +668,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(award);
     } catch (error) {
       console.error("Error creating equity award:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
       res.status(500).json({ error: "Failed to create equity award" });
     }
   });
@@ -522,10 +691,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/convertibles", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const validated = insertConvertibleInstrumentSchema.parse({
+      // Sanitize numeric inputs
+      const sanitizedBody = {
         ...req.body,
-        companyId: req.params.companyId
-      });
+        companyId: req.params.companyId,
+        principalAmount: req.body.principalAmount ? sanitizeDecimal(req.body.principalAmount) : "0.00",
+        interestRate: req.body.interestRate ? sanitizeDecimal(req.body.interestRate) : "0.00",
+        discountRate: req.body.discountRate ? sanitizeDecimal(req.body.discountRate) : null,
+        valuationCap: req.body.valuationCap ? sanitizeDecimal(req.body.valuationCap) : null,
+        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : new Date(),
+        maturityDate: req.body.maturityDate ? toDateOnlyUTC(req.body.maturityDate) : null
+      };
+
+      const validated = insertConvertibleInstrumentSchema.parse(sanitizedBody);
       
       const instrument = await storage.createConvertibleInstrument(validated);
       
@@ -551,6 +729,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(instrument);
     } catch (error) {
       console.error("Error creating convertible:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
       res.status(500).json({ error: "Failed to create convertible" });
     }
   });

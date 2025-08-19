@@ -58,46 +58,26 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
         buyerId = newStakeholder.id;
       }
 
-      const transactionId = `secondary-${Date.now()}`;
-      const quantity = parseInt(data.quantity.replace(/,/g, ''));
-      const pricePerShare = parseFloat(data.pricePerShare.replace(/,/g, ''));
-      const totalValue = pricePerShare * quantity;
-
-      // Create the secondary transaction by transferring shares
-      // First, reduce shares from seller
-      const reduction = await apiRequest(`/api/companies/${companyId}/share-ledger`, {
+      // Use new atomic secondary transfer endpoint
+      const result = await apiRequest(`/api/companies/${companyId}/secondary-transfer`, {
         method: "POST",
         body: {
-          holderId: data.sellerId,
+          sellerId: data.sellerId,
+          buyerId,
           classId: data.classId,
-          quantity: -quantity,
-          issueDate: data.transactionDate,
-          consideration: totalValue,
-          considerationType: "cash",
-          sourceTransactionId: transactionId
+          quantity: data.quantity, // Server will sanitize formatted numbers
+          pricePerShare: data.pricePerShare, // Server will sanitize formatted numbers
+          transactionDate: data.transactionDate
         }
       });
 
-      // Then, add shares to buyer
-      const addition = await apiRequest(`/api/companies/${companyId}/share-ledger`, {
-        method: "POST",
-        body: {
-          holderId: buyerId,
-          classId: data.classId,
-          quantity: quantity,
-          issueDate: data.transactionDate,
-          consideration: totalValue,
-          considerationType: "cash",
-          sourceTransactionId: transactionId
-        }
-      });
-
-      return { reduction, addition };
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "share-ledger"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "transactions"] });
       onOpenChange(false);
       setFormData({
         sellerId: "",
@@ -118,9 +98,17 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
     },
     onError: (error: any) => {
       console.error("Secondary transaction error:", error);
+      let errorMessage = "Failed to record secondary transaction";
+      
+      if (error?.code === "INSUFFICIENT_SHARES") {
+        errorMessage = `Insufficient shares for transfer. Available: ${error.details?.available || 0}, Requested: ${error.details?.requested || 0}`;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to record secondary transaction",
+        description: errorMessage,
         variant: "error",
       });
     },

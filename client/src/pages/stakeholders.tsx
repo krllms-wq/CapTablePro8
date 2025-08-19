@@ -63,10 +63,14 @@ export default function StakeholdersPage() {
         description: "Stakeholder updated successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      let errorMessage = "Failed to update stakeholder";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
       toast({
         title: "Error",
-        description: "Failed to update stakeholder",
+        description: errorMessage,
         variant: "error",
       });
     },
@@ -94,10 +98,14 @@ export default function StakeholdersPage() {
         description: "Stakeholder created successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      let errorMessage = "Failed to create stakeholder";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
       toast({
         title: "Error",
-        description: "Failed to create stakeholder",
+        description: errorMessage,
         variant: "error",
       });
     },
@@ -111,7 +119,7 @@ export default function StakeholdersPage() {
   const handleDeleteStakeholder = async (stakeholderId: string) => {
     if (confirm('Are you sure you want to delete this stakeholder?')) {
       try {
-        await apiRequest(`/api/companies/${companyId}/stakeholders/${stakeholderId}`, {
+        await apiRequest(`/api/stakeholders/${stakeholderId}`, {
           method: "DELETE"
         });
         queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
@@ -119,10 +127,18 @@ export default function StakeholdersPage() {
           title: "Success",
           description: "Stakeholder deleted successfully",
         });
-      } catch (error) {
+      } catch (error: any) {
+        let errorMessage = "Failed to delete stakeholder";
+        
+        if (error?.code === "HAS_HOLDINGS") {
+          errorMessage = "Cannot delete a stakeholder with holdings. Please remove all shares, equity awards, and convertible instruments first.";
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
-          title: "Error",
-          description: "Failed to delete stakeholder",
+          title: "Error", 
+          description: errorMessage,
           variant: "error",
         });
       }
@@ -152,7 +168,7 @@ export default function StakeholdersPage() {
   }
 
   const stakeholderData = Array.isArray(stakeholders) ? stakeholders.map((stakeholder: any) => {
-    const capTable = Array.isArray(capTableData) ? capTableData : (capTableData?.capTable || []);
+    const capTable = Array.isArray(capTableData) ? capTableData : [];
     const ownership = Array.isArray(capTable) ? capTable.find((row: any) => 
       row.stakeholder?.name === stakeholder.name
     ) : null;
