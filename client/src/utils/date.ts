@@ -1,37 +1,56 @@
 /**
  * Client-side date formatting utilities
+ * Updated to use shared date-only UTC utilities for consistency
  */
+
+import { 
+  toDateOnlyUTC, 
+  fromDateOnlyUTC, 
+  formatDateOnlyUTC,
+  isValidDateOnlyFormat 
+} from '@shared/utils/dateUtils';
 
 /**
  * Format date consistently for display
- * @param date - Date object or ISO string
+ * @param date - Date object, ISO string, or date-only string
  * @returns Formatted date string (MM/DD/YYYY)
  */
 export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '';
   
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
-  
-  return d.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit', 
-    year: 'numeric'
-  });
+  try {
+    // If it's already a date-only string, use it directly
+    if (typeof date === 'string' && isValidDateOnlyFormat(date)) {
+      return formatDateOnlyUTC(date, 'en-US');
+    }
+    
+    // Convert to date-only format first for consistency
+    const dateOnly = toDateOnlyUTC(date);
+    const d = fromDateOnlyUTC(dateOnly);
+    
+    return d.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit', 
+      year: 'numeric'
+    });
+  } catch {
+    return '';
+  }
 }
 
 /**
  * Format date for input fields (YYYY-MM-DD)
- * @param date - Date object or ISO string
+ * @param date - Date object, ISO string, or date-only string
  * @returns Date string in YYYY-MM-DD format
  */
 export function formatDateForInput(date: Date | string | null | undefined): string {
   if (!date) return '';
   
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
-  
-  return d.toISOString().split('T')[0];
+  try {
+    return toDateOnlyUTC(date);
+  } catch {
+    return '';
+  }
 }
 
 /**

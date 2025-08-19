@@ -3,6 +3,7 @@ import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, in
 import { eq } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { transformDateInput } from "./utils/dateUtils";
 
 // Users and Authentication
 export const users = pgTable("users", {
@@ -216,7 +217,7 @@ export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
   createdAt: true,
 }).extend({
-  incorporationDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  incorporationDate: z.union([z.date(), z.string()]).transform(transformDateInput),
   jurisdiction: z.string().min(1),
 });
 
@@ -234,7 +235,7 @@ export const insertShareLedgerEntrySchema = createInsertSchema(shareLedgerEntrie
   id: true,
   createdAt: true,
 }).extend({
-  issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  issueDate: z.union([z.date(), z.string()]).transform(transformDateInput),
   quantity: z.union([
     z.number(),
     z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
@@ -249,8 +250,8 @@ export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
   id: true,
   createdAt: true,
 }).extend({
-  grantDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
-  vestingStartDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
+  grantDate: z.union([z.date(), z.string()]).transform(transformDateInput),
+  vestingStartDate: z.union([z.date(), z.string()]).transform(transformDateInput),
   quantityGranted: z.union([
     z.number(),
     z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
@@ -282,8 +283,8 @@ export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleI
   id: true,
   createdAt: true,
 }).extend({
-  issueDate: z.union([z.date(), z.string().transform(str => new Date(str))]),
-  maturityDate: z.union([z.date(), z.string().transform(str => new Date(str))]).optional(),
+  issueDate: z.union([z.date(), z.string()]).transform(transformDateInput),
+  maturityDate: z.union([z.date(), z.string()]).transform(transformDateInput).optional(),
   principal: z.union([
     z.number(),
     z.string().transform(str => parseFloat(str.replace(/,/g, '')))
@@ -301,6 +302,8 @@ export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleI
 export const insertRoundSchema = createInsertSchema(rounds).omit({
   id: true,
   createdAt: true,
+}).extend({
+  closeDate: z.union([z.date(), z.string()]).transform(transformDateInput),
 });
 
 export const insertCorporateActionSchema = createInsertSchema(corporateActions).omit({

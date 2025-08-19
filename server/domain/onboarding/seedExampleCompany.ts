@@ -1,6 +1,7 @@
 import { storage } from "../../storage";
 import { logEvent } from "../activity/logEvent";
 import type { Stakeholder, SecurityClass } from "@shared/schema";
+import { toDateOnlyUTC, addDaysUTC } from "@shared/utils/dateUtils";
 
 // Inline rich demo data creation to avoid schema mismatches
 async function createRichDemoData({
@@ -22,9 +23,9 @@ async function createRichDemoData({
   commonStock: SecurityClass;
   incorporationDate: Date;
 }) {
-  const now = new Date();
-  const optionsGrantDate = new Date(incorporationDate.getTime() + (60 * 24 * 60 * 60 * 1000)); // 2 months after incorporation
-  const safeDate = new Date(incorporationDate.getTime() + (90 * 24 * 60 * 60 * 1000)); // 3 months after incorporation
+  const incorporationDateStr = toDateOnlyUTC(incorporationDate);
+  const optionsGrantDate = addDaysUTC(incorporationDateStr, 60); // 2 months after incorporation
+  const safeDate = addDaysUTC(incorporationDateStr, 90); // 3 months after incorporation
   
   console.log('Creating equity awards...');
   
@@ -49,7 +50,7 @@ async function createRichDemoData({
     holderId: jane.id,
     type: 'RSU',
     quantityGranted: 50000,
-    strikePrice: '0.00',
+    strikePrice: null,
     grantDate: optionsGrantDate,
     vestingStartDate: optionsGrantDate,
     cliffMonths: 0,
@@ -96,7 +97,7 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
       description: "A sample company to explore cap table features",
       jurisdiction: "Delaware",
       country: "US",
-      incorporationDate,
+      incorporationDate: toDateOnlyUTC(incorporationDate),
       authorizedShares: 10000000,
       isDemo: true,
       ownerId: userId,
@@ -183,7 +184,8 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
     }
 
     // 4. Issue Initial Shares
-    const aliceSharesDate = new Date(incorporationDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 1 week after incorporation
+    const incorporationDateStr = toDateOnlyUTC(incorporationDate);
+    const aliceSharesDate = addDaysUTC(incorporationDateStr, 7); // 1 week after incorporation
     await storage.createShareLedgerEntry({
       companyId,
       holderId: aliceFounder.id,
@@ -191,11 +193,11 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
       quantity: 3000000,
       issueDate: aliceSharesDate,
       certificateNo: "CS-001",
-      consideration: "30000.00",
+      consideration: 30000.00,
       considerationType: "cash",
     });
 
-    const bobSharesDate = new Date(incorporationDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 2 weeks after incorporation
+    const bobSharesDate = addDaysUTC(incorporationDateStr, 14); // 2 weeks after incorporation
     await storage.createShareLedgerEntry({
       companyId,
       holderId: bobFounder.id,
@@ -203,7 +205,7 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
       quantity: 2000000,
       issueDate: bobSharesDate,
       certificateNo: "CS-002", 
-      consideration: "20000.00",
+      consideration: 20000.00,
       considerationType: "cash",
     });
 
@@ -231,7 +233,7 @@ export async function seedExampleCompany({ userId }: { userId: string }): Promis
           jane,
           demoVentures,
           commonStock,
-          incorporationDate
+          incorporationDate: incorporationDate
         });
         console.log('✅ Rich demo transactions added successfully');
       }

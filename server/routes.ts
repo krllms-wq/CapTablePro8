@@ -20,7 +20,7 @@ import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword
 import { seedExampleCompany } from "./domain/onboarding/seedExampleCompany";
 import demoRoutes from "./routes/demo";
 import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numberParser";
-import { toDateOnlyUTC } from "./utils/dateParser";
+import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 import { ensurePricePerShare } from "./domain/util/price";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -565,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         consideration: req.body.consideration ? sanitizeDecimal(req.body.consideration) : null,
-        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : new Date()
+        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : toDateOnlyUTC(new Date())
       };
 
       // Ensure price per share is computed if missing but derivable
@@ -614,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         pricePerShare: req.body.pricePerShare ? sanitizeDecimal(req.body.pricePerShare) : "0.00",
-        transactionDate: req.body.transactionDate ? toDateOnlyUTC(req.body.transactionDate) : new Date()
+        transactionDate: req.body.transactionDate ? toDateOnlyUTC(req.body.transactionDate) : toDateOnlyUTC(new Date())
       };
 
       let { sellerId, buyerId, classId, quantity, pricePerShare, transactionDate } = sanitizedBody;
@@ -761,8 +761,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantityGranted: typeof req.body.quantityGranted === 'string' ? parseInt(req.body.quantityGranted.replace(/,/g, ''), 10) : req.body.quantityGranted,
         strikePrice: (req.body.type === 'RSU' || !req.body.strikePrice) ? null : sanitizeDecimal(req.body.strikePrice),
-        grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : new Date(),
-        vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : null,
+        grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : toDateOnlyUTC(new Date()),
+        vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : toDateOnlyUTC(new Date()),
         exercisePrice: req.body.exercisePrice ? sanitizeDecimal(req.body.exercisePrice) : null
       };
 
@@ -838,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         interestRate: req.body.interestRate ? sanitizeDecimal(req.body.interestRate) : "0.00",
         discountRate: req.body.discountRate ? sanitizeDecimal(req.body.discountRate) : null,
         valuationCap: req.body.valuationCap ? sanitizeDecimal(req.body.valuationCap) : null,
-        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : new Date(),
+        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : toDateOnlyUTC(new Date()),
         maturityDate: req.body.maturityDate ? toDateOnlyUTC(req.body.maturityDate) : null
       };
 
