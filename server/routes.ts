@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize incorporation date to date-only UTC
       let normalizedDate: Date;
       try {
-        normalizedDate = toDateOnlyUTC(incorporationDate);
+        normalizedDate = new Date(incorporationDate + 'T00:00:00.000Z');
       } catch (dateError) {
         return res.status(400).json({ 
           error: "Invalid incorporation date format. Please provide a valid date." 
@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         consideration: req.body.consideration ? sanitizeDecimal(req.body.consideration) : null,
-        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : toDateOnlyUTC(new Date())
+        issueDate: req.body.issueDate ? new Date(req.body.issueDate + 'T00:00:00.000Z') : new Date()
       };
 
       // Ensure price per share is computed if missing but derivable
@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         pricePerShare: req.body.pricePerShare ? sanitizeDecimal(req.body.pricePerShare) : "0.00",
-        transactionDate: req.body.transactionDate ? toDateOnlyUTC(req.body.transactionDate) : toDateOnlyUTC(new Date())
+        transactionDate: req.body.transactionDate ? new Date(req.body.transactionDate + 'T00:00:00.000Z') : new Date()
       };
 
       let { sellerId, buyerId, classId, quantity, pricePerShare, transactionDate } = sanitizedBody;
@@ -687,8 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           issueDate: transactionDate,
           consideration: parseFloat(totalValue.toFixed(2)),
           considerationType: "cash",
-          sourceTransactionId: transactionId,
-          transactionType: "transfer-out"
+          sourceTransactionId: transactionId
         }),
         // Add to buyer
         storage.createShareLedgerEntry({
@@ -699,8 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           issueDate: transactionDate,
           consideration: parseFloat(totalValue.toFixed(2)),
           considerationType: "cash",
-          sourceTransactionId: transactionId,
-          transactionType: "transfer-in"
+          sourceTransactionId: transactionId
         })
       ]);
 
@@ -764,8 +762,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantityGranted: typeof req.body.quantityGranted === 'string' ? parseInt(req.body.quantityGranted.replace(/,/g, ''), 10) : req.body.quantityGranted,
         strikePrice: (req.body.type === 'RSU' || !req.body.strikePrice) ? null : sanitizeDecimal(req.body.strikePrice),
-        grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : toDateOnlyUTC(new Date()),
-        vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : toDateOnlyUTC(new Date()),
+        grantDate: req.body.grantDate ? new Date(req.body.grantDate + 'T00:00:00.000Z') : new Date(),
+        vestingStartDate: req.body.vestingStartDate ? new Date(req.body.vestingStartDate + 'T00:00:00.000Z') : new Date(),
         exercisePrice: req.body.exercisePrice ? sanitizeDecimal(req.body.exercisePrice) : null
       };
 
@@ -788,7 +786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: award.quantityGranted,
           strikePrice: award.strikePrice,
           grantDate: award.grantDate,
-          vestingSchedule: award.vestingSchedule
+          vestingStartDate: award.vestingStartDate
         }
       });
       
