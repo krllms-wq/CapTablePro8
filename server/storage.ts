@@ -113,12 +113,111 @@ export class MemStorage implements IStorage {
   private userCompanyAccess: Map<string, UserCompanyAccess> = new Map();
   private capTableShares: Map<string, CapTableShare> = new Map();
 
-  constructor() {
-    this.seedData();
+  // Database connection method
+  private async getDbConnection() {
+    try {
+      const { neon } = await import('@neondatabase/serverless');
+      const sql = neon(process.env.DATABASE_URL!);
+      return sql;
+    } catch (error) {
+      console.error('Failed to connect to database:', error);
+      return null;
+    }
   }
 
-  private seedData() {
-    // Create a sample company
+  constructor() {
+    this.seedData().catch(err => console.error('Error seeding data:', err));
+  }
+
+  private async seedData() {
+    // Load existing companies from database first
+    try {
+      const dbConnection = await this.getDbConnection();
+      if (dbConnection) {
+        // Load all companies
+        const companies = await dbConnection`SELECT * FROM companies`;
+        for (const row of companies) {
+          const company: Company = {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            country: row.country,
+            jurisdiction: row.jurisdiction,
+            currency: row.currency,
+            parValue: row.par_value,
+            incorporationDate: new Date(row.incorporation_date),
+            authorizedShares: row.authorized_shares,
+            ownerId: row.owner_id,
+            isDemo: row.is_demo,
+            createdAt: new Date(row.created_at),
+          };
+          this.companies.set(company.id, company);
+        }
+
+        // Load all stakeholders
+        const stakeholders = await dbConnection`SELECT * FROM stakeholders`;
+        for (const row of stakeholders) {
+          const stakeholder: Stakeholder = {
+            id: row.id,
+            companyId: row.company_id,
+            type: row.type,
+            name: row.name,
+            email: row.email,
+            title: row.title,
+            address: row.address,
+            taxFlags: row.tax_flags,
+            createdAt: new Date(row.created_at),
+          };
+          this.stakeholders.set(stakeholder.id, stakeholder);
+        }
+
+        // Load all security classes
+        const securityClasses = await dbConnection`SELECT * FROM security_classes`;
+        for (const row of securityClasses) {
+          const securityClass: SecurityClass = {
+            id: row.id,
+            companyId: row.company_id,
+            name: row.name,
+            seniorityTier: row.seniority_tier,
+            liquidationPreferenceMultiple: row.liquidation_preference_multiple,
+            participating: row.participating,
+            participationCap: row.participation_cap,
+            dividendRate: row.dividend_rate,
+            dividendType: row.dividend_type,
+            convertToCommonRatio: row.convert_to_common_ratio,
+            votingRights: row.voting_rights,
+            createdAt: new Date(row.created_at),
+          };
+          this.securityClasses.set(securityClass.id, securityClass);
+        }
+
+        // Load all share ledger entries
+        const shareEntries = await dbConnection`SELECT * FROM share_ledger_entries`;
+        for (const row of shareEntries) {
+          const entry: ShareLedgerEntry = {
+            id: row.id,
+            companyId: row.company_id,
+            holderId: row.holder_id,
+            classId: row.class_id,
+            quantity: row.quantity,
+            issueDate: new Date(row.issue_date),
+            certificateNo: row.certificate_no,
+            consideration: row.consideration,
+            considerationType: row.consideration_type,
+            sourceTransactionId: row.source_transaction_id,
+            createdAt: new Date(row.created_at),
+          };
+          this.shareLedgerEntries.set(entry.id, entry);
+        }
+
+        console.log(`Loaded ${this.companies.size} companies, ${this.stakeholders.size} stakeholders, ${this.securityClasses.size} security classes, ${this.shareLedgerEntries.size} share entries from database`);
+        return; // Exit early if data loaded from DB
+      }
+    } catch (error) {
+      console.log('Could not load from database, using seed data:', error);
+    }
+
+    // Create a sample company (fallback)
     const companyId = randomUUID();
     const company: Company = {
       id: companyId,
