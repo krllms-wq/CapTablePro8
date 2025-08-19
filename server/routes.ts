@@ -772,6 +772,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get stakeholder for audit log
       const stakeholder = await storage.getStakeholder(award.holderId);
+
+      // Log equity award creation
+      await logTransactionEvent({
+        companyId: req.params.companyId,
+        actorId: req.user!.id,
+        event: "transaction.options_granted",
+        transactionId: award.id,
+        stakeholderName: stakeholder?.name,
+        details: {
+          awardType: award.type,
+          quantity: award.quantityGranted,
+          strikePrice: award.strikePrice,
+          grantDate: award.grantDate,
+          vestingSchedule: award.vestingSchedule
+        }
+      });
       
       // Log equity award
       await logTransactionEvent({

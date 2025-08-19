@@ -1,13 +1,13 @@
 /**
- * Activity Feed Component with date grouping and reliable updates
+ * Activity Feed Component with date grouping, real-time updates, and auto-refetching
  */
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatRelativeTime, formatDate } from '@/utils/date';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Activity, User, Briefcase, TrendingUp, FileText, Shuffle } from 'lucide-react';
+import { Activity, User, Briefcase, TrendingUp, FileText, Shuffle, Clock, RefreshCw } from 'lucide-react';
 
 interface ActivityFeedProps {
   companyId: string;
@@ -98,11 +98,35 @@ const groupEventsByDate = (events: ActivityEvent[]) => {
 };
 
 export function ActivityFeed({ companyId, className = '' }: ActivityFeedProps) {
-  const { data: activities = [], isLoading, refetch } = useQuery<ActivityEvent[]>({
+  const queryClient = useQueryClient();
+  
+  const { data: activities = [], isLoading, refetch, isFetching } = useQuery<ActivityEvent[]>({
     queryKey: ['/api/companies', companyId, 'activity'],
     enabled: !!companyId,
     refetchInterval: 30000, // Refetch every 30 seconds for live updates
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
+
+  // Auto-refetch when mutations occur by listening for query invalidations
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === 'updated' && event.query.queryKey[0] === '/api/companies') {
+        // If any company-related query is updated, refetch activity
+        const isRelevantUpdate = event.query.queryKey.includes(companyId) && 
+          (event.query.queryKey.includes('stakeholders') || 
+           event.query.queryKey.includes('share-ledger') ||
+           event.query.queryKey.includes('equity-awards') ||
+           event.query.queryKey.includes('convertibles') ||
+           event.query.queryKey.includes('secondary-transfer'));
+        
+        if (isRelevantUpdate) {
+          refetch();
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [queryClient, companyId, refetch]);
 
   // Group activities by date
   const groupedActivities = groupEventsByDate(activities);
@@ -136,9 +160,14 @@ export function ActivityFeed({ companyId, className = '' }: ActivityFeedProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5" />
-          Activity Feed
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Activity Feed
+          </div>
+          {isFetching && (
+            <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
