@@ -23,7 +23,10 @@ export default function Dashboard() {
     enabled: !!companyId,
   });
 
-  const { data: capTableData, isLoading: capTableLoading } = useQuery({
+  const { data: capTableData, isLoading: capTableLoading } = useQuery<{
+    stats: { totalShares: number; totalOptions: number; totalConvertibles: number; stakeholderCount: number };
+    capTable: Array<{ stakeholder: string; shares: number; options: number; percentage: string; value: number }>;
+  }>({
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId,
   });
@@ -77,7 +80,7 @@ export default function Dashboard() {
 
         {/* Stats */}
         <CapTableStats 
-          stats={capTableData?.stats || {}} 
+          stats={capTableData?.stats || { totalShares: 0, totalOptions: 0, totalConvertibles: 0, stakeholderCount: 0 }} 
           isLoading={capTableLoading} 
         />
 
