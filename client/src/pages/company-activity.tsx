@@ -13,14 +13,14 @@ import type { AuditLog } from "@shared/schema";
 export default function CompanyActivity() {
   const { companyId } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [eventFilter, setEventFilter] = useState("");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState("");
+  const [eventFilter, setEventFilter] = useState("all");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState("all");
   const [cursor, setCursor] = useState<string | undefined>();
 
   const { data: auditLogs, isLoading } = useQuery<AuditLog[]>({
     queryKey: ["/api/companies", companyId, "activity", { 
-      event: eventFilter, 
-      resourceType: resourceTypeFilter,
+      event: eventFilter === "all" ? "" : eventFilter, 
+      resourceType: resourceTypeFilter === "all" ? "" : resourceTypeFilter,
       cursor 
     }],
     enabled: !!companyId,
@@ -151,7 +151,7 @@ export default function CompanyActivity() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-neutral-900">Company Activity</h1>
-              <p className="text-neutral-600 mt-1">{company?.name} • Activity Feed</p>
+              <p className="text-neutral-600 mt-1">{(company as any)?.name || 'Company'} • Activity Feed</p>
             </div>
           </div>
 
@@ -180,7 +180,7 @@ export default function CompanyActivity() {
                     <SelectValue placeholder="Event type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All events</SelectItem>
+                    <SelectItem value="all">All events</SelectItem>
                     <SelectItem value="stakeholder.created">Stakeholder created</SelectItem>
                     <SelectItem value="stakeholder.updated">Stakeholder updated</SelectItem>
                     <SelectItem value="transaction.shares_issued">Shares issued</SelectItem>
@@ -196,7 +196,7 @@ export default function CompanyActivity() {
                     <SelectValue placeholder="Resource type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All resources</SelectItem>
+                    <SelectItem value="all">All resources</SelectItem>
                     <SelectItem value="stakeholder">Stakeholders</SelectItem>
                     <SelectItem value="transaction">Transactions</SelectItem>
                     <SelectItem value="company">Company</SelectItem>
@@ -208,8 +208,8 @@ export default function CompanyActivity() {
                   variant="outline" 
                   onClick={() => {
                     setSearchTerm("");
-                    setEventFilter("");
-                    setResourceTypeFilter("");
+                    setEventFilter("all");
+                    setResourceTypeFilter("all");
                     setCursor(undefined);
                   }}
                 >
