@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, logout } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { AutoBreadcrumbs } from '@/components/ui/breadcrumbs';
 import { MobileNavProvider } from '@/components/ui/mobile-nav';
@@ -153,8 +153,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
                 onClick={() => {
-                  localStorage.removeItem('token');
-                  window.location.href = '/';
+                  logout();
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
