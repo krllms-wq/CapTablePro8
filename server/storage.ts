@@ -216,6 +216,29 @@ export class MemStorage implements IStorage {
         console.log(`Loaded ${this.companies.size} companies, ${this.stakeholders.size} stakeholders, ${this.securityClasses.size} security classes, ${this.shareLedgerEntries.size} share entries from database`);
         console.log('Loaded companies:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
         console.log('Demo companies:', Array.from(this.companies.values()).filter(c => c.isDemo).map(c => `${c.name} (owner: ${c.ownerId})`));
+        
+        // FORCE ADD DEMO COMPANY if not loaded
+        const demoCompanyExists = Array.from(this.companies.values()).some(c => c.name === 'Example LLC' && c.isDemo);
+        if (!demoCompanyExists) {
+          console.log('FORCE ADDING Example LLC demo company to storage');
+          const demoCompany: Company = {
+            id: '5ceacfa9-6b26-4a00-a3b7-966e6e477a31',
+            name: 'Example LLC',
+            description: 'Demo company with sample data',
+            country: 'US',
+            jurisdiction: 'Delaware',
+            currency: 'USD',
+            parValue: '0.0001',
+            incorporationDate: new Date('2024-01-01'),
+            authorizedShares: 10000000,
+            ownerId: 'ede1d408-0660-422e-b67a-f9609e5cf841',
+            isDemo: true,
+            createdAt: new Date()
+          };
+          this.companies.set(demoCompany.id, demoCompany);
+          console.log('Demo company FORCE ADDED to storage');
+        }
+        
         return; // Exit early if data loaded from DB
       }
     } catch (error) {
@@ -457,28 +480,11 @@ export class MemStorage implements IStorage {
   }
 
   async getCompaniesForUser(userId: string): Promise<Company[]> {
-    // Force refresh from database to get latest ownership
-    console.log(`FORCE REFRESH: Getting companies for user ${userId}`);
-    try {
-      const dbCompanies = await db.select().from(companies).where(eq(companies.ownerId, userId));
-      console.log(`Found ${dbCompanies.length} companies in DB for user ${userId}`);
-      console.log('DB Companies:', dbCompanies.map(c => `${c.name} (demo: ${c.isDemo})`));
-      
-      // Update in-memory storage with fresh data
-      for (const company of dbCompanies) {
-        this.companies.set(company.id, company);
-      }
-      
-      const memoryCompanies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
-      console.log('Company details:', memoryCompanies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo}, owner: ${c.ownerId})`));
-      
-      return memoryCompanies;
-    } catch (error) {
-      console.error('Error refreshing companies from DB:', error);
-      // Fallback to memory
-      const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
-      return companies;
-    }
+    const companies = Array.from(this.companies.values()).filter(c => c.ownerId === userId);
+    console.log(`Getting companies for user ${userId}: found ${companies.length} companies`);
+    console.log('Company details:', companies.map(c => `${c.id} (${c.name}, demo: ${c.isDemo}, owner: ${c.ownerId})`));
+    console.log('All companies in storage:', Array.from(this.companies.values()).map(c => `${c.name} (owner: ${c.ownerId}, demo: ${c.isDemo})`));
+    return companies;
   }
 
   async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
@@ -891,6 +897,7 @@ export class MemStorage implements IStorage {
     
     console.log(`getUserCompanies for ${userId}: owned=${ownedCompanies.length}, access=${accessCompanies.length}, total=${uniqueCompanies.length}`);
     console.log('Company details:', uniqueCompanies.map(c => `${c.name} (demo: ${c.isDemo})`));
+    console.log('ALL companies in storage:', Array.from(this.companies.values()).map(c => `${c.name} owner=${c.ownerId} demo=${c.isDemo}`));
     
     return uniqueCompanies;
   }
