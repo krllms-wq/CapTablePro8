@@ -27,7 +27,7 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
         : payload.quantity 
         ? `Quantity: ${payload.quantity}` 
         : "No details available",
-      timestamp: new Date(log.timestamp),
+      timestamp: log.timestamp ? new Date(log.timestamp) : new Date(),
       icon: getActivityIcon(log.action || ''),
       iconColor: getActivityIconColor(log.action || ''),
       iconBg: getActivityIconBg(log.action || '')
@@ -113,7 +113,10 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
                 </p>
                 <p className="text-xs text-neutral-500 mt-1">{activity.details}</p>
                 <p className="text-xs text-neutral-400 mt-1">
-                  {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                  {activity.timestamp && !isNaN(activity.timestamp.getTime()) 
+                    ? formatDistanceToNow(activity.timestamp, { addSuffix: true })
+                    : 'Recently'
+                  }
                 </p>
               </div>
             </div>

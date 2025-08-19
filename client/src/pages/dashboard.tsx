@@ -17,8 +17,6 @@ export default function Dashboard() {
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
 
-  console.log("Dashboard: companyId =", companyId);
-
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
     enabled: !!companyId,
@@ -31,10 +29,6 @@ export default function Dashboard() {
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId,
   });
-
-  console.log("Dashboard: company =", company);
-  console.log("Dashboard: companyLoading =", companyLoading);
-  console.log("Dashboard: companyError =", companyError);
 
   if (!companyId) {
     return (
@@ -88,13 +82,7 @@ export default function Dashboard() {
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* DEBUG INFO */}
-        <div className="bg-green-50 border border-green-200 p-4 mb-6 rounded">
-          <h3 className="font-bold text-green-800">🎉 SUCCESS! Dashboard is working!</h3>
-          <p className="text-green-700">Company ID: {companyId}</p>
-          <p className="text-green-700">Company: {company?.name || 'Loading...'}</p>
-          <p className="text-green-700">Loading: {companyLoading ? 'Yes' : 'No'}</p>
-        </div>
+
         
         {/* Company Header */}
         <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 mb-6">
