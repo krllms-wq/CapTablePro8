@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Building, Save, X, CalendarDays, MapPin, FileText } from "lucide-react";
+import { Building, Save, X, CalendarDays, MapPin, FileText, Trash2, AlertTriangle } from "lucide-react";
 import Navigation from "@/components/layout/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import DeleteCompanyDialog from "@/components/dialogs/delete-company-dialog";
 import type { Company } from "@shared/schema";
 
 const jurisdictions = [
@@ -46,6 +47,7 @@ export default function CompanySettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isOtherJurisdiction, setIsOtherJurisdiction] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: company, isLoading } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -317,8 +319,45 @@ export default function CompanySettings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="text-lg text-red-600 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-neutral-900 mb-2">Delete Company</h3>
+                  <p className="text-sm text-neutral-600 mb-4">
+                    Permanently delete this company and all associated data. This action cannot be undone.
+                  </p>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Company
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Delete Company Dialog */}
+      {company && (
+        <DeleteCompanyDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          company={company}
+        />
+      )}
     </div>
   );
 }

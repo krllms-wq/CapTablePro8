@@ -348,6 +348,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete company
+  app.delete("/api/companies/:companyId", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      
+      // Check if company exists and user has access
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Check if user is the owner of the company
+      if (company.ownerId !== req.user!.id) {
+        return res.status(403).json({ error: "Access denied. Only company owners can delete companies." });
+      }
+
+      // Log company deletion before deleting (since we won't be able to log after)
+      await logCompanyEvent({
+        companyId: company.id,
+        actorId: req.user!.id,
+        event: "company.deleted",
+        metadata: {
+          companyName: company.name,
+          deletedAt: new Date().toISOString()
+        }
+      });
+
+      // Delete the company (this should cascade delete all related data)
+      await storage.deleteCompany(companyId);
+
+      res.status(204).send(); // 204 No Content - successful deletion
+    } catch (error) {
+      console.error("Error deleting company:", error);
+      res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
   // Activity/Audit Log routes  
   app.get("/api/companies/:companyId/activity", requireAuth, async (req, res) => {
     try {

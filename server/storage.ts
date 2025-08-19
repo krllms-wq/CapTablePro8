@@ -28,6 +28,7 @@ export interface IStorage {
   getCompany(id: string): Promise<Company | undefined>;
   getCompanies(): Promise<Company[]>;
   updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined>;
+  deleteCompany(id: string): Promise<void>;
 
   // Security Classes
   createSecurityClass(securityClass: InsertSecurityClass): Promise<SecurityClass>;
@@ -494,6 +495,50 @@ export class MemStorage implements IStorage {
     const updated = { ...company, ...updates };
     this.companies.set(id, updated);
     return updated;
+  }
+
+  async deleteCompany(id: string): Promise<void> {
+    // Delete all related data for this company
+    // Note: In a real database, this would be handled by foreign key cascading
+    
+    // Delete stakeholders
+    const stakeholdersToDelete = Array.from(this.stakeholders.values()).filter(s => s.companyId === id);
+    stakeholdersToDelete.forEach(s => this.stakeholders.delete(s.id));
+    
+    // Delete security classes
+    const securityClassesToDelete = Array.from(this.securityClasses.values()).filter(sc => sc.companyId === id);
+    securityClassesToDelete.forEach(sc => this.securityClasses.delete(sc.id));
+    
+    // Delete share ledger entries
+    const sharesToDelete = Array.from(this.shareLedgerEntries.values()).filter(e => e.companyId === id);
+    sharesToDelete.forEach(e => this.shareLedgerEntries.delete(e.id));
+    
+    // Delete equity awards
+    const awardsToDelete = Array.from(this.equityAwards.values()).filter(a => a.companyId === id);
+    awardsToDelete.forEach(a => this.equityAwards.delete(a.id));
+    
+    // Delete convertible instruments
+    const instrumentsToDelete = Array.from(this.convertibleInstruments.values()).filter(i => i.companyId === id);
+    instrumentsToDelete.forEach(i => this.convertibleInstruments.delete(i.id));
+    
+    // Delete rounds
+    const roundsToDelete = Array.from(this.rounds.values()).filter(r => r.companyId === id);
+    roundsToDelete.forEach(r => this.rounds.delete(r.id));
+    
+    // Delete corporate actions
+    const actionsToDelete = Array.from(this.corporateActions.values()).filter(a => a.companyId === id);
+    actionsToDelete.forEach(a => this.corporateActions.delete(a.id));
+    
+    // Delete scenarios
+    const scenariosToDelete = Array.from(this.scenarios.values()).filter(s => s.companyId === id);
+    scenariosToDelete.forEach(s => this.scenarios.delete(s.id));
+    
+    // Delete audit logs
+    const logsToDelete = Array.from(this.auditLogs.values()).filter(l => l.companyId === id);
+    logsToDelete.forEach(l => this.auditLogs.delete(l.id));
+    
+    // Finally delete the company itself
+    this.companies.delete(id);
   }
 
   // Security Classes
@@ -969,6 +1014,11 @@ export class DatabaseStorage implements IStorage {
   async updateCompany(id: string, updates: Partial<InsertCompany>): Promise<Company | undefined> {
     const [company] = await db.update(companies).set(updates).where(eq(companies.id, id)).returning();
     return company;
+  }
+
+  async deleteCompany(id: string): Promise<void> {
+    // Delete the company - database cascading foreign keys should handle related data deletion
+    await db.delete(companies).where(eq(companies.id, id));
   }
 
   // Security Classes
