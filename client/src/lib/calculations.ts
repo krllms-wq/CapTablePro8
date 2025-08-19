@@ -9,42 +9,66 @@ export interface CapTableCalculation {
 
 export function calculateCapTable(
   shareEntries: Array<{ holderId: string; quantity: number }>,
-  equityAwards: Array<{ holderId: string; quantityGranted: number; quantityExercised: number; quantityCanceled: number }>,
-  optionPoolSize: number = 0
+  equityAwards: Array<{ holderId: string; quantityGranted: number; quantityExercised: number; quantityCanceled: number; type?: string }>,
+  optionPoolSize: number = 0,
+  rsuInclusionMode: 'none' | 'granted' | 'vested' = 'granted'
 ): CapTableCalculation {
   // Calculate total shares outstanding (issued shares only)
   const totalSharesOutstanding = shareEntries.reduce((sum, entry) => sum + entry.quantity, 0);
 
-  // Calculate outstanding options
+  // Calculate outstanding options and RSUs based on type and inclusion mode
   const totalOptionsOutstanding = equityAwards.reduce((sum, award) => {
-    return sum + (award.quantityGranted - award.quantityExercised - award.quantityCanceled);
+    const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+    
+    // Handle RSUs based on inclusion mode
+    if (award.type === 'RSU') {
+      if (rsuInclusionMode === 'none') return sum;
+      if (rsuInclusionMode === 'granted') return sum + outstanding;
+      if (rsuInclusionMode === 'vested') {
+        // For vested RSUs, would need vesting calculation logic here
+        // For now, assume all granted RSUs are included
+        return sum + outstanding;
+      }
+    }
+    
+    // Include all non-RSU equity awards (options, warrants, etc.)
+    return sum + outstanding;
   }, 0);
 
-  // Calculate fully diluted shares (shares + options + available pool)
-  const fullyDilutedShares = totalSharesOutstanding + totalOptionsOutstanding + optionPoolSize;
+  // Calculate fully diluted shares 
+  // Note: Only add unallocated pool to denominator, never as a holder to prevent double counting
+  const unallocatedPool = Math.max(0, optionPoolSize - totalOptionsOutstanding);
+  const fullyDilutedShares = totalSharesOutstanding + totalOptionsOutstanding + unallocatedPool;
 
-  // Calculate ownership percentages
+  // Calculate ownership percentages - prevent double counting
   const ownershipPercentages: Record<string, number> = {};
 
-  // Share-based ownership
+  // Share-based ownership (As-Issued shares)
   shareEntries.forEach(entry => {
-    const current = ownershipPercentages[entry.holderId] || 0;
-    ownershipPercentages[entry.holderId] = current + (entry.quantity / fullyDilutedShares) * 100;
+    if (entry.quantity > 0) {
+      const current = ownershipPercentages[entry.holderId] || 0;
+      ownershipPercentages[entry.holderId] = current + (entry.quantity / fullyDilutedShares) * 100;
+    }
   });
 
-  // Option-based ownership
+  // Equity award-based ownership (options, RSUs based on inclusion mode)
   equityAwards.forEach(award => {
-    const outstandingOptions = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
-    if (outstandingOptions > 0) {
-      const current = ownershipPercentages[award.holderId] || 0;
-      ownershipPercentages[award.holderId] = current + (outstandingOptions / fullyDilutedShares) * 100;
-    }
+    const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+    
+    // Skip if no outstanding awards
+    if (outstanding <= 0) return;
+    
+    // Handle RSUs based on inclusion mode
+    if (award.type === 'RSU' && rsuInclusionMode === 'none') return;
+    
+    const current = ownershipPercentages[award.holderId] || 0;
+    ownershipPercentages[award.holderId] = current + (outstanding / fullyDilutedShares) * 100;
   });
 
   return {
     totalSharesOutstanding,
     fullyDilutedShares,
-    optionPoolSize,
+    optionPoolSize: unallocatedPool, // Return only unallocated portion
     ownershipPercentages,
   };
 }

@@ -167,7 +167,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
               <SelectContent>
                 {stakeholders && Array.isArray(stakeholders) && stakeholders.map((stakeholder: any) => (
                   <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                    {stakeholder.name}
+                    {stakeholder.name || "Unknown Stakeholder"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -203,7 +203,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                 <SelectContent>
                   {stakeholders && Array.isArray(stakeholders) && stakeholders.filter((s: any) => s.id !== formData.sellerId).map((stakeholder: any) => (
                     <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                      {stakeholder.name}
+                      {stakeholder.name || "Unknown Stakeholder"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -262,7 +262,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
               <SelectContent>
                 {securityClasses && Array.isArray(securityClasses) && securityClasses.map((secClass: any) => (
                   <SelectItem key={secClass.id} value={secClass.id}>
-                    {secClass.name}
+                    {secClass.name || "Unknown Class"}
                   </SelectItem>
                 ))}
               </SelectContent>

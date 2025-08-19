@@ -1,0 +1,159 @@
+/**
+ * Server-side valuation calculation utilities
+ */
+import { Round, ShareLedgerEntry, EquityAward, ConvertibleInstrument } from "@shared/schema";
+
+export interface ValuationResult {
+  currentValuation: number | null;
+  pricePerShare: number | null;
+  source: 'latest_round' | 'explicit_valuation' | 'none';
+  lastRoundDate?: Date;
+  lastRoundName?: string;
+}
+
+/**
+ * Calculate current company valuation from latest priced round or explicit valuation
+ * Returns null if no valuation data available (never returns $0)
+ */
+export function calculateCurrentValuation(
+  rounds: Round[],
+  shareEntries: ShareLedgerEntry[],
+  explicitValuation?: number
+): ValuationResult {
+  // If explicit valuation is set, use that
+  if (explicitValuation && explicitValuation > 0) {
+    return {
+      currentValuation: explicitValuation,
+      pricePerShare: null, // Would need shares outstanding to calculate
+      source: 'explicit_valuation'
+    };
+  }
+
+  // Find latest priced round
+  const pricedRounds = rounds
+    .filter(round => round.roundType === 'priced' && round.pricePerShare && round.pricePerShare > 0)
+    .sort((a, b) => new Date(b.closeDate).getTime() - new Date(a.closeDate).getTime());
+
+  if (pricedRounds.length === 0) {
+    return {
+      currentValuation: null,
+      pricePerShare: null,
+      source: 'none'
+    };
+  }
+
+  const latestRound = pricedRounds[0];
+  
+  // Calculate current shares outstanding
+  const totalSharesOutstanding = shareEntries.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+  
+  if (totalSharesOutstanding <= 0) {
+    return {
+      currentValuation: null,
+      pricePerShare: latestRound.pricePerShare,
+      source: 'latest_round',
+      lastRoundDate: latestRound.closeDate,
+      lastRoundName: latestRound.name
+    };
+  }
+
+  // Current valuation = price per share * total shares outstanding
+  const currentValuation = Number(latestRound.pricePerShare) * totalSharesOutstanding;
+
+  return {
+    currentValuation,
+    pricePerShare: latestRound.pricePerShare,
+    source: 'latest_round',
+    lastRoundDate: latestRound.closeDate,
+    lastRoundName: latestRound.name
+  };
+}
+
+/**
+ * Calculate fully diluted valuation with proper RSU handling and no double counting
+ */
+export function calculateFullyDilutedValuation(
+  rounds: Round[],
+  shareEntries: ShareLedgerEntry[],
+  equityAwards: EquityAward[],
+  convertibles: ConvertibleInstrument[],
+  rsuInclusionMode: 'none' | 'granted' | 'vested' = 'granted',
+  optionPoolSize: number = 0
+): {
+  currentValuation: number | null;
+  fullyDilutedValuation: number | null;
+  pricePerShare: number | null;
+  sharesOutstanding: number;
+  fullyDilutedShares: number;
+} {
+  const valuationResult = calculateCurrentValuation(rounds, shareEntries);
+  
+  if (!valuationResult.pricePerShare) {
+    return {
+      currentValuation: null,
+      fullyDilutedValuation: null,
+      pricePerShare: null,
+      sharesOutstanding: 0,
+      fullyDilutedShares: 0
+    };
+  }
+
+  // Calculate shares outstanding
+  const sharesOutstanding = shareEntries.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+
+  // Calculate outstanding equity awards based on RSU inclusion mode
+  let totalEquityAwardsOutstanding = 0;
+  
+  equityAwards.forEach(award => {
+    const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+    
+    if (outstanding <= 0) return;
+    
+    // Handle RSUs based on inclusion mode
+    if (award.type === 'RSU') {
+      if (rsuInclusionMode === 'none') return;
+      if (rsuInclusionMode === 'granted') {
+        totalEquityAwardsOutstanding += outstanding;
+        return;
+      }
+      if (rsuInclusionMode === 'vested') {
+        // Calculate vested portion - simplified for now
+        // In production, would use proper vesting schedule calculation
+        const now = new Date();
+        const grantDate = new Date(award.grantDate);
+        const monthsElapsed = Math.max(0, 
+          (now.getTime() - grantDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+        );
+        
+        if (monthsElapsed >= award.cliffMonths) {
+          const vestedMonths = Math.min(monthsElapsed, award.totalMonths);
+          const vestedPortion = vestedMonths / award.totalMonths;
+          totalEquityAwardsOutstanding += Math.floor(outstanding * vestedPortion);
+        }
+        return;
+      }
+    }
+    
+    // Include all other equity awards (options, warrants, etc.)
+    totalEquityAwardsOutstanding += outstanding;
+  });
+
+  // Add unallocated option pool only (never double count)
+  const unallocatedPool = Math.max(0, optionPoolSize - totalEquityAwardsOutstanding);
+  
+  // Calculate fully diluted shares
+  const fullyDilutedShares = sharesOutstanding + totalEquityAwardsOutstanding + unallocatedPool;
+
+  // Calculate valuations
+  const pricePerShare = Number(valuationResult.pricePerShare);
+  const currentValuation = sharesOutstanding * pricePerShare;
+  const fullyDilutedValuation = fullyDilutedShares * pricePerShare;
+
+  return {
+    currentValuation,
+    fullyDilutedValuation,
+    pricePerShare,
+    sharesOutstanding,
+    fullyDilutedShares
+  };
+}

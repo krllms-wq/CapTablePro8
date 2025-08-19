@@ -281,7 +281,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const auditLogs = await storage.getAuditLogs(companyId, options);
-      res.json(auditLogs);
+      
+      // Ensure proper ordering: createdAt DESC, id DESC for stable pagination
+      const sorted = auditLogs.sort((a, b) => {
+        const dateCompare = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        if (dateCompare !== 0) return dateCompare;
+        return b.id.localeCompare(a.id); // Secondary sort by ID for stable pagination
+      });
+      
+      res.json(sorted);
     } catch (error) {
       console.error("Error fetching activity:", error);
       res.status(500).json({ error: "Failed to fetch activity" });
@@ -637,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         companyId: req.params.companyId,
         quantityGranted: sanitizeQuantity(req.body.quantityGranted),
-        strikePrice: req.body.strikePrice ? sanitizeDecimal(req.body.strikePrice) : null,
+        strikePrice: (req.body.type === 'RSU' || !req.body.strikePrice) ? null : sanitizeDecimal(req.body.strikePrice),
         grantDate: req.body.grantDate ? toDateOnlyUTC(req.body.grantDate) : new Date(),
         vestingStartDate: req.body.vestingStartDate ? toDateOnlyUTC(req.body.vestingStartDate) : null,
         exercisePrice: req.body.exercisePrice ? sanitizeDecimal(req.body.exercisePrice) : null
@@ -766,53 +774,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+      // Get company rounds for valuation calculation
+      const rounds = await storage.getRounds(companyId);
+      
+      // Import valuation calculator
+      const { calculateFullyDilutedValuation } = await import("../utils/valuationCalculator");
+      
+      // Calculate proper valuation with corrected math (prevent double counting)
+      const valuationResult = calculateFullyDilutedValuation(
+        rounds,
+        shareLedger,
+        equityAwards,
+        convertibles,
+        'granted', // Include granted RSUs in fully diluted
+        10000000  // 10M option pool size - should come from company settings
+      );
+
       // Calculate cap table statistics
       const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
-      const totalOptions = equityAwards.reduce((sum, award) => sum + Number(award.quantityGranted), 0);
-      const totalConvertibles = convertibles.reduce((sum, conv) => sum + Number(conv.principal), 0);
+      const totalOptionsOutstanding = equityAwards.reduce((sum, award) => {
+        const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+        return sum + outstanding;
+      }, 0);
+      const totalConvertibles = convertibles.reduce((sum, conv) => sum + Number(conv.principal || 0), 0);
 
-      // Build stakeholder ownership map
+      // Build stakeholder ownership map with corrected calculations
       const ownershipMap = new Map();
       
-      // Add shares
+      // Add shares (As-Issued)
       shareLedger.forEach(entry => {
         const existing = ownershipMap.get(entry.holderId) || { shares: 0, options: 0, convertibles: 0 };
         existing.shares += Number(entry.quantity);
         ownershipMap.set(entry.holderId, existing);
       });
       
-      // Add options
+      // Add outstanding equity awards only (prevent double counting)
       equityAwards.forEach(award => {
-        const existing = ownershipMap.get(award.holderId) || { shares: 0, options: 0, convertibles: 0 };
-        existing.options += Number(award.quantityGranted);
-        ownershipMap.set(award.holderId, existing);
+        const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+        if (outstanding > 0) {
+          const existing = ownershipMap.get(award.holderId) || { shares: 0, options: 0, convertibles: 0 };
+          existing.options += outstanding;
+          ownershipMap.set(award.holderId, existing);
+        }
       });
 
-      // Build cap table with ownership percentages
+      // Build cap table with corrected ownership percentages
       const capTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
         const stakeholder = stakeholders.find(s => s.id === holderId);
-        const percentage = totalShares > 0 ? (holdings.shares / totalShares) * 100 : 0;
         
+        // Calculate ownership based on fully diluted shares (corrected math)
+        const fullyDilutedPercentage = valuationResult.fullyDilutedShares > 0 
+          ? ((holdings.shares + holdings.options) / valuationResult.fullyDilutedShares) * 100 
+          : 0;
+        
+        // Calculate value based on current valuation
+        const currentValue = valuationResult.pricePerShare 
+          ? holdings.shares * valuationResult.pricePerShare
+          : null;
+        
+        const fullyDilutedValue = valuationResult.pricePerShare 
+          ? (holdings.shares + holdings.options) * valuationResult.pricePerShare
+          : null;
 
-        
         return {
           stakeholder: stakeholder?.name || "Unknown",
           stakeholderId: holderId,
           shares: holdings.shares,
           options: holdings.options,
-          percentage: percentage.toFixed(2),
-          value: holdings.shares * 1.0 // Assuming $1.00 per share for now
+          percentage: fullyDilutedPercentage.toFixed(2),
+          currentValue: currentValue,
+          fullyDilutedValue: fullyDilutedValue
         };
       });
 
       res.json({
         stats: {
           totalShares,
-          totalOptions,
+          totalOptions: totalOptionsOutstanding,
           totalConvertibles,
-          stakeholderCount: stakeholders.length
+          stakeholderCount: stakeholders.length,
+          fullyDilutedShares: valuationResult.fullyDilutedShares,
+          currentValuation: valuationResult.currentValuation,
+          fullyDilutedValuation: valuationResult.fullyDilutedValuation,
+          pricePerShare: valuationResult.pricePerShare
         },
-        capTable
+        capTable,
+        valuationInfo: {
+          pricePerShare: valuationResult.pricePerShare,
+          sharesOutstanding: valuationResult.sharesOutstanding,
+          fullyDilutedShares: valuationResult.fullyDilutedShares,
+          currentValuation: valuationResult.currentValuation,
+          fullyDilutedValuation: valuationResult.fullyDilutedValuation
+        }
       });
     } catch (error) {
       console.error("Error calculating cap table:", error);

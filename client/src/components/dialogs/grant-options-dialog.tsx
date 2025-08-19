@@ -39,7 +39,7 @@ const grantOptionsSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
   type: z.string().min(1, "Please select option type"),
   quantityGranted: z.string().min(1, "Quantity is required"),
-  strikePrice: z.string().min(1, "Strike price is required"),
+  strikePrice: z.string().optional().or(z.literal('')),
   grantDate: z.string().min(1, "Grant date is required"),
   vestingStartDate: z.string().min(1, "Vesting start date is required"),
   vestingCliff: z.string().optional(),
@@ -123,7 +123,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
           quantityGranted: parseInt(data.quantityGranted.replace(/,/g, '')),
           quantityExercised: 0,
           quantityCanceled: 0,
-          strikePrice: parseFloat(data.strikePrice.replace(/,/g, '')),
+          ...(data.type === 'RSU' ? {} : { strikePrice: parseFloat(data.strikePrice?.replace(/,/g, '') || '0') }),
           grantDate: data.grantDate,
           vestingStartDate: data.vestingStartDate,
           cliffMonths: parseInt(data.vestingCliff || "12"),
@@ -289,26 +289,28 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="strikePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Strike Price ($) *
-                      <HelpBubble 
-                        term="Strike Price" 
-                        definition="The fixed price at which stock options can be exercised to purchase shares. Usually set at the fair market value when the options are granted."
-                        example="Options with $2 strike price allow purchase of shares at $2 each, regardless of current market value"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="1.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {form.watch("type") !== "RSU" && (
+                <FormField
+                  control={form.control}
+                  name="strikePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        Strike Price ($) *
+                        <HelpBubble 
+                          term="Strike Price" 
+                          definition="The fixed price at which stock options can be exercised to purchase shares. Usually set at the fair market value when the options are granted."
+                          example="Options with $2 strike price allow purchase of shares at $2 each, regardless of current market value"
+                        />
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="1.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="grantDate"

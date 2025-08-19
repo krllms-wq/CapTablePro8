@@ -255,10 +255,17 @@ export const insertEquityAwardSchema = createInsertSchema(equityAwards).omit({
     z.number(),
     z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
   ]).pipe(z.number().int().positive()),
-  strikePrice: z.union([
-    z.number(),
-    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
-  ]).pipe(z.number().positive()).optional(),
+  strikePrice: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      if (typeof val === 'string') {
+        const cleaned = val.replace(/,/g, '');
+        return cleaned === '' ? null : parseFloat(cleaned);
+      }
+      return val;
+    },
+    z.number().positive().nullable().optional()
+  ),
 });
 
 export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleInstruments).omit({

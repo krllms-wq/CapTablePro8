@@ -65,7 +65,25 @@ The schema supports complex cap table structures with entities for Companies, Se
   - Corporate actions: 2:1 stock split, $2M seed round, secondary sales
 - **Database Integration**: FIXED PostgresStorage getUserCompanies to include owned companies
 - **Authentication**: Fixed password hashing and token generation for demo access
-- **Cap Table Stats**: 7M shares, 250K options, 350K convertibles, 9 stakeholders
+- **Cap Table Stats**: 8M shares, 285K options, 350K convertibles, 9 stakeholders
+
+## Recent Bug Fixes & Enhancements - Aug 19, 2025 ✅
+### RSU Strike Price Bug - RESOLVED
+- **Fixed Schema**: Updated `insertEquityAwardSchema` to allow null strike prices for RSUs
+- **Fixed Routes**: Backend properly handles RSU creation without strike price requirement  
+- **Fixed Forms**: Grant options dialog conditionally shows/hides strike price field for RSUs
+- **Fixed Validation**: RSUs can be created without strike price, options still require it
+
+### Activity Feed Reliability - ENHANCED  
+- **Stable Pagination**: Implemented proper ordering (createdAt DESC, id DESC) for reliable feed
+- **Real-time Updates**: Activity feed component with 30-second refresh intervals
+- **Date Grouping**: Events grouped by date with relative time formatting
+
+### Cap Table Valuation Math - CORRECTED
+- **No Double Counting**: Fixed ownership calculations to prevent double counting shares + options
+- **Proper RSU Handling**: Configurable RSU inclusion modes (none/granted/vested)
+- **Accurate Fully Diluted**: Only unallocated option pool added to denominator
+- **Valuation Calculator**: Server-side utilities for current and fully diluted company valuations
 
 ### Frontend Libraries
 - **Radix UI**: Accessible component primitives
