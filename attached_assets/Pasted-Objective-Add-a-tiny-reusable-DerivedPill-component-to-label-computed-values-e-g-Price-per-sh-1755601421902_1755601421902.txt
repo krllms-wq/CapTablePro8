@@ -1,0 +1,59 @@
+Objective
+Add a tiny reusable **DerivedPill** component to label computed values (e.g., Price per share) and integrate it into the Issue Shares form (PR2) and the Round Modeler (PR3, if present). Provide an optional “warning” style when there’s a divergence warning. No server changes.
+
+Repo assumptions
+- Client: client/src/**
+- Prior PRs added priceMath + PPS in Basic with override toggle.
+
+Tasks
+
+A) Component: client/src/components/DerivedPill.tsx
+- Export default React component:
+  type Props = {
+    label?: string;               // default "Derived"
+    variant?: "default"|"warning" // default "default"
+    title?: string;               // optional tooltip text
+    className?: string;
+    "aria-label"?: string;
+  }
+- Render an inline <span> with Tailwind classes:
+  * Base: inline-flex items-center gap-1 rounded-full text-xs px-2 py-[2px] select-none
+  * default: bg-gray-100 text-gray-700 border border-gray-200
+  * warning: bg-amber-100 text-amber-800 border border-amber-200
+- Include a visually hidden accessible label if provided; otherwise aria-label = label.
+- If variant==="warning", prepend a tiny “!” glyph (no icon lib required).
+- Support `title` attribute for native tooltip; also set role="note".
+- Keep bundle-light; no extra deps.
+
+B) Unit test: client/src/components/__tests__/DerivedPill.test.tsx
+- Renders with default props → contains text "Derived"
+- Renders with variant="warning" → has warning styles and “!” glyph
+- Accepts custom label & title and exposes them for a11y (aria-label / title)
+
+C) Integration — Issue Shares form
+- File updated in PR2 (e.g., client/src/features/transactions/IssueSharesForm.tsx):
+  * Where PPS label is rendered (Basic section):
+    - When override is **OFF** and PPS is derived: render <DerivedPill title="Calculated from valuation/consideration" />
+    - If `warningDeltaPct` from priceMath.reconcilePps exists: use variant="warning" and set title like
+      `title={\`Valuation vs. consideration PPS differ by ~${warningDeltaPct.toFixed(2)}%\`}`
+  * When override is **ON**, hide the pill (PPS is user-entered).
+
+D) Integration — Round Modeler (if present)
+- File (e.g., client/src/pages/ModelRound.tsx or similar):
+  * Next to PPS input label:
+    - When PPS derived from pre-money (override OFF): show <DerivedPill title="Calculated from pre-money & pre-round FD" />
+    - If divergence/warning concept exists in modeler, use variant="warning" with appropriate title.
+  * Hide when override is ON.
+
+E) Styling polish (optional)
+- Ensure pill aligns vertically with label text (flex items-center on label container).
+- Respect prefers-reduced-motion (no animations).
+
+F) Tests adjustments
+- Update/extend Issue Shares form tests to assert the pill appears when override OFF and disappears when override ON.
+- If round modeler has tests, assert pill visibility with/without override.
+
+Acceptance
+- Reusable pill appears for derived PPS, switches to “warning” style when divergence is present, and hides on override.
+- Unit tests pass; existing form tests updated accordingly.
+- No server or route changes; no new dependencies.

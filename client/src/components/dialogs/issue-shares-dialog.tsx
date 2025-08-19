@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,23 +27,37 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpBubble } from "@/components/ui/help-bubble";
 import { Label } from "@/components/ui/label";
 import { EnhancedInput, EnhancedDatePicker, StickyFormFooter, FormSection } from "@/components/ui/enhanced-form";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import type { Stakeholder, SecurityClass } from "@shared/schema";
+import { 
+  parseMoneyLoose, 
+  parseSharesLoose, 
+  derivePpsFromValuation,
+  derivePpsFromConsideration,
+  reconcilePps,
+  roundMoney,
+  type ReconcileResult 
+} from "@/utils/priceMath";
 
 const issueSharesSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
   classId: z.string().min(1, "Please select a security class"),
   quantity: z.string().min(1, "Quantity is required"),
-  consideration: z.string().min(1, "Consideration is required"),
+  consideration: z.string().optional(),
   roundName: z.string().min(1, "Round name is required"),
   issueDate: z.string().min(1, "Issue date is required"),
-  valuation: z.string().min(1, "Valuation is required"),
+  valuation: z.string().optional(),
+  pricePerShare: z.string().optional(),
   certificateNo: z.string().optional(),
 });
 
@@ -55,10 +69,21 @@ interface IssueSharesDialogProps {
   companyId: string;
 }
 
+// Small Derived pill component
+const DerivedPill = () => (
+  <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
+    Derived
+  </Badge>
+);
+
 export default function IssueSharesDialog({ open, onOpenChange, companyId }: IssueSharesDialogProps) {
   const { toast } = useToast();
   const [showNewStakeholder, setShowNewStakeholder] = useState(false);
   const [showNewSecurityClass, setShowNewSecurityClass] = useState(false);
+  const [overridePps, setOverridePps] = useState(false);
+  const [ppsReconcileResult, setPpsReconcileResult] = useState<ReconcileResult>({ source: "unknown" });
+  const [derivedPps, setDerivedPps] = useState<number | undefined>();
+  
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
     email: "",
@@ -91,6 +116,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       roundName: "",
       issueDate: new Date().toISOString().split('T')[0],
       valuation: "",
+      pricePerShare: "",
       certificateNo: "",
     },
   });
@@ -190,6 +216,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       setShowNewStakeholder(false);
       setNewSecurityClass({ name: "", liquidationPreferenceMultiple: "1.0", participating: false, votingRights: "1.0" });
       setShowNewSecurityClass(false);
+      setOverridePps(false);
+      setPpsReconcileResult({ source: "unknown" });
+      setDerivedPps(undefined);
     },
     onError: (error: any) => {
       toast({
@@ -197,27 +226,67 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
         description: error.message || "Failed to issue shares",
         variant: "error",
       });
+      // Re-enable button on error
+      form.clearErrors();
     }
   });
 
-  // Auto-calculate quantities based on valuation and consideration
-  const handleCalculation = (field: string, value: string) => {
+  // Enhanced price calculation using priceMath utilities
+  const updateDerivedPps = () => {
     const current = form.getValues();
-    const valuation = parseFloat(current.valuation) || 0;
-    const consideration = parseFloat(current.consideration) || 0;
     
-    if (field === 'consideration' && valuation > 0) {
-      const quantity = Math.round((parseFloat(value) / valuation) * 1000000); // Assuming 1M authorized shares
-      form.setValue('quantity', quantity.toString());
-    } else if (field === 'valuation' && consideration > 0) {
-      const quantity = Math.round((consideration / parseFloat(value)) * 1000000);
-      form.setValue('quantity', quantity.toString());
+    // Parse values using priceMath utilities
+    const valuation = parseMoneyLoose(current.valuation);
+    const consideration = parseMoneyLoose(current.consideration);
+    const quantity = parseSharesLoose(current.quantity);
+    const preRoundFD = 10_000_000; // Assumed fully diluted shares
+    
+    // Derive PPS from different sources
+    const fromValuation = derivePpsFromValuation({ valuation, preRoundFD });
+    const fromConsideration = derivePpsFromConsideration({ consideration, quantity });
+    const overridePpsValue = overridePps ? parseMoneyLoose(current.pricePerShare) : undefined;
+    
+    // Reconcile PPS sources
+    const result = reconcilePps({
+      fromValuation,
+      fromConsideration,
+      overridePps: overridePpsValue,
+      toleranceBps: 50 // 0.5% tolerance
+    });
+    
+    setPpsReconcileResult(result);
+    setDerivedPps(result.pps);
+    
+    // Update form with derived PPS if not overriding
+    if (!overridePps && result.pps !== undefined) {
+      form.setValue('pricePerShare', result.pps.toString());
     }
   };
 
-  const formatNumber = (value: string) => {
-    const num = parseFloat(value.replace(/,/g, ''));
-    return isNaN(num) ? '' : num.toLocaleString();
+  // Watch form changes to update derived PPS
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (['valuation', 'consideration', 'quantity'].includes(name || '')) {
+        updateDerivedPps();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, overridePps]);
+
+  // Input sanitization helpers
+  const sanitizeMoneyInput = (value: string) => {
+    const sanitized = parseMoneyLoose(value);
+    return sanitized !== undefined ? sanitized.toString() : "";
+  };
+
+  const sanitizeSharesInput = (value: string) => {
+    const sanitized = parseSharesLoose(value);
+    return sanitized !== undefined ? sanitized.toString() : "";
+  };
+
+  const formatDisplayValue = (value: string, isShares = false) => {
+    const parsed = isShares ? parseSharesLoose(value) : parseMoneyLoose(value);
+    return parsed !== undefined ? parsed.toLocaleString() : value;
   };
 
   const onSubmit = (data: IssueSharesFormData) => {
@@ -235,10 +304,12 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Round Information */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Basic Section - Enhanced with valuation and PPS */}
             <div className="space-y-4 border-b pb-4">
-              <h4 className="font-medium text-sm">Round Information</h4>
+              <h4 className="font-medium text-sm">Basic</h4>
+              
+              {/* Round Name and Issue Date */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -267,23 +338,120 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   )}
                 />
               </div>
+
+              {/* Stakeholder Selection */}
               <FormField
                 control={form.control}
-                name="valuation"
+                name="holderId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company Valuation ($) *</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                      Stakeholder *
+                      <HelpBubble 
+                        term="Stakeholder" 
+                        definition="Any individual or entity that owns or has rights to equity in the company, including founders, employees, investors, and advisors."
+                        example="John Doe (founder), Acme Ventures (investor), or Jane Smith (employee with stock options)"
+                      />
+                    </FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setShowNewStakeholder(value === "new");
+                      }} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select stakeholder" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="new">
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add New Stakeholder
+                          </div>
+                        </SelectItem>
+                        {stakeholders?.map((stakeholder) => (
+                          <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                            {stakeholder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Security Class Selection */}
+              <FormField
+                control={form.control}
+                name="classId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Security Class *
+                      <HelpBubble 
+                        term="Security Class" 
+                        definition="Different types of equity with varying rights and preferences. Common stock typically has voting rights, while preferred stock often has liquidation preferences and other protective provisions."
+                        example="Common Stock for founders and employees, Series A Preferred for investors"
+                      />
+                    </FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setShowNewSecurityClass(value === "new");
+                      }} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select security class" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="new">
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add New Security Class
+                          </div>
+                        </SelectItem>
+                        {securityClasses?.map((securityClass) => (
+                          <SelectItem key={securityClass.id} value={securityClass.id}>
+                            {securityClass.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Quantity */}
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Quantity *
+                      <HelpBubble 
+                        term="Share Quantity" 
+                        definition="The number of shares being issued to the stakeholder. This directly affects ownership percentage and dilution of existing shareholders."
+                        example="Issuing 100,000 shares out of 1,000,000 total gives the holder 10% ownership"
+                      />
+                    </FormLabel>
                     <FormControl>
                       <Input 
                         type="text" 
-                        placeholder="10,000,000" 
+                        placeholder="100,000" 
                         {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                          const formatted = value ? parseFloat(value).toLocaleString() : '';
-                          e.target.value = formatted;
-                          field.onChange(value);
-                          handleCalculation('valuation', value);
+                        onBlur={(e) => {
+                          const sanitized = sanitizeSharesInput(e.target.value);
+                          field.onChange(sanitized);
+                          e.target.value = formatDisplayValue(sanitized, true);
                         }}
                       />
                     </FormControl>
@@ -291,52 +459,144 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Stakeholder Selection */}
-            <FormField
-              control={form.control}
-              name="holderId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    Stakeholder *
-                    <HelpBubble 
-                      term="Stakeholder" 
-                      definition="Any individual or entity that owns or has rights to equity in the company, including founders, employees, investors, and advisors."
-                      example="John Doe (founder), Acme Ventures (investor), or Jane Smith (employee with stock options)"
-                    />
-                  </FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setShowNewStakeholder(value === "new");
-                    }} 
-                    defaultValue={field.value}
-                  >
+              {/* Company Valuation - Now in Basic section */}
+              <FormField
+                control={form.control}
+                name="valuation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Company Valuation ($)
+                      <HelpBubble 
+                        term="Company Valuation" 
+                        definition="The pre-money valuation of the company, used to calculate price per share and ownership percentages."
+                        example="$10M valuation with 1M shares = $10 per share"
+                      />
+                    </FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select stakeholder" />
-                      </SelectTrigger>
+                      <Input 
+                        type="text" 
+                        placeholder="10,000,000" 
+                        {...field}
+                        onBlur={(e) => {
+                          const sanitized = sanitizeMoneyInput(e.target.value);
+                          field.onChange(sanitized);
+                          e.target.value = formatDisplayValue(sanitized);
+                        }}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="new">
-                        <div className="flex items-center gap-2">
-                          <Plus className="h-4 w-4" />
-                          Add New Stakeholder
-                        </div>
-                      </SelectItem>
-                      {stakeholders?.map((stakeholder) => (
-                        <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                          {stakeholder.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Price per Share - Enhanced with derivation */}
+              <FormField
+                control={form.control}
+                name="pricePerShare"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Price per share ($)
+                      {!overridePps && <DerivedPill />}
+                      <HelpBubble 
+                        term="Price per Share" 
+                        definition="The calculated or set price for each share, derived from valuation and total shares or consideration and quantity."
+                        example="$1.50 per share when issuing 100K shares for $150K consideration"
+                      />
+                    </FormLabel>
+                    <FormControl>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input 
+                              type="text" 
+                              placeholder="Auto-calculated"
+                              {...field}
+                              value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
+                              readOnly={!overridePps}
+                              className={!overridePps ? "bg-gray-50 cursor-default" : ""}
+                              onBlur={overridePps ? (e) => {
+                                const sanitized = sanitizeMoneyInput(e.target.value);
+                                field.onChange(sanitized);
+                                e.target.value = formatDisplayValue(sanitized);
+                              } : undefined}
+                            />
+                          </TooltipTrigger>
+                          {!overridePps && (
+                            <TooltipContent>
+                              <p>Derived from valuation/consideration</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Consideration */}
+              <FormField
+                control={form.control}
+                name="consideration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Consideration ($)
+                      <HelpBubble 
+                        term="Consideration" 
+                        definition="The value received in exchange for issuing shares, which can be cash, services, intellectual property, or other assets."
+                        example="$100,000 cash payment for 10,000 shares"
+                      />
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="text" 
+                        placeholder="1,000,000" 
+                        {...field}
+                        onBlur={(e) => {
+                          const sanitized = sanitizeMoneyInput(e.target.value);
+                          field.onChange(sanitized);
+                          e.target.value = formatDisplayValue(sanitized);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Override PPS Checkbox */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="override-pps"
+                  checked={overridePps}
+                  onCheckedChange={(checked) => {
+                    setOverridePps(!!checked);
+                    if (!checked) {
+                      // Reset to derived value when disabling override
+                      updateDerivedPps();
+                    }
+                  }}
+                />
+                <Label htmlFor="override-pps" className="text-sm cursor-pointer">
+                  Override price per share
+                </Label>
+              </div>
+
+              {/* PPS Divergence Warning */}
+              {ppsReconcileResult.warningDeltaPct && (
+                <Alert className="border-amber-200 bg-amber-50">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    Price per share calculated from valuation and consideration diverge by {ppsReconcileResult.warningDeltaPct}%. 
+                    You may want to verify your inputs.
+                  </AlertDescription>
+                </Alert>
               )}
-            />
+            </div>
 
             {/* New Stakeholder Form */}
             {showNewStakeholder && (
@@ -381,55 +641,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               </div>
             )}
 
-            {/* Share Details */}
-            {/* Security Class Selection */}
-            <FormField
-              control={form.control}
-              name="classId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    Security Class *
-                    <HelpBubble 
-                      term="Security Class" 
-                      definition="Different types of equity with varying rights and preferences. Common stock typically has voting rights, while preferred stock often has liquidation preferences and other protective provisions."
-                      example="Common Stock for founders and employees, Series A Preferred for investors"
-                    />
-                  </FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setShowNewSecurityClass(value === "new");
-                    }} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select security class" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="new">
-                        <div className="flex items-center gap-2">
-                          <Plus className="h-4 w-4" />
-                          Add New Security Class
-                        </div>
-                      </SelectItem>
-                      {securityClasses?.map((securityClass) => (
-                        <SelectItem key={securityClass.id} value={securityClass.id}>
-                          {securityClass.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* New Security Class Form */}
             {showNewSecurityClass && (
-              <div className="space-y-3 border rounded-lg p-4 bg-gray-50 mb-4">
+              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
                 <h4 className="font-medium text-sm">New Security Class Details</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -482,75 +696,11 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 </div>
               </div>
             )}
-            
-            {/* Share Quantities and Financials */}
-            <div className="grid grid-cols-2 gap-4">
 
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Quantity *
-                      <HelpBubble 
-                        term="Share Quantity" 
-                        definition="The number of shares being issued to the stakeholder. This directly affects ownership percentage and dilution of existing shareholders."
-                        example="Issuing 100,000 shares out of 1,000,000 total gives the holder 10% ownership"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="100,000" 
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '');
-                          const formatted = value ? parseInt(value).toLocaleString() : '';
-                          e.target.value = formatted;
-                          field.onChange(value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="consideration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Consideration ($) *
-                      <HelpBubble 
-                        term="Consideration" 
-                        definition="The value received in exchange for issuing shares, which can be cash, services, intellectual property, or other assets. This determines the price per share."
-                        example="$100,000 cash payment for 10,000 shares = $10 per share consideration"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="1,000,000" 
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                          const formatted = value ? parseFloat(value).toLocaleString() : '';
-                          e.target.value = formatted;
-                          field.onChange(value);
-                          handleCalculation('consideration', value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+            {/* Additional Details */}
+            <div className="space-y-4 border-b pb-4">
+              <h4 className="font-medium text-sm">Additional Details</h4>
+              
               <FormField
                 control={form.control}
                 name="certificateNo"
@@ -566,6 +716,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               />
             </div>
 
+            {/* Form Actions */}
             <div className="flex justify-end gap-3 pt-4">
               <Button
                 type="button"
