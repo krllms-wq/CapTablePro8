@@ -95,6 +95,13 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
 
   function getActivityIconColor(action: string) {
     switch (action) {
+      case 'stakeholder.created': return "text-green-600";
+      case 'stakeholder.updated': return "text-blue-600";
+      case 'stakeholder.deleted': return "text-red-600";
+      case 'transaction.shares_issued': return "text-purple-600";
+      case 'transaction.options_granted': return "text-orange-600";
+      case 'transaction.secondary_transfer': return "text-blue-600";
+      case 'demo.seeded': return "text-gray-600";
       case 'stakeholder_created': return "text-green-600";
       case 'shares_issued': return "text-purple-600";
       case 'equity_award_granted': return "text-orange-600";
@@ -108,6 +115,13 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
 
   function getActivityIconBg(action: string) {
     switch (action) {
+      case 'stakeholder.created': return "bg-green-100";
+      case 'stakeholder.updated': return "bg-blue-100";
+      case 'stakeholder.deleted': return "bg-red-100";
+      case 'transaction.shares_issued': return "bg-purple-100";
+      case 'transaction.options_granted': return "bg-orange-100";
+      case 'transaction.secondary_transfer': return "bg-blue-100";
+      case 'demo.seeded': return "bg-gray-100";
       case 'stakeholder_created': return "bg-green-100";
       case 'shares_issued': return "bg-purple-100";
       case 'equity_award_granted': return "bg-orange-100";
@@ -155,9 +169,9 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-neutral-900">
-                  <span className="font-medium">{activity.title}</span> {activity.description}
+                  <span className="font-medium">{activity.title}</span>
                 </p>
-                <p className="text-xs text-neutral-500 mt-1">{activity.details}</p>
+                <p className="text-xs text-neutral-600 mt-1">{activity.description}</p>
                 <p className="text-xs text-neutral-400 mt-1">
                   {activity.timestamp && !isNaN(activity.timestamp.getTime()) 
                     ? formatDistanceToNow(activity.timestamp, { addSuffix: true })
