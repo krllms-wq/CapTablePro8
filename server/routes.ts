@@ -348,11 +348,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Activity/Audit Log routes
+  // Activity/Audit Log routes  
   app.get("/api/companies/:companyId/activity", requireAuth, async (req, res) => {
     try {
       const { companyId } = req.params;
       const { cursor, limit = "20", event, resourceType, actorId, from, to } = req.query;
+      
+      console.log(`Activity endpoint called for company ${companyId} with filters:`, { event, resourceType, cursor });
       
       const options = {
         cursor: cursor as string,
@@ -373,6 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return b.id.localeCompare(a.id); // Secondary sort by ID for stable pagination
       });
       
+      console.log(`Activity endpoint returning ${sorted.length} entries`);
       res.json(sorted);
     } catch (error) {
       console.error("Error fetching activity:", error);
@@ -879,9 +882,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Legacy audit log route (for backwards compatibility)
-  app.get("/api/companies/:companyId/audit-logs", async (req, res) => {
+  app.get("/api/companies/:companyId/audit-logs", requireAuth, async (req, res) => {
     try {
       const auditLogs = await storage.getAuditLogs(req.params.companyId);
+      console.log(`Audit logs for ${req.params.companyId}:`, auditLogs.length, 'entries');
       res.json(auditLogs);
     } catch (error) {
       console.error("Error fetching audit logs:", error);

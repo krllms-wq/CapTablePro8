@@ -137,7 +137,7 @@ export default function RecentActivity({ companyId }: RecentActivityProps) {
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-neutral-900">Recent Activity</h3>
-        <Link href={`/companies/${companyId}/transactions`}>
+        <Link href={`/companies/${companyId}/activity`}>
           <button className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
             View all activity
           </button>

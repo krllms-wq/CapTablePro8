@@ -18,11 +18,7 @@ export default function CompanyActivity() {
   const [cursor, setCursor] = useState<string | undefined>();
 
   const { data: auditLogs, isLoading } = useQuery<AuditLog[]>({
-    queryKey: ["/api/companies", companyId, "activity", { 
-      event: eventFilter === "all" ? "" : eventFilter, 
-      resourceType: resourceTypeFilter === "all" ? "" : resourceTypeFilter,
-      cursor 
-    }],
+    queryKey: ["/api/companies", companyId, "audit-logs"],
     enabled: !!companyId,
   });
 
