@@ -1,9 +1,19 @@
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth, logout } from "@/hooks/useAuth";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LogOut, User, Settings } from "lucide-react";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { companyId } = useParams();
+  const { user } = useAuth();
   
   const { data: company } = useQuery<{ name: string; id: string }>({
     queryKey: ["/api/companies", companyId],
@@ -78,12 +88,49 @@ export default function Navigation() {
             <i className="fas fa-bell text-lg"></i>
           </button>
           
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">JD</span>
-            </div>
-            <span className="hidden sm:block text-sm font-medium text-neutral-700">John Doe</span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center space-x-2 cursor-pointer hover:bg-neutral-50 rounded-lg p-2 transition-colors">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <span className="hidden sm:block text-sm font-medium text-neutral-700">
+                  {user?.email || 'User'}
+                </span>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <div className="flex items-center justify-start gap-2 p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  <p className="font-medium text-sm">{user?.email}</p>
+                  {user?.firstName && user?.lastName && (
+                    <p className="text-xs text-muted-foreground">
+                      {user.firstName} {user.lastName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-red-600 focus:text-red-600 cursor-pointer"
+                onClick={() => {
+                  logout();
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </nav>
