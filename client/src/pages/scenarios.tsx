@@ -244,8 +244,8 @@ export default function ScenariosPage() {
                       ))
                     ) : (
                       // Show before and after results
-                      modelingResults.afterCapTable.map((row: any) => {
-                        const beforeRow = modelingResults.beforeCapTable.find((b: any) => 
+                      (modelingResults?.afterCapTable || []).map((row: any) => {
+                        const beforeRow = (modelingResults?.beforeCapTable || []).find((b: any) => 
                           b.stakeholder?.id === row.stakeholder?.id
                         );
                         return (
