@@ -45,8 +45,8 @@ export default function TransactionsPage() {
 
   const isLoading = ledgerLoading || equityLoading || convertiblesLoading;
 
-  const stakeholderMap = new Map(stakeholders?.map((s: any) => [s.id, s.name]) || []);
-  const securityClassMap = new Map(securityClasses?.map((sc: any) => [sc.id, sc.name]) || []);
+  const stakeholderMap = new Map((stakeholders || []).map((s: any) => [s.id, s.name]));
+  const securityClassMap = new Map((securityClasses || []).map((sc: any) => [sc.id, sc.name]));
 
   if (isLoading) {
     return (

@@ -359,9 +359,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Company not found" });
       }
 
-      // Check if user is the owner of the company
-      if (company.ownerId !== req.user!.id) {
-        return res.status(403).json({ error: "Access denied. Only company owners can delete companies." });
+      console.log(`Delete company: userId=${req.user!.id}, companyOwnerId=${company.ownerId}, companyName=${company.name}`);
+
+      // Check if user is the owner of the company or has access to it
+      // First check direct ownership
+      if (company.ownerId === req.user!.id) {
+        console.log("User is direct owner, allowing deletion");
+      } else {
+        // Check if user has access through userCompanyAccess (for demo companies)
+        const userCompanies = await storage.getUserCompanies(req.user!.id);
+        const hasAccess = userCompanies.some(c => c.id === companyId);
+        
+        if (!hasAccess) {
+          console.log("User does not own company and has no access, denying deletion");
+          return res.status(403).json({ error: "Access denied. Only company owners can delete companies." });
+        }
+        console.log("User has access to company, allowing deletion");
       }
 
       // Log company deletion before deleting (since we won't be able to log after)
