@@ -24,6 +24,19 @@ interface ModelingResults {
   newShares: number;
   totalRaised: number;
   postMoneyValuation: number;
+  pricePerShare: number;
+  safeConversions?: {
+    totalConverted: number;
+    totalPrincipal: number;
+    totalShares: number;
+    conversions: Array<{
+      holderId: string;
+      holderName: string;
+      principal: number;
+      conversionPrice: number;
+      shares: number;
+    }>;
+  };
 }
 
 export default function ScenariosPage() {
@@ -294,7 +307,7 @@ export default function ScenariosPage() {
           </Card>
 
           {/* Existing Instruments */}
-          {convertibles && convertibles.length > 0 && (
+          {convertibles && Array.isArray(convertibles) && convertibles.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Existing Convertible Instruments</CardTitle>
@@ -312,7 +325,7 @@ export default function ScenariosPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {convertibles.map((instrument: any, index: number) => (
+                      {(convertibles as any[]).map((instrument: any, index: number) => (
                         <tr key={index} className="border-b">
                           <td className="p-2 capitalize font-medium">
                             {instrument.type === 'safe' ? 'SAFE' : instrument.type}

@@ -871,8 +871,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Convertible instruments routes
   app.get("/api/companies/:companyId/convertibles", async (req, res) => {
     try {
-      const instruments = await storage.getConvertibleInstruments(req.params.companyId);
-      res.json(instruments);
+      const [instruments, stakeholders] = await Promise.all([
+        storage.getConvertibleInstruments(req.params.companyId),
+        storage.getStakeholders(req.params.companyId)
+      ]);
+
+      // Add stakeholder names to instruments
+      const instrumentsWithNames = instruments.map(instrument => {
+        const stakeholder = stakeholders.find(s => s.id === instrument.holderId);
+        return {
+          ...instrument,
+          holderName: stakeholder?.name || 'Unknown'
+        };
+      });
+
+      res.json(instrumentsWithNames);
     } catch (error) {
       console.error("Error fetching convertibles:", error);
       res.status(500).json({ error: "Failed to fetch convertibles" });
