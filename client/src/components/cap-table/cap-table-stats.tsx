@@ -94,50 +94,37 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
 
   return (
     <TooltipProvider>
-      <div className="bg-white rounded-xl border border-neutral-200 shadow-sm mb-8 overflow-hidden">
-        <div className="border-b border-neutral-100 bg-neutral-50/50 px-6 py-4">
-          <h3 className="text-lg font-semibold text-neutral-900">Cap Table Overview</h3>
-          <p className="text-sm text-neutral-600 mt-1">Key metrics and valuation information</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 divide-x divide-neutral-100">
+      <div className="bg-white rounded-lg border border-neutral-200 mb-8 overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {statCards.map((card, index) => (
-            <div key={index} className="p-6 hover:bg-neutral-50/50 transition-colors">
-              <div className="text-center space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <div className={`w-8 h-8 ${card.bgColor} rounded-lg flex items-center justify-center`}>
-                    <i className={`${card.icon} ${card.iconColor} text-sm`}></i>
-                  </div>
+            <div key={index} className="p-6 border-r border-neutral-200 last:border-r-0 hover:bg-neutral-50/30 transition-colors">
+              <div className="text-left">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                    {card.title}
+                  </p>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-neutral-400 hover:text-neutral-600 cursor-help" />
+                      <HelpCircle className="h-3.5 w-3.5 text-neutral-300 hover:text-neutral-500 cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs">
+                    <TooltipContent side="top" className="max-w-xs text-xs">
                       <p>{card.tooltip}</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 
-                <div>
-                  <p className="text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
-                    {card.title}
-                  </p>
-                  <p className={`text-xl font-bold ${card.value === 'N/A' ? 'text-neutral-400' : 'text-neutral-900'}`}>
-                    {card.value}
-                  </p>
-                </div>
+                <p className={`text-2xl font-bold leading-none ${card.value === 'N/A' ? 'text-neutral-300' : 'text-neutral-900'}`}>
+                  {card.value}
+                </p>
               </div>
             </div>
           ))}
         </div>
         
         {stats.valuationSource && (
-          <div className="border-t border-neutral-100 bg-neutral-50/30 px-6 py-3">
-            <p className="text-xs text-neutral-500 text-center">
-              <span className="inline-flex items-center gap-1">
-                <i className="fas fa-info-circle"></i>
-                Valuation: {stats.valuationSource}
-              </span>
+          <div className="border-t border-neutral-200 bg-neutral-50/50 px-6 py-2.5">
+            <p className="text-xs text-neutral-400 text-center">
+              {stats.valuationSource}
             </p>
           </div>
         )}
