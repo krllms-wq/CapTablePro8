@@ -58,6 +58,7 @@ export interface IStorage {
   createConvertibleInstrument(instrument: InsertConvertibleInstrument): Promise<ConvertibleInstrument>;
   getConvertibleInstruments(companyId: string): Promise<ConvertibleInstrument[]>;
   getConvertibleInstrument(id: string): Promise<ConvertibleInstrument | undefined>;
+  deleteConvertibleInstrument(id: string): Promise<void>;
 
   // Rounds
   createRound(round: InsertRound): Promise<Round>;
@@ -722,6 +723,10 @@ export class MemStorage implements IStorage {
 
   async getConvertibleInstrument(id: string): Promise<ConvertibleInstrument | undefined> {
     return this.convertibleInstruments.get(id);
+  }
+
+  async deleteConvertibleInstrument(id: string): Promise<void> {
+    this.convertibleInstruments.delete(id);
   }
 
   // Rounds

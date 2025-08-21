@@ -1481,15 +1481,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const instruments = await storage.getConvertibleInstruments(companyId);
         const safes = instruments.filter(instrument => instrument.type === 'safe');
 
-        // For demo purposes, return success message with more feedback
+        // Implement actual SAFE conversion
+        let convertedCount = 0;
+        const conversions = [];
+        
+        for (const safe of safes) {
+          const principal = Number(safe.principal || 0);
+          const valuationCap = Number(safe.valuationCap || 0);
+          const discountRate = Number(safe.discountRate || 0);
+          
+          if (principal > 0) {
+            // Get current share ledger to calculate total outstanding shares
+            const shareLedger = await storage.getShareLedgerEntries(companyId);
+            const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+            
+            // Simple conversion using valuation cap
+            let conversionPrice = 1.0; // fallback
+            if (valuationCap > 0 && totalShares > 0) {
+              conversionPrice = valuationCap / totalShares;
+            }
+            
+            // Apply discount if available
+            if (discountRate > 0) {
+              conversionPrice = conversionPrice * (1 - discountRate);
+            }
+            
+            const sharesIssued = Math.round(principal / conversionPrice);
+            
+            // Get security classes to find common stock
+            const securityClasses = await storage.getSecurityClasses(companyId);
+            const commonStock = securityClasses.find(sc => sc.name?.toLowerCase().includes('common'));
+            
+            if (commonStock) {
+              // Create share ledger entry for the new shares
+              await storage.createShareLedgerEntry({
+                companyId,
+                classId: commonStock.id,
+                holderId: safe.holderId,
+                quantity: sharesIssued,
+                issueDate: new Date().toISOString(),
+                consideration: principal,
+                sourceTransactionId: safe.id
+              });
+              
+              // Remove the converted SAFE
+              await storage.deleteConvertibleInstrument(safe.id);
+              
+              conversions.push({
+                holder: safe.holderId,
+                principal,
+                conversionPrice,
+                shares: sharesIssued
+              });
+              convertedCount++;
+            }
+          }
+        }
+        
         res.json({ 
-          message: `Demo: Would convert ${safes.length} SAFE instruments to shares`,
-          convertedSafes: safes.length,
-          safes: safes.map(safe => ({
-            holder: safe.holderId,
-            principal: safe.principal,
-            framework: safe.framework
-          }))
+          message: `Successfully converted ${convertedCount} SAFE instruments to shares`,
+          convertedSafes: convertedCount,
+          conversions
         });
       } else {
         res.json({ message: "No conversion performed" });
