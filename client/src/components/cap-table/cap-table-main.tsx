@@ -435,7 +435,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading }: CapT
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="text-sm text-neutral-600">
-                        {instrument.discountRate ? `${(instrument.discountRate * 100).toFixed(0)}%` : '—'}
+                        {instrument.discountRate ? `${(instrument.discountRate * 100).toFixed(2)}%` : '—'}
                       </div>
                     </td>
                     <td className="px-6 py-4">

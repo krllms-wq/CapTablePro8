@@ -336,7 +336,7 @@ export default function ScenariosPage() {
                             {instrument.valuationCap ? `$${formatNumber(instrument.valuationCap)}` : 'N/A'}
                           </td>
                           <td className="text-right p-2">
-                            {instrument.discountRate ? `${instrument.discountRate}%` : 'N/A'}
+                            {instrument.discountRate ? `${(instrument.discountRate * 100).toFixed(2)}%` : 'N/A'}
                           </td>
                         </tr>
                       ))}
