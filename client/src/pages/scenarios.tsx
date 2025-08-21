@@ -576,7 +576,9 @@ export default function ScenariosPage() {
                                 queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
                                 queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "share-ledger"] });
                                 // Re-run scenario to update results
-                                await handleModelScenario();
+                                if (modelingResults && roundAmount && premoney) {
+                                  await runScenario();
+                                }
                                 toast({
                                   title: "SAFE Conversion", 
                                   description: response.message || "SAFEs processed successfully"
