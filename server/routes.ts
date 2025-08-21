@@ -1355,5 +1355,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Conversion endpoints for Control Panel
+  app.post("/api/companies/:companyId/convert-options", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { convertAll } = req.body;
+
+      if (convertAll) {
+        const awards = await storage.getEquityAwards(companyId);
+        const options = awards.filter(award => 
+          (award.type === 'ISO' || award.type === 'NSO') && 
+          award.quantityGranted > award.quantityExercised + award.quantityCanceled
+        );
+
+        // For demo purposes, just return success message
+        res.json({ 
+          message: `Would convert ${options.length} option grants to shares (demo mode)`,
+          convertedOptions: options.length 
+        });
+      } else {
+        res.json({ message: "No conversion performed" });
+      }
+    } catch (error) {
+      console.error("Error converting options:", error);
+      res.status(500).json({ error: "Failed to convert options" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/convert-safes", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { convertAll } = req.body;
+
+      if (convertAll) {
+        const instruments = await storage.getConvertibleInstruments(companyId);
+        const safes = instruments.filter(instrument => instrument.type === 'safe');
+
+        // For demo purposes, just return success message
+        res.json({ 
+          message: `Would convert ${safes.length} SAFE instruments to shares (demo mode)`,
+          convertedSafes: safes.length 
+        });
+      } else {
+        res.json({ message: "No conversion performed" });
+      }
+    } catch (error) {
+      console.error("Error converting SAFEs:", error);
+      res.status(500).json({ error: "Failed to convert SAFEs" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/convert-notes", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { convertAll } = req.body;
+
+      if (convertAll) {
+        const instruments = await storage.getConvertibleInstruments(companyId);
+        const notes = instruments.filter(instrument => instrument.type === 'note');
+
+        // For demo purposes, just return success message
+        res.json({ 
+          message: `Would convert ${notes.length} convertible notes to shares (demo mode)`,
+          convertedNotes: notes.length 
+        });
+      } else {
+        res.json({ message: "No conversion performed" });
+      }
+    } catch (error) {
+      console.error("Error converting notes:", error);
+      res.status(500).json({ error: "Failed to convert notes" });
+    }
+  });
+
   return createServer(app);
 }

@@ -320,6 +320,15 @@ export const insertScenarioSchema = createInsertSchema(scenarios).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  roundAmount: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()),
+  premoney: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()),
 });
 
 // Types

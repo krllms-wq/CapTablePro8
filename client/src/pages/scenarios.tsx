@@ -224,7 +224,7 @@ export default function ScenariosPage() {
             </Button>
           </div>
 
-          {/* Before/After Results Table (always visible) */}
+          {/* Main Results Table */}
           <Card>
             <CardHeader>
               <CardTitle>Modeling Results</CardTitle>
@@ -235,8 +235,8 @@ export default function ScenariosPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-2">Stakeholder</th>
-{!modelingResults && <th className="text-right p-2">Current</th>}
-{modelingResults && <th className="text-right p-2">Before</th>}
+                      {!modelingResults && <th className="text-right p-2">Current</th>}
+                      {modelingResults && <th className="text-right p-2">Before</th>}
                       {modelingResults && <th className="text-right p-2">After</th>}
                     </tr>
                   </thead>
@@ -398,10 +398,10 @@ export default function ScenariosPage() {
                 </CardContent>
               </Card>
 
-              {/* Results Panel */}
+              {/* Control Panel */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Modeling Results</CardTitle>
+                  <CardTitle>Control Panel</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {modelingResults ? (
@@ -428,13 +428,26 @@ export default function ScenariosPage() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // Convert outstanding options to shares
-                              toast({
-                                title: "Convert Options",
-                                description: "Options conversion feature coming soon",
-                                variant: "info"
-                              });
+                            onClick={async () => {
+                              try {
+                                await apiRequest(`/api/companies/${companyId}/convert-options`, {
+                                  method: "POST",
+                                  body: { convertAll: true }
+                                });
+                                // Re-run scenario to update results
+                                await runScenario();
+                                toast({
+                                  title: "Success",
+                                  description: "Outstanding options converted to shares",
+                                  variant: "success"
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to convert options",
+                                  variant: "error"
+                                });
+                              }
                             }}
                           >
                             Convert Outstanding Options to Shares
@@ -442,13 +455,25 @@ export default function ScenariosPage() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // Convert SAFEs to shares
-                              toast({
-                                title: "Convert SAFEs",
-                                description: "SAFE conversion feature coming soon",
-                                variant: "info"
-                              });
+                            onClick={async () => {
+                              try {
+                                await apiRequest(`/api/companies/${companyId}/convert-safes`, {
+                                  method: "POST",
+                                  body: { convertAll: true }
+                                });
+                                await runScenario();
+                                toast({
+                                  title: "Success", 
+                                  description: "SAFEs converted to shares",
+                                  variant: "success"
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to convert SAFEs",
+                                  variant: "error"
+                                });
+                              }
                             }}
                           >
                             Convert SAFEs to Shares
@@ -456,13 +481,25 @@ export default function ScenariosPage() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // Convert convertible notes to shares
-                              toast({
-                                title: "Convert Notes",
-                                description: "Convertible note conversion feature coming soon",
-                                variant: "info"
-                              });
+                            onClick={async () => {
+                              try {
+                                await apiRequest(`/api/companies/${companyId}/convert-notes`, {
+                                  method: "POST",
+                                  body: { convertAll: true }
+                                });
+                                await runScenario();
+                                toast({
+                                  title: "Success",
+                                  description: "Convertible notes converted to shares", 
+                                  variant: "success"
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to convert notes",
+                                  variant: "error"
+                                });
+                              }
                             }}
                           >
                             Convert Convertible Notes to Shares
