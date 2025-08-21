@@ -1208,6 +1208,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Round modeling endpoint
+  app.post("/api/companies/:companyId/rounds/model", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { roundAmount, premoney, investors = [] } = req.body;
+
+      // Get current cap table data
+      const [stakeholders, shareLedger, equityAwards] = await Promise.all([
+        storage.getStakeholders(companyId),
+        storage.getShareLedgerEntries(companyId),
+        storage.getEquityAwards(companyId)
+      ]);
+
+      // Calculate current ownership (before round)
+      const ownershipMap = new Map();
+      
+      // Add shares
+      shareLedger.forEach(entry => {
+        const existing = ownershipMap.get(entry.holderId) || { shares: 0, options: 0 };
+        existing.shares += Number(entry.quantity);
+        ownershipMap.set(entry.holderId, existing);
+      });
+      
+      // Add outstanding options
+      equityAwards.forEach(award => {
+        const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+        if (outstanding > 0) {
+          const existing = ownershipMap.get(award.holderId) || { shares: 0, options: 0 };
+          existing.options += outstanding;
+          ownershipMap.set(award.holderId, existing);
+        }
+      });
+
+      const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+      const totalOptions = equityAwards.reduce((sum, award) => {
+        const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+        return sum + Math.max(0, outstanding);
+      }, 0);
+
+      // Before cap table
+      const beforeCapTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
+        const stakeholder = stakeholders.find(s => s.id === holderId);
+        const totalOutstanding = totalShares + totalOptions;
+        const ownership = totalOutstanding > 0 ? ((holdings.shares + holdings.options) / totalOutstanding) * 100 : 0;
+        
+        return {
+          stakeholder: { id: holderId, name: stakeholder?.name || "Unknown" },
+          shares: holdings.shares,
+          options: holdings.options,
+          ownership: ownership
+        };
+      });
+
+      // Calculate new shares to be issued
+      const pricePerShare = totalShares > 0 ? premoney / totalShares : 1;
+      const newShares = Math.round(roundAmount / pricePerShare);
+      const postMoneyValuation = premoney + roundAmount;
+
+      // After cap table (with new investment)
+      const afterOwnershipMap = new Map(ownershipMap);
+      
+      // Add new investors
+      investors.forEach((investor: any) => {
+        if (investor.name && investor.amount > 0) {
+          const investorShares = Math.round(investor.amount / pricePerShare);
+          afterOwnershipMap.set(`new-investor-${investor.name}`, {
+            shares: investorShares,
+            options: 0
+          });
+        }
+      });
+
+      const totalSharesAfter = totalShares + newShares;
+      const totalOutstandingAfter = totalSharesAfter + totalOptions;
+
+      const afterCapTable = Array.from(afterOwnershipMap.entries()).map(([holderId, holdings]) => {
+        let stakeholderName = "Unknown";
+        
+        if (holderId.startsWith('new-investor-')) {
+          stakeholderName = holderId.replace('new-investor-', '');
+        } else {
+          const stakeholder = stakeholders.find(s => s.id === holderId);
+          stakeholderName = stakeholder?.name || "Unknown";
+        }
+        
+        const ownership = totalOutstandingAfter > 0 ? ((holdings.shares + holdings.options) / totalOutstandingAfter) * 100 : 0;
+        
+        return {
+          stakeholder: { id: holderId, name: stakeholderName },
+          shares: holdings.shares,
+          options: holdings.options,
+          ownership: ownership
+        };
+      });
+
+      res.json({
+        beforeCapTable,
+        afterCapTable,
+        newShares,
+        totalRaised: roundAmount,
+        postMoneyValuation,
+        pricePerShare
+      });
+    } catch (error) {
+      console.error("Error modeling round:", error);
+      res.status(500).json({ error: "Failed to model round" });
+    }
+  });
+
   // Rich demo seeding endpoint
   app.post("/api/companies/:companyId/seed-rich-demo", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
