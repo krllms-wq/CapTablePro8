@@ -157,11 +157,17 @@ export default function ScenariosPage() {
         body: {
           roundAmount: parseFloat(roundAmountValue.toString().replace(/,/g, '')),
           premoney: parseFloat(premoneyValue.toString().replace(/,/g, '')),
-          investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
+          investors: investors.filter(inv => inv.name && inv.investmentAmount > 0).map(inv => ({
+            name: inv.name,
+            amount: inv.investmentAmount
+          }))
         },
       });
 
       const results = response;
+      console.log("Modeling results received:", results);
+      console.log("Before cap table:", results?.beforeCapTable);
+      console.log("After cap table:", results?.afterCapTable);
       setModelingResults(results);
       
       toast({
@@ -229,7 +235,8 @@ export default function ScenariosPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-2">Stakeholder</th>
-                      <th className="text-right p-2">Current</th>
+{!modelingResults && <th className="text-right p-2">Current</th>}
+{modelingResults && <th className="text-right p-2">Before</th>}
                       {modelingResults && <th className="text-right p-2">After</th>}
                     </tr>
                   </thead>
@@ -463,34 +470,51 @@ export default function ScenariosPage() {
                         </div>
                       </div>
                       
-                      {/* Before/After Comparison */}
+                      {/* Combined Before/After Table */}
                       <div className="space-y-4">
                         <div className="text-sm font-medium text-neutral-700">Cap Table Before & After</div>
-                        
-                        {/* Before */}
-                        <div>
-                          <div className="text-xs font-medium text-neutral-500 mb-2">BEFORE</div>
-                          <div className="space-y-1">
-                            {modelingResults.beforeCapTable?.map((row: any, index: number) => (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span>{row.stakeholder?.name}</span>
-                                <span>{row.ownership?.toFixed(1)}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* After */}
-                        <div>
-                          <div className="text-xs font-medium text-neutral-500 mb-2">AFTER</div>
-                          <div className="space-y-1">
-                            {modelingResults.afterCapTable?.map((row: any, index: number) => (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span>{row.stakeholder?.name}</span>
-                                <span>{row.ownership?.toFixed(1)}%</span>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full table-auto border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-2">Stakeholder</th>
+                                <th className="text-right p-2">Before</th>
+                                <th className="text-right p-2">After</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(() => {
+                                // Create a map of all stakeholders from both before and after
+                                const allStakeholders = new Map();
+                                
+                                // Add all from before
+                                (modelingResults?.beforeCapTable || []).forEach((row: any) => {
+                                  allStakeholders.set(row.stakeholder?.id || row.stakeholder?.name, {
+                                    name: row.stakeholder?.name || 'Unknown',
+                                    before: row.ownership || 0,
+                                    after: 0
+                                  });
+                                });
+                                
+                                // Add/update from after
+                                (modelingResults?.afterCapTable || []).forEach((row: any) => {
+                                  const key = row.stakeholder?.id || row.stakeholder?.name;
+                                  const existing = allStakeholders.get(key) || { name: row.stakeholder?.name || 'Unknown', before: 0, after: 0 };
+                                  existing.after = row.ownership || 0;
+                                  allStakeholders.set(key, existing);
+                                });
+                                
+                                // Convert to array and render
+                                return Array.from(allStakeholders.entries()).map(([key, stakeholder]) => (
+                                  <tr key={key} className="border-b">
+                                    <td className="p-2 font-medium">{stakeholder.name}</td>
+                                    <td className="text-right p-2">{stakeholder.before.toFixed(1)}%</td>
+                                    <td className="text-right p-2 font-semibold">{stakeholder.after.toFixed(1)}%</td>
+                                  </tr>
+                                ));
+                              })()}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
