@@ -20,6 +20,7 @@ interface CapTableRow {
 
 interface CapTableMainProps {
   capTable?: CapTableRow[];
+  convertibles?: Array<{ id: string; type: string; holderName: string; principal: number; framework?: string; discountRate?: number; valuationCap?: number; issueDate: string }>;
   isLoading: boolean;
 }
 
@@ -127,7 +128,7 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
   );
 }
 
-export default function CapTableMain({ capTable, isLoading }: CapTableMainProps) {
+export default function CapTableMain({ capTable, convertibles, isLoading }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
   const [mode, setMode] = useState<"current" | "historical">("current");
 
@@ -370,6 +371,84 @@ export default function CapTableMain({ capTable, isLoading }: CapTableMainProps)
         </div>
       ) : (
         <HistoricalCapTable capTable={capTable} />
+      )}
+
+      {/* Convertible Instruments Section */}
+      {convertibles && convertibles.length > 0 && (
+        <div className="border-t border-neutral-200">
+          <div className="px-6 py-4 bg-neutral-50">
+            <h4 className="text-md font-semibold text-neutral-900">Convertible Instruments</h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-25">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Holder
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Principal
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Valuation Cap
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Discount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Issue Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200">
+                {convertibles.map((instrument, index) => (
+                  <tr key={index} className="hover:bg-neutral-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mr-3">
+                          <i className="fas fa-file-contract text-sm"></i>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-neutral-900">{instrument.holderName}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        instrument.type === 'safe' ? 'bg-orange-100 text-orange-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {instrument.type === 'safe' ? 'SAFE' : 'Convertible Note'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="text-sm font-medium text-neutral-900">
+                        {formatCurrency(instrument.principal)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="text-sm text-neutral-600">
+                        {instrument.valuationCap ? formatCurrency(instrument.valuationCap) : '—'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="text-sm text-neutral-600">
+                        {instrument.discountRate ? `${(instrument.discountRate * 100).toFixed(0)}%` : '—'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-neutral-600">
+                        {new Date(instrument.issueDate).toLocaleDateString()}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

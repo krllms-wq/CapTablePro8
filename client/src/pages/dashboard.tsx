@@ -24,7 +24,8 @@ export default function Dashboard() {
 
   const { data: capTableData, isLoading: capTableLoading } = useQuery<{
     stats: { totalShares: number; totalOptions: number; totalConvertibles: number; stakeholderCount: number };
-    capTable: Array<{ stakeholder: string; shares: number; options: number; percentage: string; value: number }>;
+    capTable: Array<{ stakeholder: string; shares: number; options: number; convertibles?: number; percentage: string; value: number }>;
+    convertibles: Array<{ id: string; type: string; holderName: string; principal: number; framework?: string; discountRate?: number; valuationCap?: number; issueDate: string }>;
   }>({
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId,
@@ -124,8 +125,10 @@ export default function Dashboard() {
             securityClass: { name: "Common Stock" }, // Default security class
             shares: row.shares,
             ownership: parseFloat(row.percentage),
-            value: row.value
+            value: row.value,
+            convertibles: row.convertibles || 0
           })) || []} 
+          convertibles={capTableData?.convertibles || []}
           isLoading={capTableLoading}
         />
 

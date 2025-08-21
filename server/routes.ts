@@ -1019,6 +1019,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      // Add convertible instruments (SAFEs, Notes) to the ownership map
+      convertibles.forEach(convertible => {
+        const principal = Number(convertible.principal || 0);
+        if (principal > 0) {
+          const existing = ownershipMap.get(convertible.holderId) || { shares: 0, options: 0, convertibles: 0 };
+          existing.convertibles += principal;
+          ownershipMap.set(convertible.holderId, existing);
+        }
+      });
+
       // Build cap table with corrected ownership percentages
       const capTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
         const stakeholder = stakeholders.find(s => s.id === holderId);
@@ -1046,9 +1056,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stakeholderId: holderId,
           shares: holdings.shares,
           options: holdings.options,
+          convertibles: holdings.convertibles || 0,
           percentage: fullyDilutedPercentage.toFixed(2),
           currentValue: currentValue,
           fullyDilutedValue: fullyDilutedValue
+        };
+      });
+
+      // Also add detailed convertibles data with stakeholder names
+      const convertiblesWithNames = convertibles.map(convertible => {
+        const stakeholder = stakeholders.find(s => s.id === convertible.holderId);
+        return {
+          ...convertible,
+          holderName: stakeholder?.name || 'Unknown'
         };
       });
 
@@ -1067,6 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rsuInclusionMode: 'granted'
         },
         capTable,
+        convertibles: convertiblesWithNames,
         valuationInfo: {
           pricePerShare: valuationResult.pricePerShare,
           sharesOutstanding: valuationResult.sharesOutstanding,
@@ -1460,10 +1481,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const instruments = await storage.getConvertibleInstruments(companyId);
         const safes = instruments.filter(instrument => instrument.type === 'safe');
 
-        // For demo purposes, just return success message
+        // Implement actual SAFE conversion
+        let convertedCount = 0;
+        
+        for (const safe of safes) {
+          const principal = Number(safe.principal || 0);
+          const valuationCap = Number(safe.valuationCap || 0);
+          
+          if (principal > 0) {
+            // Simple conversion using valuation cap (if available) or $1 per share fallback
+            const conversionPrice = valuationCap > 0 ? valuationCap / Math.max(totalShares, 1000000) : 1.0;
+            const sharesIssued = Math.round(principal / conversionPrice);
+            
+            // Issue shares to SAFE holder
+            const stakeholder = stakeholders.find(s => s.id === safe.holderId);
+            if (stakeholder) {
+              // Get security classes to find common stock
+              const securityClasses = await storage.getSecurityClasses(companyId);
+              const commonStock = securityClasses.find(sc => sc.name?.toLowerCase().includes('common'));
+              
+              if (commonStock) {
+                // Create share ledger entry
+                await storage.createShareLedgerEntry({
+                  companyId,
+                  securityClassId: commonStock.id,
+                  holderId: safe.holderId,
+                  transactionType: 'issuance',
+                  quantity: sharesIssued,
+                  pricePerShare: conversionPrice,
+                  consideration: principal,
+                  transactionDate: new Date(),
+                  notes: `SAFE conversion: $${principal} principal converted at $${conversionPrice.toFixed(4)} per share`
+                });
+
+                // Delete the converted SAFE
+                await storage.deleteConvertibleInstrument(safe.id);
+                convertedCount++;
+
+                // Log the conversion
+                await logTransactionEvent({
+                  companyId,
+                  actorId: req.user!.id,
+                  event: "transaction.safe_converted",
+                  stakeholderName: stakeholder.name,
+                  details: {
+                    principal,
+                    conversionPrice,
+                    sharesIssued,
+                    framework: safe.framework
+                  }
+                });
+              }
+            }
+          }
+        }
+
         res.json({ 
-          message: `Would convert ${safes.length} SAFE instruments to shares (demo mode)`,
-          convertedSafes: safes.length 
+          message: `Successfully converted ${convertedCount} SAFE instruments to shares`,
+          convertedSafes: convertedCount 
         });
       } else {
         res.json({ message: "No conversion performed" });
