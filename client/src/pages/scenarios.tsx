@@ -288,7 +288,55 @@ export default function ScenariosPage() {
             </CardContent>
           </Card>
 
-
+          {/* SAFE Conversion Information */}
+          {modelingResults?.safeConversions && (
+            <Card>
+              <CardHeader>
+                <CardTitle>SAFE Conversions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-neutral-600">Total SAFEs Converted</p>
+                      <p className="font-semibold">{modelingResults.safeConversions.totalConverted}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-neutral-600">Total Principal</p>
+                      <p className="font-semibold">${formatNumber(modelingResults.safeConversions.totalPrincipal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-neutral-600">Shares Issued</p>
+                      <p className="font-semibold">{formatNumber(modelingResults.safeConversions.totalShares)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-auto border-collapse">
+                      <thead>
+                        <tr className="border-b bg-neutral-50">
+                          <th className="text-left p-2">SAFE Holder</th>
+                          <th className="text-right p-2">Principal</th>
+                          <th className="text-right p-2">Conversion Price</th>
+                          <th className="text-right p-2">Shares</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {modelingResults.safeConversions.conversions.map((conversion: any, index: number) => (
+                          <tr key={index} className="border-b">
+                            <td className="p-2">{conversion.holderName}</td>
+                            <td className="text-right p-2">${formatNumber(conversion.principal)}</td>
+                            <td className="text-right p-2">${conversion.conversionPrice.toFixed(4)}</td>
+                            <td className="text-right p-2">{formatNumber(conversion.shares)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {!showSavedScenarios ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

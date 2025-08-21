@@ -1214,11 +1214,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { companyId } = req.params;
       const { roundAmount, premoney, investors = [] } = req.body;
 
-      // Get current cap table data
-      const [stakeholders, shareLedger, equityAwards] = await Promise.all([
+      // Get current cap table data including SAFEs
+      const [stakeholders, shareLedger, equityAwards, convertibles] = await Promise.all([
         storage.getStakeholders(companyId),
         storage.getShareLedgerEntries(companyId),
-        storage.getEquityAwards(companyId)
+        storage.getEquityAwards(companyId),
+        storage.getConvertibleInstruments(companyId)
       ]);
 
       // Calculate current ownership (before round)
@@ -1266,6 +1267,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newShares = Math.round(roundAmount / pricePerShare);
       const postMoneyValuation = premoney + roundAmount;
 
+      // Handle SAFE conversions during priced round
+      const safeInstruments = convertibles.filter(c => c.type === 'safe');
+      let totalSafeShares = 0;
+      const safeConversions = [];
+
+      for (const safe of safeInstruments) {
+        const principal = Number(safe.principal || 0);
+        const valuationCap = Number(safe.valuationCap || 0);
+        const discountRate = Number(safe.discountRate || 0);
+
+        if (principal > 0) {
+          // Calculate conversion price using the lower of valuation cap or discounted round price
+          let conversionPrice = pricePerShare;
+          
+          // Apply discount if specified
+          if (discountRate > 0) {
+            const discountedPrice = pricePerShare * (1 - discountRate);
+            conversionPrice = Math.min(conversionPrice, discountedPrice);
+          }
+          
+          // Apply valuation cap if specified
+          if (valuationCap > 0) {
+            const capPrice = valuationCap / totalShares; // Price based on valuation cap
+            conversionPrice = Math.min(conversionPrice, capPrice);
+          }
+
+          const safeShares = Math.round(principal / conversionPrice);
+          totalSafeShares += safeShares;
+          
+          safeConversions.push({
+            holderId: safe.holderId,
+            principal,
+            conversionPrice,
+            shares: safeShares
+          });
+
+          // Add SAFE holder to after ownership map
+          const existing = afterOwnershipMap.get(safe.holderId) || { shares: 0, options: 0 };
+          existing.shares += safeShares;
+          afterOwnershipMap.set(safe.holderId, existing);
+        }
+      }
+
       // After cap table (with new investment)
       const afterOwnershipMap = new Map(ownershipMap);
       
@@ -1280,7 +1324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      const totalSharesAfter = totalShares + newShares;
+      const totalSharesAfter = totalShares + newShares + totalSafeShares;
       const totalOutstandingAfter = totalSharesAfter + totalOptions;
 
       const afterCapTable = Array.from(afterOwnershipMap.entries()).map(([holderId, holdings]) => {
@@ -1314,7 +1358,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newShares,
         totalRaised: roundAmount,
         postMoneyValuation,
-        pricePerShare
+        pricePerShare,
+        safeConversions: safeConversions.length > 0 ? {
+          totalConverted: safeConversions.length,
+          totalPrincipal: safeConversions.reduce((sum, conv) => sum + conv.principal, 0),
+          totalShares: totalSafeShares,
+          conversions: safeConversions.map(conv => ({
+            holderId: conv.holderId,
+            holderName: stakeholders.find(s => s.id === conv.holderId)?.name || 'Unknown',
+            principal: conv.principal,
+            conversionPrice: conv.conversionPrice,
+            shares: conv.shares
+          }))
+        } : null
       });
     } catch (error) {
       console.error("Error modeling round:", error);
