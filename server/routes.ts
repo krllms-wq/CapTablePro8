@@ -1011,9 +1011,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stakeholder = stakeholders.find(s => s.id === holderId);
         
         // Calculate ownership based on fully diluted shares (corrected math)
-        const fullyDilutedPercentage = valuationResult.fullyDilutedShares > 0 
+        // If no valuation/rounds, use simple outstanding shares calculation
+        const totalOutstandingShares = totalShares + totalOptionsOutstanding;
+        const fullyDilutedPercentage = (valuationResult.fullyDilutedShares > 0) 
           ? ((holdings.shares + holdings.options) / valuationResult.fullyDilutedShares) * 100 
-          : 0;
+          : (totalOutstandingShares > 0) 
+            ? ((holdings.shares + holdings.options) / totalOutstandingShares) * 100
+            : 0;
         
         // Calculate value based on current valuation
         const currentValue = valuationResult.pricePerShare 
