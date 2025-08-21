@@ -45,7 +45,7 @@ export function formatMoney(amount: number | string, currency: string = '$'): st
 
 /**
  * Format percentage with specified decimal places
- * @param value - Percentage value (as decimal, e.g., 0.25 for 25%)
+ * @param value - Percentage value (already as percentage, e.g., 60.00 for 60%)
  * @param decimals - Number of decimal places (default: 2)
  * @returns Formatted percentage string
  */
@@ -53,7 +53,9 @@ export function formatPercentage(value: number | string, decimals: number = 2): 
   const num = typeof value === 'string' ? parseNumberLoose(value) : value;
   if (isNaN(num)) return '0%';
   
-  return `${(num * 100).toFixed(decimals)}%`;
+  // Server already returns percentages as numbers (60.00, not 0.60)
+  // so we just need to add the % sign, no multiplication needed
+  return `${num.toFixed(decimals)}%`;
 }
 
 /**
