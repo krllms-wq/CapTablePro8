@@ -1305,7 +1305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const afterOwnershipMap = new Map(ownershipMap);
 
       // Handle SAFE conversions during priced round
-      const safeInstruments = convertibles.filter(c => c.type === 'safe');
+      const safeInstruments = convertibles.filter(c => c.type?.toLowerCase() === 'safe');
       let totalSafeShares = 0;
       const safeConversions = [];
 
@@ -1313,6 +1313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const principal = Number(safe.principal || 0);
         const valuationCap = Number(safe.valuationCap || 0);
         const discountRate = Number(safe.discountRate || 0);
+        
+        console.log(`Processing SAFE for ${safe.holderId}: principal=${principal}, cap=${valuationCap}, discount=${discountRate}`);
 
         if (principal > 0) {
           // Calculate conversion price using the lower of valuation cap or discounted round price
