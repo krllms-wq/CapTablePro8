@@ -26,11 +26,9 @@ export function formatPercentage(value: number | string | null | undefined): str
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   if (numValue == null || isNaN(numValue)) return '-';
   
-  return new Intl.NumberFormat('en-US', {
-    style: 'percent',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numValue / 100);
+  // Server already returns percentages as numbers (60.00, not 0.60)
+  // so we just need to add the % sign, no division needed
+  return `${numValue.toFixed(2)}%`;
 }
 
 export function formatDate(date: Date | string | null | undefined): string {
