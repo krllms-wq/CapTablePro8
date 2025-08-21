@@ -108,12 +108,23 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
           throw new Error("Stakeholder name is required");
         }
         
-        const stakeholder = await createStakeholderMutation.mutateAsync({
-          name: newStakeholder.name,
-          email: newStakeholder.email || null,
-          type: newStakeholder.type,
-        });
-        holderId = stakeholder.id;
+        // Check if stakeholder with same name already exists
+        const existingStakeholder = stakeholders.find(s => 
+          s.name.toLowerCase().trim() === newStakeholder.name.toLowerCase().trim()
+        );
+        
+        if (existingStakeholder) {
+          // Use existing stakeholder instead of creating a new one
+          holderId = existingStakeholder.id;
+        } else {
+          // Create new stakeholder
+          const stakeholder = await createStakeholderMutation.mutateAsync({
+            name: newStakeholder.name,
+            email: newStakeholder.email || null,
+            type: newStakeholder.type,
+          });
+          holderId = stakeholder.id;
+        }
       }
 
       // Create the SAFE agreement

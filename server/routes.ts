@@ -1428,5 +1428,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clean up duplicate stakeholders endpoint
+  app.post("/api/companies/:companyId/cleanup-duplicates", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      
+      const stakeholders = await storage.getStakeholders(companyId);
+      const duplicateGroups = new Map();
+      
+      // Group stakeholders by name (case-insensitive)
+      stakeholders.forEach(stakeholder => {
+        const normalizedName = stakeholder.name.toLowerCase().trim();
+        if (!duplicateGroups.has(normalizedName)) {
+          duplicateGroups.set(normalizedName, []);
+        }
+        duplicateGroups.get(normalizedName).push(stakeholder);
+      });
+      
+      let duplicatesFound = 0;
+      let duplicatesRemoved = 0;
+      
+      // Process each group to remove duplicates
+      for (const [name, group] of duplicateGroups.entries()) {
+        if (group.length > 1) {
+          duplicatesFound += group.length - 1;
+          
+          // Keep the first one, remove the rest
+          const [keep, ...remove] = group;
+          
+          for (const duplicate of remove) {
+            // Only remove if they have no transactions or shares
+            const shareEntries = await storage.getShareLedgerByHolderId(companyId, duplicate.id);
+            const equityAwards = await storage.getEquityAwards(companyId);
+            const holderAwards = equityAwards.filter(award => award.holderId === duplicate.id);
+            
+            if (shareEntries.length === 0 && holderAwards.length === 0) {
+              await storage.deleteStakeholder(duplicate.id);
+              duplicatesRemoved++;
+            }
+          }
+        }
+      }
+      
+      res.json({ 
+        message: `Found ${duplicatesFound} duplicates, removed ${duplicatesRemoved} unused duplicates`,
+        duplicatesFound,
+        duplicatesRemoved
+      });
+      
+    } catch (error) {
+      console.error("Error cleaning up duplicates:", error);
+      res.status(500).json({ error: "Failed to clean up duplicates" });
+    }
+  });
+
   return createServer(app);
 }
