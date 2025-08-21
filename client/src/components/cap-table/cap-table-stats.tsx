@@ -51,43 +51,33 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
 
   const statCards = [
     {
-      title: "Total Shares Outstanding",
+      title: "Shares Outstanding",
+      shortTitle: "Shares",
       value: formatNumber(stats.totalShares),
-      icon: "fas fa-certificate",
-      iconColor: "text-primary",
-      bgColor: "bg-primary/10",
       tooltip: "Total issued and outstanding shares"
     },
     {
-      title: "Fully Diluted Shares",
+      title: "Fully Diluted Shares", 
+      shortTitle: "Fully Diluted",
       value: formatNumber(stats.fullyDilutedShares),
-      icon: "fas fa-expand-arrows-alt",
-      iconColor: "text-secondary", 
-      bgColor: "bg-secondary/10",
       tooltip: `Total shares assuming all options are exercised (${getRsuModeDescription(stats.rsuInclusionMode)})`
     },
     {
       title: "Current Valuation",
+      shortTitle: "Current Val.",
       value: formatValuation(stats.currentValuation),
-      icon: "fas fa-dollar-sign",
-      iconColor: "text-accent",
-      bgColor: "bg-accent/10",
       tooltip: stats.valuationSource || "Current company valuation based on latest pricing data"
     },
     {
       title: "Fully Diluted Valuation",
+      shortTitle: "FD Valuation", 
       value: formatValuation(stats.fullyDilutedValuation),
-      icon: "fas fa-expand-arrows-alt", 
-      iconColor: "text-green-600",
-      bgColor: "bg-green-100",
       tooltip: `Valuation assuming all options are exercised (${getRsuModeDescription(stats.rsuInclusionMode)})`
     },
     {
       title: "Option Pool Available",
+      shortTitle: "Option Pool",
       value: formatNumber(stats.optionPoolAvailable),
-      icon: "fas fa-gift",
-      iconColor: "text-purple-600",
-      bgColor: "bg-purple-100",
       tooltip: "Unallocated shares available for future equity grants"
     },
   ];
@@ -98,14 +88,20 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {statCards.map((card, index) => (
             <div key={index} className="p-6 border-r border-neutral-200 last:border-r-0 hover:bg-neutral-50/30 transition-colors">
-              <div className="text-left">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-                    {card.title}
-                  </p>
+              <div className="text-left h-full flex flex-col">
+                <div className="flex items-start justify-between mb-4 min-h-[2.5rem]">
+                  <div className="flex-1 pr-2">
+                    {/* Show short title on mobile, full title on larger screens */}
+                    <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide leading-tight block md:hidden">
+                      {card.shortTitle}
+                    </p>
+                    <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide leading-tight hidden md:block">
+                      {card.title}
+                    </p>
+                  </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-3.5 w-3.5 text-neutral-300 hover:text-neutral-500 cursor-help" />
+                      <HelpCircle className="h-3.5 w-3.5 text-neutral-300 hover:text-neutral-500 cursor-help flex-shrink-0 mt-0.5" />
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs text-xs">
                       <p>{card.tooltip}</p>
@@ -113,9 +109,11 @@ export default function CapTableStats({ stats, isLoading }: CapTableStatsProps) 
                   </Tooltip>
                 </div>
                 
-                <p className={`text-2xl font-bold leading-none ${card.value === 'N/A' ? 'text-neutral-300' : 'text-neutral-900'}`}>
-                  {card.value}
-                </p>
+                <div className="mt-auto">
+                  <p className={`text-2xl font-bold leading-none ${card.value === 'N/A' ? 'text-neutral-300' : 'text-neutral-900'}`}>
+                    {card.value}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
