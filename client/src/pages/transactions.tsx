@@ -76,35 +76,35 @@ export default function TransactionsPage() {
       name: "Issue Shares",
       description: "Issue common or preferred shares",
       icon: DollarSign,
-      color: "text-green-600"
+      color: "text-emerald-600"
     },
     {
       id: "options",
       name: "Grant Options",
       description: "Grant stock options or RSUs",
       icon: TrendingUp,
-      color: "text-blue-600"
+      color: "text-indigo-600"
     },
     {
       id: "safe",
       name: "SAFE Agreement",
       description: "Issue SAFE (Simple Agreement for Future Equity)",
       icon: Shield,
-      color: "text-purple-600"
+      color: "text-violet-600"
     },
     {
       id: "convertible",
       name: "Convertible Note",
       description: "Issue convertible debt instrument",
       icon: FileText,
-      color: "text-orange-600"
+      color: "text-amber-600"
     },
     {
       id: "secondary",
       name: "Secondary Transaction",
       description: "Transfer shares between stakeholders",
       icon: ArrowRightLeft,
-      color: "text-cyan-600"
+      color: "text-teal-600"
     }
   ];
 
@@ -180,21 +180,34 @@ export default function TransactionsPage() {
 
           {/* Transaction Type Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {transactionTypes.map((type) => (
-              <Card key={type.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedTransactionType(type.id)}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-neutral-100`}>
-                      <type.icon className={`h-5 w-5 ${type.color}`} />
+            {transactionTypes.map((type) => {
+              const getBgColor = (color: string) => {
+                switch(color) {
+                  case "text-emerald-600": return "bg-emerald-50 border-emerald-200";
+                  case "text-indigo-600": return "bg-indigo-50 border-indigo-200";
+                  case "text-violet-600": return "bg-violet-50 border-violet-200";
+                  case "text-amber-600": return "bg-amber-50 border-amber-200";
+                  case "text-teal-600": return "bg-teal-50 border-teal-200";
+                  default: return "bg-neutral-50 border-neutral-200";
+                }
+              };
+              
+              return (
+                <Card key={type.id} className={`hover:shadow-md transition-shadow cursor-pointer border-2 ${getBgColor(type.color)}`} onClick={() => setSelectedTransactionType(type.id)}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-white/70 backdrop-blur-sm">
+                        <type.icon className={`h-5 w-5 ${type.color}`} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">{type.name}</CardTitle>
+                        <p className="text-sm text-neutral-600 mt-1">{type.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-base">{type.name}</CardTitle>
-                      <p className="text-sm text-neutral-600 mt-1">{type.description}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
+                  </CardHeader>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Transactions Table */}
