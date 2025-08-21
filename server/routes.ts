@@ -1301,6 +1301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newShares = Math.round(roundAmount / pricePerShare);
       const postMoneyValuation = premoney + roundAmount;
 
+      // After cap table (with new investment) - initialize first
+      const afterOwnershipMap = new Map(ownershipMap);
+
       // Handle SAFE conversions during priced round
       const safeInstruments = convertibles.filter(c => c.type === 'safe');
       let totalSafeShares = 0;
@@ -1343,9 +1346,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           afterOwnershipMap.set(safe.holderId, existing);
         }
       }
-
-      // After cap table (with new investment)
-      const afterOwnershipMap = new Map(ownershipMap);
       
       // Add new investors  
       investors.forEach((investor: any) => {
