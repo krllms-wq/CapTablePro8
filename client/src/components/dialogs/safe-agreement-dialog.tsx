@@ -128,7 +128,7 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
           discountRate: data.discountRate ? data.discountRate.replace(/,/g, '') : null,
           interestRate: data.interestRate ? parseFloat(data.interestRate.replace(/,/g, '')) : null,
           issueDate: data.issueDate,
-          maturityDate: data.maturityDate || null,
+          maturityDate: data.maturityDate?.trim() || null,
         }
       });
     },

@@ -284,7 +284,17 @@ export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleI
   createdAt: true,
 }).extend({
   issueDate: z.union([z.date(), z.string()]).transform(transformDateInput),
-  maturityDate: z.union([z.date(), z.string()]).transform(transformDateInput).optional(),
+  maturityDate: z.union([
+    z.date(),
+    z.string(),
+    z.null(),
+    z.undefined()
+  ]).transform((val) => {
+    if (!val || val === null || val === undefined || val === '') {
+      return null;
+    }
+    return transformDateInput(val);
+  }).optional(),
   principal: z.union([
     z.number(),
     z.string().transform(str => parseFloat(str.replace(/,/g, '')))
