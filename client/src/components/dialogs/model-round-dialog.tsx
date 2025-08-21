@@ -78,6 +78,31 @@ interface RoundProjection {
   newShares: number;
   dilution: number;
   optionPoolShares?: number;
+  beforeCapTable: Array<{
+    stakeholder: { id: string; name: string };
+    shares: number;
+    options: number;
+    ownership: number;
+  }>;
+  afterCapTable: Array<{
+    stakeholder: { id: string; name: string };
+    shares: number;
+    options: number;
+    ownership: number;
+    isNewInvestor?: boolean;
+  }>;
+  safeConversions?: {
+    totalConverted: number;
+    totalPrincipal: number;
+    totalShares: number;
+    conversions: Array<{
+      holderId: string;
+      holderName: string;
+      principal: number;
+      conversionPrice: number;
+      shares: number;
+    }>;
+  } | null;
 }
 
 
@@ -131,13 +156,11 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
 
   const modelMutation = useMutation({
     mutationFn: async (data: ModelRoundFormData) => {
-      // Transform data for API
+      // Transform data for API - match the API parameters
       const payload = {
-        ...data,
-        raiseAmount: parseMoneyLoose(data.raiseAmount) || 0,
-        preMoneyValuation: data.preMoneyValuation ? parseMoneyLoose(data.preMoneyValuation) : undefined,
-        pricePerShare: data.pricePerShare ? parseMoneyLoose(data.pricePerShare) : undefined,
-        optionPoolIncrease: data.optionPoolIncrease ? parseFloat(data.optionPoolIncrease) / 100 : undefined,
+        roundAmount: parseMoneyLoose(data.raiseAmount) || 0,
+        premoney: data.preMoneyValuation ? parseMoneyLoose(data.preMoneyValuation) : undefined,
+        investors: [], // Can be enhanced to support adding investors in the form
       };
       return apiRequest(`/api/companies/${companyId}/rounds/model`, {
         method: "POST",
@@ -589,6 +612,48 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                     </div>
                   )}
                 </div>
+
+                {/* SAFE Conversions Display */}
+                {projection.safeConversions && (
+                  <div className="mt-6 pt-4 border-t">
+                    <h4 className="text-lg font-semibold mb-4">SAFE Conversions</h4>
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">SAFEs Converted</div>
+                        <div className="text-xl font-bold">{projection.safeConversions.totalConverted}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">Total Principal</div>
+                        <div className="text-xl font-bold">{formatCurrency(projection.safeConversions.totalPrincipal)}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">Shares Issued</div>
+                        <div className="text-xl font-bold">{projection.safeConversions.totalShares.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>SAFE Holder</TableHead>
+                          <TableHead>Principal</TableHead>
+                          <TableHead>Conversion Price</TableHead>
+                          <TableHead>Shares Received</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {projection.safeConversions.conversions.map((conversion, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{conversion.holderName}</TableCell>
+                            <TableCell>{formatCurrency(conversion.principal)}</TableCell>
+                            <TableCell>{formatCurrency(conversion.conversionPrice)}</TableCell>
+                            <TableCell>{conversion.shares.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button
