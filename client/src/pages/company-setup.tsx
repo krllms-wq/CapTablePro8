@@ -205,7 +205,7 @@ export default function CompanySetup() {
       toast({
         title: "Error",
         description: error?.message || "Failed to create company",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -269,7 +269,7 @@ export default function CompanySetup() {
       toast({
         title: "Error",
         description: error?.message || "Failed to add founder",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });

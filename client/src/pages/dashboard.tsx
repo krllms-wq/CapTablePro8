@@ -112,6 +112,7 @@ export default function Dashboard() {
             totalShares: capTableData.stats.totalShares,
             fullyDilutedShares: capTableData.stats.totalShares + capTableData.stats.totalOptions,
             currentValuation: 0, // Default valuation - can be enhanced later
+            fullyDilutedValuation: 0, // Default fully diluted valuation - can be enhanced later
             optionPoolAvailable: capTableData.stats.totalOptions
           } : undefined} 
           isLoading={capTableLoading} 

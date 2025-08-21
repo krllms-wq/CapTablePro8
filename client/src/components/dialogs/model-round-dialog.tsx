@@ -95,7 +95,11 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
   });
 
   // Get current cap table for display
-  const { data: capTableData } = useQuery({
+  const { data: capTableData } = useQuery<{
+    stats: { totalShares: number; totalOptions: number; totalConvertibles: number; stakeholderCount: number };
+    capTable: Array<{ stakeholder: string; shares: number; options: number; convertibles?: number; percentage: string; value: number }>;
+    convertibles: Array<{ id: string; type: string; holderName: string; principal: number; framework?: string; discountRate?: number; valuationCap?: number; issueDate: string }>;
+  }>({
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId && open,
   });
@@ -135,7 +139,10 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
         pricePerShare: data.pricePerShare ? parseMoneyLoose(data.pricePerShare) : undefined,
         optionPoolIncrease: data.optionPoolIncrease ? parseFloat(data.optionPoolIncrease) / 100 : undefined,
       };
-      return apiRequest("POST", `/api/companies/${companyId}/rounds/model`, payload);
+      return apiRequest(`/api/companies/${companyId}/rounds/model`, {
+        method: "POST",
+        body: payload,
+      });
     },
     onSuccess: (data: RoundProjection) => {
       setProjection(data);
@@ -144,7 +151,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
       toast({
         title: "Error",
         description: error.message || "Failed to model round",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -160,7 +167,10 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
         optionPoolIncrease: data.optionPoolIncrease ? parseFloat(data.optionPoolIncrease) / 100 : undefined,
         closeDate: new Date().toISOString(),
       };
-      return apiRequest("POST", `/api/companies/${companyId}/rounds`, payload);
+      return apiRequest(`/api/companies/${companyId}/rounds`, {
+        method: "POST",
+        body: payload,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
@@ -179,7 +189,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
       toast({
         title: "Error",
         description: error.message || "Failed to create round",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -206,7 +216,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
     const fromValuation = derivePpsFromValuation({ valuation: preMoney, preRoundFD });
     const fromConsideration = derivePpsFromConsideration({ 
       consideration: raiseAmount, 
-      quantity: raiseAmount && fromValuation?.pps ? raiseAmount / fromValuation.pps : undefined 
+      quantity: raiseAmount && fromValuation ? raiseAmount / fromValuation : undefined 
     });
     const overridePpsValue = overridePps ? parseMoneyLoose(current.pricePerShare) : undefined;
     
@@ -513,7 +523,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
               <CardTitle>Current Cap Table</CardTitle>
             </CardHeader>
             <CardContent>
-              {capTableData?.capTable ? (
+              {capTableData && capTableData.capTable ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
