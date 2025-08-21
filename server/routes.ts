@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logCompanyEvent({
         companyId: company.id,
         actorId: req.user!.id,
-        event: "company.deleted",
+        event: "company.updated",
         metadata: {
           companyName: company.name,
           deletedAt: new Date().toISOString()
@@ -1449,7 +1449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let duplicatesRemoved = 0;
       
       // Process each group to remove duplicates
-      for (const [name, group] of duplicateGroups.entries()) {
+      for (const [name, group] of Array.from(duplicateGroups.entries())) {
         if (group.length > 1) {
           duplicatesFound += group.length - 1;
           
@@ -1458,11 +1458,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           for (const duplicate of remove) {
             // Only remove if they have no transactions or shares
-            const shareEntries = await storage.getShareLedgerByHolderId(companyId, duplicate.id);
+            const shareEntries = await storage.getShareLedger(companyId);
+            const holderEntries = shareEntries.filter(entry => entry.holderId === duplicate.id);
             const equityAwards = await storage.getEquityAwards(companyId);
             const holderAwards = equityAwards.filter(award => award.holderId === duplicate.id);
             
-            if (shareEntries.length === 0 && holderAwards.length === 0) {
+            if (holderEntries.length === 0 && holderAwards.length === 0) {
               await storage.deleteStakeholder(duplicate.id);
               duplicatesRemoved++;
             }

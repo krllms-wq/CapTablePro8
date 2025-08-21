@@ -224,7 +224,7 @@ export default function CompanySetup() {
           name: data.name,
           email: data.email,
           title: data.title,
-          type: "person",
+          type: "individual",
         },
       });
       console.log("Created stakeholder:", stakeholder);

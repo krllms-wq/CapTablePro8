@@ -49,7 +49,7 @@ export default function StakeholdersPage() {
 
   const updateStakeholderMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/companies/${companyId}/stakeholders/${editingStakeholder?.id}`, {
+      return apiRequest(`/api/stakeholders/${editingStakeholder?.id}`, {
         method: "PUT",
         body: data
       });
