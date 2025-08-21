@@ -1034,13 +1034,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stakeholder = stakeholders.find(s => s.id === holderId);
         
         // Calculate ownership based on fully diluted shares (corrected math)
-        // If no valuation/rounds, use simple outstanding shares calculation
+        // Include convertibles in the diluted calculation
         const totalOutstandingShares = totalShares + totalOptionsOutstanding;
+        
+        // For stakeholders with only convertibles (no shares/options), show 0% until conversion
+        // This is standard cap table practice - convertibles show potential value but 0% current ownership
+        const currentOwnership = totalOutstandingShares > 0 
+          ? ((holdings.shares + holdings.options) / totalOutstandingShares) * 100
+          : 0;
+        
+        // Show fully diluted only if there are actual shares/options, not just convertibles
         const fullyDilutedPercentage = (valuationResult.fullyDilutedShares > 0) 
           ? ((holdings.shares + holdings.options) / valuationResult.fullyDilutedShares) * 100 
-          : (totalOutstandingShares > 0) 
-            ? ((holdings.shares + holdings.options) / totalOutstandingShares) * 100
-            : 0;
+          : currentOwnership;
         
         // Calculate value based on current valuation
         const currentValue = valuationResult.pricePerShare 
@@ -1057,7 +1063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           shares: holdings.shares,
           options: holdings.options,
           convertibles: holdings.convertibles || 0,
-          percentage: fullyDilutedPercentage.toFixed(2),
+          percentage: currentOwnership.toFixed(2),
           currentValue: currentValue,
           fullyDilutedValue: fullyDilutedValue
         };
