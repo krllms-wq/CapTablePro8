@@ -334,10 +334,7 @@ export default function CapTableMain({ capTable, isLoading }: CapTableMainProps)
                     {formatCurrency((row as any).investmentAmount || 0)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-semibold">
-                    {(() => {
-                      console.log(`Ownership value for ${row.stakeholder.name}:`, row.ownership, typeof row.ownership);
-                      return formatPercentage(row.ownership);
-                    })()}
+                    {formatPercentage(row.ownership)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
                     {formatCurrency(row.value)}

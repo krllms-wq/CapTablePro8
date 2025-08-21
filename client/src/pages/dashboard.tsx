@@ -123,7 +123,7 @@ export default function Dashboard() {
             stakeholder: { name: row.stakeholder },
             securityClass: { name: "Common Stock" }, // Default security class
             shares: row.shares,
-            ownership: parseFloat(row.percentage) / 100,
+            ownership: parseFloat(row.percentage),
             value: row.value
           })) || []} 
           isLoading={capTableLoading}
@@ -135,7 +135,7 @@ export default function Dashboard() {
             stakeholder: { name: row.stakeholder },
             securityClass: { name: "Common Stock" },
             shares: row.shares,
-            ownership: parseFloat(row.percentage) / 100,
+            ownership: parseFloat(row.percentage),
             value: row.value
           })) || []} />
           <RecentActivity companyId={companyId!} />
