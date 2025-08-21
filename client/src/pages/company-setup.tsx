@@ -138,7 +138,7 @@ export default function CompanySetup() {
       description: "",
       country: "US",
       incorporationDate: "",
-      authorizedShares: 10000000,
+      authorizedShares: undefined,
     },
   });
 
@@ -148,8 +148,8 @@ export default function CompanySetup() {
       name: "",
       email: "",
       title: "",
-      shares: 1000000,
-      percentage: 10,
+      shares: undefined,
+      percentage: undefined,
     },
   });
 

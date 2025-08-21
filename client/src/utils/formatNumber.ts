@@ -11,7 +11,7 @@ export interface FormatNumberOptions {
 }
 
 /**
- * Format a number with commas as thousand separators
+ * Format a number with spaces as thousand separators and dots for decimals
  */
 export function formatNumber(
   value: number | string,
@@ -21,13 +21,13 @@ export function formatNumber(
     minimumFractionDigits = 0,
     maximumFractionDigits = 2,
     style = 'decimal',
-    locale = 'en-US',
+    locale = 'fr-FR', // French locale uses spaces for thousands
     currency = 'USD'
   } = options;
 
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
-  if (isNaN(numValue)) return '0';
+  if (isNaN(numValue)) return '';
 
   const formatter = new Intl.NumberFormat(locale, {
     style,
@@ -36,7 +36,14 @@ export function formatNumber(
     maximumFractionDigits
   });
 
-  return formatter.format(numValue);
+  let formatted = formatter.format(numValue);
+  
+  // Replace comma with dot for decimal separator if using French locale
+  if (locale === 'fr-FR') {
+    formatted = formatted.replace(',', '.');
+  }
+
+  return formatted;
 }
 
 /**

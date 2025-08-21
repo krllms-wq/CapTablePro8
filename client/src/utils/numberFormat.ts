@@ -20,14 +20,15 @@ export function sanitizeNumberInput(value: string): string {
 }
 
 /**
- * Format number for display with commas
+ * Format number for display with spaces as thousands separator and dots for decimals
  * @param value - Number to format
- * @returns Formatted string with commas
+ * @returns Formatted string with spaces
  */
 export function formatNumber(value: number | string): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return '0';
-  return num.toLocaleString();
+  if (isNaN(num)) return '';
+  // Use French locale for space thousands separator, then replace comma with dot for decimal
+  return num.toLocaleString('fr-FR', { maximumFractionDigits: 2 }).replace(',', '.');
 }
 
 /**
@@ -49,21 +50,25 @@ export function handleNumberInput(value: string, onChange: (sanitized: string) =
 /**
  * Parse and validate quantity input (integer shares, options, etc.)
  * @param value - Input value
- * @returns Integer quantity
+ * @returns Integer quantity or undefined if invalid
  */
-export function parseQuantity(value: string | number): number {
+export function parseQuantity(value: string | number): number | undefined {
+  if (value === '' || value === null || value === undefined) return undefined;
   const sanitized = typeof value === 'string' ? sanitizeNumberInput(value) : value.toString();
+  if (sanitized === '') return undefined;
   const parsed = parseInt(sanitized);
-  return isNaN(parsed) ? 0 : Math.max(0, parsed);
+  return isNaN(parsed) ? undefined : Math.max(0, parsed);
 }
 
 /**
  * Parse and validate decimal input (prices, valuations, etc.)
  * @param value - Input value  
- * @returns Decimal value
+ * @returns Decimal value or undefined if invalid
  */
-export function parseDecimal(value: string | number): number {
+export function parseDecimal(value: string | number): number | undefined {
+  if (value === '' || value === null || value === undefined) return undefined;
   const sanitized = typeof value === 'string' ? sanitizeNumberInput(value) : value.toString();
+  if (sanitized === '') return undefined;
   const parsed = parseFloat(sanitized);
-  return isNaN(parsed) ? 0 : Math.max(0, parsed);
+  return isNaN(parsed) ? undefined : Math.max(0, parsed);
 }

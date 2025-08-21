@@ -43,11 +43,10 @@ export default function Dashboard() {
 
   if (companyLoading) {
     return (
-      <div className="min-h-screen bg-yellow-50 flex items-center justify-center">
-        <div className="text-center bg-yellow-100 p-8 rounded border">
-          <h2 className="text-2xl font-bold text-yellow-800">LOADING COMPANY...</h2>
-          <p className="text-yellow-700 mt-2">Company ID: {companyId}</p>
-          <p className="text-yellow-600 text-sm mt-2">If you see this, the page is working but still loading data.</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading...</p>
         </div>
       </div>
     );
