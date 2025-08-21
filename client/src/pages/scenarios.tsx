@@ -567,7 +567,7 @@ export default function ScenariosPage() {
                             size="sm"
                             onClick={async () => {
                               try {
-                                await apiRequest(`/api/companies/${companyId}/convert-safes`, {
+                                const response = await apiRequest(`/api/companies/${companyId}/convert-safes`, {
                                   method: "POST",
                                   body: { convertAll: true }
                                 });
@@ -576,11 +576,10 @@ export default function ScenariosPage() {
                                 queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
                                 queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "share-ledger"] });
                                 // Re-run scenario to update results
-                                await runScenario();
+                                await handleModelScenario();
                                 toast({
-                                  title: "Success", 
-                                  description: "SAFEs converted to shares",
-                                  variant: "success"
+                                  title: "SAFE Conversion", 
+                                  description: response.message || "SAFEs processed successfully"
                                 });
                               } catch (error: any) {
                                 console.error("Convert SAFEs error:", error);
