@@ -244,8 +244,8 @@ export default function ScenariosPage() {
                     {!modelingResults ? (
                       // Show current cap table only
                       (Array.isArray(capTable) ? capTable : capTable?.capTable || [])?.map((row: any) => (
-                        <tr key={row.stakeholder?.id || Math.random()} className="border-b">
-                          <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
+                        <tr key={row.stakeholderId || Math.random()} className="border-b">
+                          <td className="p-2">{row.stakeholder || 'Unknown'}</td>
                           <td className="text-right p-2">{parseFloat(row.percentage || "0").toFixed(1)}%</td>
                         </tr>
                       ))
