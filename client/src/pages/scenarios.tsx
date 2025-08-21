@@ -56,6 +56,11 @@ export default function ScenariosPage() {
     enabled: !!companyId,
   });
 
+  const { data: convertibles } = useQuery({
+    queryKey: ["/api/companies", companyId, "convertibles"],
+    enabled: !!companyId,
+  });
+
   const saveScenarioMutation = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest(`/api/companies/${companyId}/scenarios`, {
@@ -288,6 +293,50 @@ export default function ScenariosPage() {
             </CardContent>
           </Card>
 
+          {/* Existing Instruments */}
+          {convertibles && convertibles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Existing Convertible Instruments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full table-auto border-collapse">
+                    <thead>
+                      <tr className="border-b bg-neutral-50">
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Holder</th>
+                        <th className="text-right p-2">Principal</th>
+                        <th className="text-right p-2">Valuation Cap</th>
+                        <th className="text-right p-2">Discount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {convertibles.map((instrument: any, index: number) => (
+                        <tr key={index} className="border-b">
+                          <td className="p-2 capitalize font-medium">
+                            {instrument.type === 'safe' ? 'SAFE' : instrument.type}
+                          </td>
+                          <td className="p-2">{instrument.holderName || 'Unknown'}</td>
+                          <td className="text-right p-2">${formatNumber(instrument.principal || 0)}</td>
+                          <td className="text-right p-2">
+                            {instrument.valuationCap ? `$${formatNumber(instrument.valuationCap)}` : 'N/A'}
+                          </td>
+                          <td className="text-right p-2">
+                            {instrument.discountRate ? `${instrument.discountRate}%` : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 text-sm text-neutral-600">
+                  These instruments will automatically convert during priced funding rounds based on their terms.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* SAFE Conversion Information */}
           {modelingResults?.safeConversions && (
             <Card>
@@ -509,16 +558,22 @@ export default function ScenariosPage() {
                                   method: "POST",
                                   body: { convertAll: true }
                                 });
+                                // Invalidate queries to refresh data
+                                queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "convertibles"] });
+                                queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
+                                queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "share-ledger"] });
+                                // Re-run scenario to update results
                                 await runScenario();
                                 toast({
                                   title: "Success", 
                                   description: "SAFEs converted to shares",
                                   variant: "success"
                                 });
-                              } catch (error) {
+                              } catch (error: any) {
+                                console.error("Convert SAFEs error:", error);
                                 toast({
                                   title: "Error",
-                                  description: "Failed to convert SAFEs",
+                                  description: error?.message || "Failed to convert SAFEs",
                                   variant: "error"
                                 });
                               }
