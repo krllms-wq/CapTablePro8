@@ -1481,9 +1481,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const instruments = await storage.getConvertibleInstruments(companyId);
         const safes = instruments.filter(instrument => instrument.type === 'safe');
 
-        // Implement actual SAFE conversion
-        let convertedCount = 0;
-        const conversions = [];
+        // Simulate SAFE conversion for scenario modeling only
+        const simulations = [];
         
         for (const safe of safes) {
           const principal = Number(safe.principal || 0);
@@ -1491,14 +1490,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const discountRate = Number(safe.discountRate || 0);
           
           if (principal > 0) {
-            // Get current share ledger to calculate total outstanding shares
-            const shareLedger = await storage.getShareLedgerEntries(companyId);
-            const totalShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
-            
-            // Simple conversion using valuation cap
+            // Calculate theoretical conversion for display purposes only
             let conversionPrice = 1.0; // fallback
-            if (valuationCap > 0 && totalShares > 0) {
-              conversionPrice = valuationCap / totalShares;
+            if (valuationCap > 0) {
+              conversionPrice = valuationCap / 5000000; // Use example total shares
             }
             
             // Apply discount if available
@@ -1508,40 +1503,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             const sharesIssued = Math.round(principal / conversionPrice);
             
-            // Get security classes to find common stock
-            const securityClasses = await storage.getSecurityClasses(companyId);
-            const commonStock = securityClasses.find(sc => sc.name?.toLowerCase().includes('common'));
-            
-            if (commonStock) {
-              // Create share ledger entry for the new shares
-              await storage.createShareLedgerEntry({
-                companyId,
-                classId: commonStock.id,
-                holderId: safe.holderId,
-                quantity: sharesIssued,
-                issueDate: new Date().toISOString(),
-                consideration: principal,
-                sourceTransactionId: safe.id
-              });
-              
-              // Remove the converted SAFE
-              await storage.deleteConvertibleInstrument(safe.id);
-              
-              conversions.push({
-                holder: safe.holderId,
-                principal,
-                conversionPrice,
-                shares: sharesIssued
-              });
-              convertedCount++;
-            }
+            simulations.push({
+              holder: safe.holderId,
+              principal,
+              conversionPrice,
+              shares: sharesIssued
+            });
           }
         }
         
         res.json({ 
-          message: `Successfully converted ${convertedCount} SAFE instruments to shares`,
-          convertedSafes: convertedCount,
-          conversions
+          message: `Simulated conversion of ${safes.length} SAFE instruments (scenario only)`,
+          convertedSafes: safes.length,
+          simulations,
+          note: "This is a simulation - actual SAFEs remain unchanged"
         });
       } else {
         res.json({ message: "No conversion performed" });
