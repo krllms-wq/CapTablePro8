@@ -1269,11 +1269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // After cap table (with new investment)
       const afterOwnershipMap = new Map(ownershipMap);
       
-      // Add new investors
+      // Add new investors  
       investors.forEach((investor: any) => {
         if (investor.name && investor.amount > 0) {
           const investorShares = Math.round(investor.amount / pricePerShare);
-          afterOwnershipMap.set(`new-investor-${investor.name}`, {
+          afterOwnershipMap.set(investor.name, {
             shares: investorShares,
             options: 0
           });
@@ -1285,12 +1285,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const afterCapTable = Array.from(afterOwnershipMap.entries()).map(([holderId, holdings]) => {
         let stakeholderName = "Unknown";
+        let isNewInvestor = false;
         
-        if (holderId.startsWith('new-investor-')) {
-          stakeholderName = holderId.replace('new-investor-', '');
+        // Check if this is a new investor (not found in existing stakeholders)
+        const existingStakeholder = stakeholders.find(s => s.id === holderId);
+        if (existingStakeholder) {
+          stakeholderName = existingStakeholder.name;
         } else {
-          const stakeholder = stakeholders.find(s => s.id === holderId);
-          stakeholderName = stakeholder?.name || "Unknown";
+          // This must be a new investor
+          stakeholderName = holderId;
+          isNewInvestor = true;
         }
         
         const ownership = totalOutstandingAfter > 0 ? ((holdings.shares + holdings.options) / totalOutstandingAfter) * 100 : 0;
@@ -1299,7 +1303,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stakeholder: { id: holderId, name: stakeholderName },
           shares: holdings.shares,
           options: holdings.options,
-          ownership: ownership
+          ownership: ownership,
+          isNewInvestor
         };
       });
 

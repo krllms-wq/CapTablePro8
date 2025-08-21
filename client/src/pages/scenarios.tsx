@@ -239,23 +239,41 @@ export default function ScenariosPage() {
                       (Array.isArray(capTable) ? capTable : capTable?.capTable || [])?.map((row: any) => (
                         <tr key={row.stakeholder?.id || Math.random()} className="border-b">
                           <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
-                          <td className="text-right p-2">{(row.ownership || 0).toFixed(2)}%</td>
+                          <td className="text-right p-2">{parseFloat(row.percentage || "0").toFixed(1)}%</td>
                         </tr>
                       ))
                     ) : (
-                      // Show before and after results
-                      (modelingResults?.afterCapTable || []).map((row: any) => {
-                        const beforeRow = (modelingResults?.beforeCapTable || []).find((b: any) => 
-                          b.stakeholder?.id === row.stakeholder?.id
-                        );
-                        return (
-                          <tr key={row.stakeholder?.id || Math.random()} className="border-b">
-                            <td className="p-2">{row.stakeholder?.name || 'Unknown'}</td>
-                            <td className="text-right p-2">{(beforeRow?.ownership || 0).toFixed(2)}%</td>
-                            <td className="text-right p-2">{(row.ownership || 0).toFixed(2)}%</td>
+                      // Show before and after results - combine all stakeholders
+                      (() => {
+                        // Create a map of all stakeholders from both before and after
+                        const allStakeholders = new Map();
+                        
+                        // Add all from before
+                        (modelingResults?.beforeCapTable || []).forEach((row: any) => {
+                          allStakeholders.set(row.stakeholder?.id || row.stakeholder?.name, {
+                            name: row.stakeholder?.name || 'Unknown',
+                            before: row.ownership || 0,
+                            after: 0
+                          });
+                        });
+                        
+                        // Add/update from after
+                        (modelingResults?.afterCapTable || []).forEach((row: any) => {
+                          const key = row.stakeholder?.id || row.stakeholder?.name;
+                          const existing = allStakeholders.get(key) || { name: row.stakeholder?.name || 'Unknown', before: 0, after: 0 };
+                          existing.after = row.ownership || 0;
+                          allStakeholders.set(key, existing);
+                        });
+                        
+                        // Convert to array and render
+                        return Array.from(allStakeholders.entries()).map(([key, stakeholder]) => (
+                          <tr key={key} className="border-b">
+                            <td className="p-2 font-medium">{stakeholder.name}</td>
+                            <td className="text-right p-2">{stakeholder.before.toFixed(1)}%</td>
+                            <td className="text-right p-2 font-semibold">{stakeholder.after.toFixed(1)}%</td>
                           </tr>
-                        );
-                      })
+                        ));
+                      })()
                     )}
                   </tbody>
                 </table>
