@@ -1296,18 +1296,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Calculate new shares to be issued
-      const pricePerShare = totalShares > 0 ? premoney / totalShares : 1;
-      const newShares = Math.round(roundAmount / pricePerShare);
-      const postMoneyValuation = premoney + roundAmount;
-
-      // After cap table (with new investment) - initialize first
-      const afterOwnershipMap = new Map(ownershipMap);
-
-      // Handle SAFE conversions during priced round
+      // Handle SAFE conversions during priced round - Calculate first to determine total dilution
       const safeInstruments = convertibles.filter(c => c.type?.toLowerCase() === 'safe');
       let totalSafeShares = 0;
       const safeConversions = [];
+
+      // Calculate initial price per share for SAFE conversion
+      const initialPricePerShare = totalShares > 0 ? premoney / totalShares : 1;
 
       for (const safe of safeInstruments) {
         const principal = Number(safe.principal || 0);
@@ -1318,11 +1313,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (principal > 0) {
           // Calculate conversion price using the lower of valuation cap or discounted round price
-          let conversionPrice = pricePerShare;
+          let conversionPrice = initialPricePerShare;
           
           // Apply discount if specified
           if (discountRate > 0) {
-            const discountedPrice = pricePerShare * (1 - discountRate);
+            const discountedPrice = initialPricePerShare * (1 - discountRate);
             conversionPrice = Math.min(conversionPrice, discountedPrice);
           }
           
@@ -1341,18 +1336,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             conversionPrice,
             shares: safeShares
           });
-
-          // Add SAFE holder to after ownership map
-          const existing = afterOwnershipMap.get(safe.holderId) || { shares: 0, options: 0 };
-          existing.shares += safeShares;
-          afterOwnershipMap.set(safe.holderId, existing);
         }
+      }
+
+      // Calculate new shares and final price per share that preserves new investor ownership
+      // The new investors should get exactly roundAmount / pricePerShare shares
+      // But the price per share needs to account for SAFE dilution
+      
+      // Total shares after SAFE conversion but before new investment
+      const sharesAfterSafeConversion = totalShares + totalSafeShares;
+      
+      // Calculate the final price per share that accounts for SAFE dilution
+      // New premoney = (premoney + SAFE principal) because SAFEs convert at preferential prices
+      const totalSafePrincipal = safeConversions.reduce((sum, conv) => sum + conv.principal, 0);
+      const adjustedPremoney = premoney + totalSafePrincipal;
+      const finalPricePerShare = sharesAfterSafeConversion > 0 ? adjustedPremoney / sharesAfterSafeConversion : 1;
+      
+      // New shares issued to new investors at the adjusted price
+      const newShares = Math.round(roundAmount / finalPricePerShare);
+      const postMoneyValuation = adjustedPremoney + roundAmount;
+
+      // After cap table (with new investment and SAFE conversions)
+      const afterOwnershipMap = new Map(ownershipMap);
+
+      // Add SAFE holders to after ownership map
+      for (const conversion of safeConversions) {
+        const existing = afterOwnershipMap.get(conversion.holderId) || { shares: 0, options: 0 };
+        existing.shares += conversion.shares;
+        afterOwnershipMap.set(conversion.holderId, existing);
       }
       
       // Add new investors  
       investors.forEach((investor: any) => {
         if (investor.name && investor.amount > 0) {
-          const investorShares = Math.round(investor.amount / pricePerShare);
+          const investorShares = Math.round(investor.amount / finalPricePerShare);
           afterOwnershipMap.set(investor.name, {
             shares: investorShares,
             options: 0
@@ -1394,7 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newShares,
         totalRaised: roundAmount,
         postMoneyValuation,
-        pricePerShare,
+        pricePerShare: finalPricePerShare,
         safeConversions: safeConversions.length > 0 ? {
           totalConverted: safeConversions.length,
           totalPrincipal: safeConversions.reduce((sum, conv) => sum + conv.principal, 0),
