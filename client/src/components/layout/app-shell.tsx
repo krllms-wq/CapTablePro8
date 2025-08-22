@@ -125,10 +125,10 @@ export default function AppShell({ children }: AppShellProps) {
             {/* Left: Logo + Company Switcher */}
             <div className="flex items-center gap-xl">
               <Link href="/companies" className="flex items-center gap-md">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-slate-600 rounded-lg flex items-center justify-center">
                   <BarChart3 className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-h3 font-semibold text-fg">CapTable Pro</span>
+                <span className="text-h3 font-semibold text-slate-800">CapTable Pro</span>
               </Link>
               
               {companyId && companies && (
@@ -167,7 +167,7 @@ export default function AppShell({ children }: AppShellProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-10 w-10 rounded-full">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-semibold">
                       {user?.email?.charAt(0).toUpperCase() || 'U'}
                     </span>
@@ -221,13 +221,22 @@ export default function AppShell({ children }: AppShellProps) {
                       className="block"
                       data-testid={`nav-${item.id}`}
                     >
-                      <Button
-                        variant={item.current ? "secondary" : "ghost"}
-                        className="w-full justify-start font-medium"
-                      >
-                        <Icon className="mr-3 w-5 h-5" />
-                        {item.name}
-                      </Button>
+                      <div className={`
+                        group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg
+                        transition-all duration-200 ease-in-out relative
+                        ${item.current 
+                          ? 'text-slate-900 bg-slate-50/80 shadow-sm border-l-3 border-l-slate-300 font-semibold' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/50'
+                        }
+                      `}>
+                        <Icon className={`mr-3 w-5 h-5 transition-colors duration-200 ${
+                          item.current ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-700'
+                        }`} />
+                        <span className="transition-all duration-200">{item.name}</span>
+                        {item.current && (
+                          <div className="absolute right-3 w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                        )}
+                      </div>
                     </Link>
                   );
                 })}
