@@ -67,6 +67,21 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Authentication**: Fixed password hashing and token generation for demo access
 - **Cap Table Stats**: 8M shares, 285K options, 350K convertibles, 9 stakeholders
 
+## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
+
+### SAFE Conversion Mathematics - COMPLETED ✅
+- **Fixed SAFE Conversion Logic**: Corrected mathematical formula to preserve new investor ownership percentage
+- **Target Ownership Calculation**: New investors now receive exactly their intended ownership (e.g., 750K/(750K+2.65M) = 22.06%)
+- **Prevented New Investor Dilution**: SAFEs convert at preferential prices but only dilute existing shareholders
+- **Enhanced Debugging**: Added comprehensive logging for SAFE conversion calculations
+- **Real-time Display**: SAFE conversions now properly display in round modeling with holder names, principals, conversion prices, and shares
+
+### UI/UX Improvements - COMPLETED ✅  
+- **Percentage Formatting**: All percentages now display with exactly two decimal places (e.g., 22.06% instead of 22.0588%)
+- **Mobile Keyboard Support**: Added `inputMode="numeric"` to all money, shares, and percentage input fields for optimal mobile experience
+- **Cap Table Display**: Fixed stakeholder ownership calculations to properly show convertibles separately from current ownership
+- **Enhanced Form Validation**: Improved numeric field validation and formatting across all dialogs
+
 ## Recent Bug Fixes & Enhancements - Aug 19, 2025 ✅
 
 ### Price Math Helper Implementation - COMPLETED

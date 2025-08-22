@@ -350,6 +350,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                         <Input
                           type="text"
                           placeholder="5,000,000"
+                          inputMode="numeric"
                           {...field}
                           onBlur={(e) => {
                             const sanitized = sanitizeMoneyInput(e.target.value);
@@ -376,6 +377,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                             <Input
                               type="text"
                               placeholder="20,000,000"
+                              inputMode="numeric"
                               {...field}
                               onBlur={(e) => {
                                 const sanitized = sanitizeMoneyInput(e.target.value);
@@ -415,6 +417,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                                   <Input
                                     type="text"
                                     placeholder="Auto-calculated"
+                                    inputMode="numeric"
                                     {...field}
                                     value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
                                     readOnly={!overridePps}
@@ -517,6 +520,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                             <Input
                               type="number"
                               step="0.1"
+                              inputMode="numeric"
                               placeholder="e.g., 15"
                               {...field}
                             />
@@ -563,7 +567,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                         <TableCell className="font-medium">{row.stakeholder?.name || 'Unknown'}</TableCell>
                         <TableCell>{row.securityClass?.name || 'Unknown'}</TableCell>
                         <TableCell>{row.shares?.toLocaleString() || 0}</TableCell>
-                        <TableCell>{((row.ownership || 0) * 100).toFixed(2)}%</TableCell>
+                        <TableCell>{(row.ownership || 0).toFixed(2)}%</TableCell>
                         <TableCell>{formatCurrency(row.value || 0)}</TableCell>
                       </TableRow>
                     ))}

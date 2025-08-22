@@ -257,7 +257,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
                   <FormItem>
                     <FormLabel>Principal Amount ($) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="500000" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="500000" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -270,7 +270,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
                   <FormItem>
                     <FormLabel>Interest Rate (%) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="e.g., 8" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="e.g., 8" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -315,7 +315,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
                   <FormItem>
                     <FormLabel>Discount Rate (%)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="e.g., 20" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="e.g., 20" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -328,7 +328,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
                   <FormItem>
                     <FormLabel>Valuation Cap ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Optional" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="Optional" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
