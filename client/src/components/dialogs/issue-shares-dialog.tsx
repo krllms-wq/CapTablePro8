@@ -454,7 +454,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
 
   const formatDisplayValue = (value: string, isShares = false) => {
     const parsed = isShares ? parseSharesLoose(value) : parseMoneyLoose(value);
-    return parsed !== undefined ? parsed.toLocaleString('fr-FR').replace(/,/g, ' ') : value;
+    return parsed !== undefined ? parsed.toLocaleString() : value;
   };
 
   const onSubmit = (data: IssueSharesFormData) => {
@@ -838,7 +838,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                                   inputMode="numeric"
                                   placeholder="Auto-calculated"
                                   {...field}
-                                  value={overrideQuantity ? field.value : (derivedQuantity ? formatDisplayValue(derivedQuantity.toString(), true) : "")}
+                                  value={overrideQuantity ? field.value : (derivedQuantity ? derivedQuantity.toString() : "")}
                                   readOnly={!overrideQuantity}
                                   className={!overrideQuantity ? "bg-gray-50 cursor-default" : ""}
                                   onBlur={overrideQuantity ? createSharesBlurHandler(field) : undefined}
@@ -890,13 +890,13 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                                   inputMode="numeric"
                                   placeholder="Auto-calculated"
                                   {...field}
-                                  value={overridePps ? field.value : (derivedPps ? formatDisplayValue(derivedPps.toString()) : "")}
+                                  value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
                                   readOnly={!overridePps}
                                   className={!overridePps ? "bg-gray-50 cursor-default" : ""}
                                   onBlur={overridePps ? (e) => {
                                     const sanitized = sanitizeMoneyInput(e.target.value);
                                     field.onChange(sanitized);
-                                    e.target.value = formatDisplayValue(sanitized, true);
+                                    e.target.value = formatDisplayValue(sanitized);
                                   } : undefined}
                                 />
                               </TooltipTrigger>
