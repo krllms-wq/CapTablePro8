@@ -145,13 +145,19 @@ export function computeCapTable(
       const stakeholder = stakeholders.get(holderId);
       const securityClass = stakeholderClasses.get(holderId) || 'Unknown';
       
+      // Calculate investment value from share ledger entries
+      const holderShareEntries = shareEntries.filter(entry => entry.holderId === holderId);
+      const totalInvestment = holderShareEntries.reduce((sum, entry) => {
+        return sum + (entry.consideration ? Number(entry.consideration) : 0);
+      }, 0);
+
       entries.push({
         holderId,
         holderName: stakeholder?.name || 'Unknown',
         securityClass,
         shares: roundShares(shares),
         ownership: calculatePercentage(shares, view === 'FullyDiluted' ? fullyDilutedShares : totalShares),
-        value: 0 // Would calculate based on valuation in real implementation
+        value: totalInvestment
       });
     }
   }
