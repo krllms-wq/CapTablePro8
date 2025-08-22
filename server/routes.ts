@@ -1239,11 +1239,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sortedMilestones = Array.from(milestoneSet)
         .map(dateStr => new Date(dateStr))
         .sort((a, b) => a.getTime() - b.getTime());
+      
+      console.log('📅 [HISTORICAL API] Raw milestone dates:', Array.from(milestoneSet));
+      console.log('📅 [HISTORICAL API] Sorted milestones:', sortedMilestones.map(d => d.toISOString()));
+      console.log('👥 [HISTORICAL API] Stakeholders:', stakeholders.length);
+      console.log('📊 [HISTORICAL API] Share entries:', shareLedger.length);
+      console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
+      console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
 
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
       
-      const historicalData = sortedMilestones.map((asOfDate) => {
+      const historicalData = sortedMilestones.map((asOfDate, index) => {
+        console.log(`🧮 [HISTORICAL API] Computing milestone ${index}: ${asOfDate.toISOString()}`);
+        
         const result = computeCapTable(
           shareLedger,
           equityAwards, 
@@ -1255,39 +1264,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'FullyDiluted'
         );
         
+        console.log(`📊 [HISTORICAL API] Cap table result for ${asOfDate.toISOString()}:`, {
+          totalEntries: result.entries.length,
+          totalShares: result.totalShares,
+          fullyDiluted: result.fullyDilutedShares,
+          entries: result.entries.map(e => ({
+            holderId: e.holderId,
+            holderName: e.holderName,
+            shares: e.shares,
+            ownership: e.ownership
+          }))
+        });
+        
         return {
           date: asOfDate.toISOString().split('T')[0],
-          displayDate: asOfDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-          entries: result.entries.map(entry => ({
-            stakeholderId: entry.holderId,        // Fix: holderId -> stakeholderId
-            stakeholder: entry.holderName,       // Fix: holderName -> stakeholder
-            shares: entry.shares,
-            ownership: entry.ownership,
-            securityClass: entry.securityClass
-          })),
+          displayDate: asOfDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          entries: result.entries.map(entry => {
+            console.log(`📈 [HISTORICAL API] Processing entry: ${entry.holderName} - ${entry.shares} shares (${entry.ownership.toFixed(2)}%)`);
+            return {
+              stakeholderId: entry.holderId,
+              stakeholder: entry.holderName,
+              shares: entry.shares,
+              ownership: entry.ownership,
+              securityClass: entry.securityClass
+            };
+          }),
           totalShares: result.totalShares,
           fullyDilutedShares: result.fullyDilutedShares
         };
       });
 
       // Also include current state as the final point
+      console.log('🧮 [HISTORICAL API] Computing current state...');
       const currentResult = computeCapTable(
         shareLedger,
-        equityAwards,
-        convertibles, 
+        equityAwards, 
+        convertibles,
         securityClasses,
         optionPlans || [],
         stakeholderMap,
         new Date(),
         'FullyDiluted'
       );
+      
+      console.log('📊 [HISTORICAL API] Current cap table result:', {
+        totalEntries: currentResult.entries.length,
+        totalShares: currentResult.totalShares,
+        fullyDiluted: currentResult.fullyDilutedShares,
+        entries: currentResult.entries.map(e => ({
+          holderId: e.holderId,
+          holderName: e.holderName,
+          shares: e.shares,
+          ownership: e.ownership
+        }))
+      });
 
       historicalData.push({
         date: new Date().toISOString().split('T')[0],
-        displayDate: 'Current',
+        displayDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         entries: currentResult.entries.map(entry => ({
-          stakeholderId: entry.holderId,        // Fix: holderId -> stakeholderId
-          stakeholder: entry.holderName,       // Fix: holderName -> stakeholder
+          stakeholderId: entry.holderId,
+          stakeholder: entry.holderName,
           shares: entry.shares,
           ownership: entry.ownership,
           securityClass: entry.securityClass

@@ -50,11 +50,21 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
     const fetchHistoricalData = async () => {
       try {
         setIsLoading(true);
+        console.log('🚀 [HISTORICAL] Fetching data for company:', companyId);
         const response = await fetch(`/api/companies/${companyId}/cap-table/historical`);
         if (!response.ok) {
           throw new Error('Failed to fetch historical data');
         }
         const data = await response.json();
+        console.log('📊 [HISTORICAL] Raw API response:', JSON.stringify(data, null, 2));
+        console.log('📅 [HISTORICAL] Milestones:', data?.milestones?.map(m => ({
+          date: m.date,
+          displayDate: m.displayDate,
+          entriesCount: m.entries?.length,
+          totalShares: m.totalShares,
+          fullyDiluted: m.fullyDilutedShares
+        })));
+        console.log('👥 [HISTORICAL] API Stakeholders:', data?.stakeholders);
         setHistoricalData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -114,20 +124,39 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
   // Get all unique stakeholders from all milestones
   const allStakeholders = new Map<string, { name: string; type?: string }>();
   
-  historicalData.milestones.forEach((milestone: any) => {
-    milestone.entries.forEach((entry: any) => {
-      if (!allStakeholders.has(entry.stakeholderId)) {
+  console.log('🔍 [HISTORICAL] Processing milestones for stakeholders...');
+  historicalData.milestones.forEach((milestone: any, mIndex: number) => {
+    console.log(`📊 [HISTORICAL] Milestone ${mIndex} (${milestone.displayDate}):`, {
+      entries: milestone.entries?.length || 0,
+      totalShares: milestone.totalShares,
+      fullyDiluted: milestone.fullyDilutedShares
+    });
+    
+    milestone.entries.forEach((entry: any, eIndex: number) => {
+      console.log(`📈 [HISTORICAL] Entry ${eIndex}:`, {
+        stakeholderId: entry.stakeholderId,
+        stakeholder: entry.stakeholder,
+        shares: entry.shares,
+        ownership: entry.ownership,
+        securityClass: entry.securityClass
+      });
+      
+      if (entry.stakeholderId && !allStakeholders.has(entry.stakeholderId)) {
         const stakeholderFromAPI = historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId);
+        console.log(`👤 [HISTORICAL] Found API stakeholder for ${entry.stakeholderId}:`, stakeholderFromAPI);
         
         allStakeholders.set(entry.stakeholderId, { 
           name: entry.stakeholder || stakeholderFromAPI?.name || 'Unknown Stakeholder',
           type: stakeholderFromAPI?.type || 'individual'
         });
+      } else if (!entry.stakeholderId) {
+        console.warn('⚠️ [HISTORICAL] Entry missing stakeholderId:', entry);
       }
     });
   });
 
   const stakeholders = Array.from(allStakeholders.entries()).map(([id, data]) => ({ id, ...data }));
+  console.log('👥 [HISTORICAL] Final processed stakeholders:', stakeholders);
 
   return (
     <div className="overflow-x-auto">
@@ -178,7 +207,7 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
                 return (
                   <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="px-4 py-4 text-center">
                     <div className="text-sm font-semibold text-slate-900">
-                      {(ownership * 100).toFixed(2)}%
+                      {ownership > 0 ? `${ownership.toFixed(2)}%` : '0.00%'}
                     </div>
                     <div className="text-xs text-slate-500">
                       {shares.toLocaleString()} shares
