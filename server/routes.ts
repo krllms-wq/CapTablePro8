@@ -382,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: company.id,
         actorId: req.user!.id,
         event: "company.updated",
-        metadata: {
+        changes: {
           companyName: company.name,
           deletedAt: new Date().toISOString()
         }
@@ -455,6 +455,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating security class:", error);
       res.status(500).json({ error: "Failed to create security class" });
+    }
+  });
+
+  app.put("/api/companies/:companyId/security-classes/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = insertSecurityClassSchema.partial().parse(req.body);
+      
+      const securityClass = await storage.updateSecurityClass(id, updateData);
+      if (!securityClass) {
+        return res.status(404).json({ error: "Security class not found" });
+      }
+      
+      res.json(securityClass);
+    } catch (error) {
+      console.error("Error updating security class:", error);
+      res.status(500).json({ error: "Failed to update security class" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/security-classes/:id", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, companyId } = req.params;
+      
+      // Check if security class exists
+      const securityClass = await storage.getSecurityClass(id);
+      if (!securityClass) {
+        return res.status(404).json({ error: "Security class not found" });
+      }
+      
+      // Check if security class belongs to the company
+      if (securityClass.companyId !== companyId) {
+        return res.status(403).json({ error: "Security class does not belong to this company" });
+      }
+      
+      // Delete the security class
+      await storage.deleteSecurityClass(id);
+      
+      res.status(204).send(); // 204 No Content - successful deletion
+    } catch (error) {
+      console.error("Error deleting security class:", error);
+      res.status(500).json({ error: "Failed to delete security class" });
     }
   });
 

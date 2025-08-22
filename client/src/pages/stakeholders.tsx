@@ -212,15 +212,30 @@ export default function StakeholdersPage() {
     }
   });
 
+  const handleDeleteSecurityClass = async (securityClass: any) => {
+    if (window.confirm(`Are you sure you want to delete the security class "${securityClass.name}"? This action cannot be undone.`)) {
+      try {
+        await deleteSecurityClassMutation.mutateAsync(securityClass.id);
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || error.message || "Failed to delete security class";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "error",
+        });
+      }
+    }
+  };
+
   const handleEditStakeholder = (stakeholder: any) => {
     setEditingStakeholder(stakeholder);
     setShowEditDialog(true);
   };
 
-  const handleDeleteStakeholder = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this stakeholder?")) {
+  const handleDeleteStakeholder = async (stakeholder: any) => {
+    if (window.confirm(`Are you sure you want to delete stakeholder "${stakeholder.name}"? This action cannot be undone.`)) {
       try {
-        await deleteStakeholderMutation.mutateAsync(id);
+        await deleteStakeholderMutation.mutateAsync(stakeholder.id);
       } catch (error: any) {
         const errorMessage = error.response?.data?.error || error.message || "Failed to delete stakeholder";
         toast({
@@ -364,7 +379,7 @@ export default function StakeholdersPage() {
                               Edit
                             </button>
                             <button 
-                              onClick={() => handleDeleteStakeholder(stakeholder.id)}
+                              onClick={() => handleDeleteStakeholder(stakeholder)}
                               className="text-red-600 hover:text-red-900"
                             >
                               Delete
@@ -455,7 +470,7 @@ export default function StakeholdersPage() {
                                 Edit
                               </button>
                               <button 
-                                onClick={() => deleteSecurityClassMutation.mutate(securityClass.id)}
+                                onClick={() => handleDeleteSecurityClass(securityClass)}
                                 className="text-red-600 hover:text-red-900 flex items-center gap-1"
                               >
                                 <Trash2 className="h-3 w-3" />

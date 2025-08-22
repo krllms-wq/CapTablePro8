@@ -35,6 +35,7 @@ export interface IStorage {
   getSecurityClasses(companyId: string): Promise<SecurityClass[]>;
   getSecurityClass(id: string): Promise<SecurityClass | undefined>;
   updateSecurityClass(id: string, updates: Partial<InsertSecurityClass>): Promise<SecurityClass | undefined>;
+  deleteSecurityClass(id: string): Promise<void>;
 
   // Stakeholders
   createStakeholder(stakeholder: InsertStakeholder): Promise<Stakeholder>;
@@ -580,6 +581,10 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async deleteSecurityClass(id: string): Promise<void> {
+    this.securityClasses.delete(id);
+  }
+
   // Stakeholders
   async createStakeholder(insertStakeholder: InsertStakeholder): Promise<Stakeholder> {
     const id = randomUUID();
@@ -1044,6 +1049,10 @@ export class DatabaseStorage implements IStorage {
   async updateSecurityClass(id: string, updates: Partial<InsertSecurityClass>): Promise<SecurityClass | undefined> {
     const [securityClass] = await db.update(securityClasses).set(updates).where(eq(securityClasses.id, id)).returning();
     return securityClass;
+  }
+
+  async deleteSecurityClass(id: string): Promise<void> {
+    await db.delete(securityClasses).where(eq(securityClasses.id, id));
   }
 
   // Stakeholders
