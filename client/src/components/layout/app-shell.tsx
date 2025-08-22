@@ -192,7 +192,7 @@ export default function AppShell({ children }: AppShellProps) {
       <div className="flex">
         {/* Left Sidebar */}
         {companyId && (
-          <aside className="w-64 bg-card border-r border-border min-h-screen">
+          <aside className="w-64 flex-shrink-0 bg-card border-r border-border min-h-screen">
             <nav className="p-lg">
               <div className="space-y-sm">
                 {sidebarItems.map((item) => {
@@ -212,12 +212,12 @@ export default function AppShell({ children }: AppShellProps) {
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/50'
                         }
                       `}>
-                        <Icon className={`mr-3 w-5 h-5 transition-colors duration-200 ${
+                        <Icon className={`mr-3 w-5 h-5 flex-shrink-0 transition-colors duration-200 ${
                           item.current ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-700'
                         }`} />
-                        <span className="transition-all duration-200">{item.name}</span>
+                        <span className="transition-all duration-200 flex-1 min-w-0">{item.name}</span>
                         {item.current && (
-                          <div className="absolute right-3 w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full ml-2 flex-shrink-0"></div>
                         )}
                       </div>
                     </Link>
