@@ -66,22 +66,21 @@ import {
 const issueSharesSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
   classId: z.string().min(1, "Please select a security class"),
-  quantity: z.string().min(1, "Quantity is required").refine(val => {
-    const parsed = parseSharesLoose(val);
-    return parsed !== undefined && parsed > 0;
-  }, "Please enter a valid quantity (accepts commas: 1,000,000)"),
-  consideration: z.string().optional().refine(val => {
-    if (!val || val.trim() === '') return true;
+  consideration: z.string().min(1, "Consideration is required").refine(val => {
     const parsed = parseMoneyLoose(val);
     return parsed !== undefined && parsed > 0;
-  }, "Please enter a valid amount (accepts $1,000,000)"),
-  roundName: z.string().min(1, "Round name is required"),
-  issueDate: z.string().min(1, "Issue date is required"),
-  valuation: z.string().optional().refine(val => {
-    if (!val || val.trim() === '') return true;
+  }, "Please enter a valid consideration amount (accepts $1,000,000)"),
+  valuation: z.string().min(1, "Company valuation is required").refine(val => {
     const parsed = parseMoneyLoose(val);
     return parsed !== undefined && parsed > 0;
   }, "Please enter a valid valuation (accepts $1,000,000)"),
+  roundName: z.string().min(1, "Round name is required"),
+  issueDate: z.string().min(1, "Issue date is required"),
+  quantity: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseSharesLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid quantity (accepts commas: 1,000,000)"),
   pricePerShare: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
     const parsed = parseMoneyLoose(val);
@@ -105,11 +104,11 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
   const [showNewStakeholder, setShowNewStakeholder] = useState(false);
   const [showNewSecurityClass, setShowNewSecurityClass] = useState(false);
   const [overridePps, setOverridePps] = useState(false);
-  const [overrideValuation, setOverrideValuation] = useState(false);
+  const [overrideQuantity, setOverrideQuantity] = useState(false);
   const [ppsReconcileResult, setPpsReconcileResult] = useState<ReconcileResult>({ source: "unknown" });
-  const [valuationReconcileResult, setValuationReconcileResult] = useState<ReconcileValuationResult>({ source: "unknown" });
+  const [quantityReconcileResult, setQuantityReconcileResult] = useState<{ quantity?: number; source: string }>({ source: "unknown" });
   const [derivedPps, setDerivedPps] = useState<number | undefined>();
-  const [derivedValuation, setDerivedValuation] = useState<number | undefined>();
+  const [derivedQuantity, setDerivedQuantity] = useState<number | undefined>();
   
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
@@ -274,11 +273,11 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       setNewSecurityClass({ name: "", liquidationPreferenceMultiple: "1.0", participating: false, votingRights: "1.0" });
       setShowNewSecurityClass(false);
       setOverridePps(false);
-      setOverrideValuation(false);
+      setOverrideQuantity(false);
       setPpsReconcileResult({ source: "unknown" });
-      setValuationReconcileResult({ source: "unknown" });
+      setQuantityReconcileResult({ source: "unknown" });
       setDerivedPps(undefined);
-      setDerivedValuation(undefined);
+      setDerivedQuantity(undefined);
     },
     onError: (error: any) => {
       toast({
@@ -291,126 +290,140 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
     }
   });
 
-  // Enhanced price and valuation calculation using priceMath utilities
+  // Enhanced calculation: from consideration + valuation → quantity + PPS
   const updateDerivedValues = () => {
     const current = form.getValues();
     
-    // Parse values using priceMath utilities
-    const valuationRaw = parseMoneyLoose(current.valuation);
+    // Parse input values
     const consideration = parseMoneyLoose(current.consideration);
-    const quantity = parseSharesLoose(current.quantity);
+    const valuation = parseMoneyLoose(current.valuation);
+    const quantityRaw = parseSharesLoose(current.quantity);
     const ppsRaw = parseMoneyLoose(current.pricePerShare);
     const preRoundFD = 10_000_000; // Assumed fully diluted shares
     
-    // Precedence logic to avoid loops
     let finalPps: number | undefined;
-    let finalValuation: number | undefined;
+    let finalQuantity: number | undefined;
     
-    if (!overridePps && !overrideValuation) {
-      // Both derived: PPS first, then valuation from PPS
-      const fromValuationPps = derivePpsFromValuation({ valuation: valuationRaw, preRoundFD });
-      const fromConsiderationPps = derivePpsFromConsideration({ consideration, quantity });
+    // Calculate PPS from valuation (valuation / preRoundFD)
+    const ppsFromValuation = valuation && preRoundFD ? valuation / preRoundFD : undefined;
+    
+    if (!overridePps && !overrideQuantity) {
+      // Both derived: calculate from consideration + valuation
+      if (consideration && valuation && preRoundFD) {
+        // PPS = valuation / preRoundFD
+        finalPps = roundMoney(valuation / preRoundFD);
+        
+        // Quantity = consideration / PPS
+        finalQuantity = consideration && finalPps ? Math.round(consideration / finalPps) : undefined;
+        
+        setPpsReconcileResult({ 
+          pps: finalPps, 
+          source: "valuation"
+        });
+        
+        setQuantityReconcileResult({
+          quantity: finalQuantity,
+          source: "derived"
+        });
+      }
+    } else if (overridePps && !overrideQuantity) {
+      // PPS override, quantity derives from consideration / PPS
+      finalPps = ppsRaw;
+      finalQuantity = consideration && finalPps ? Math.round(consideration / finalPps) : undefined;
       
-      const ppsResult = reconcilePps({
-        fromValuation: fromValuationPps,
-        fromConsideration: fromConsiderationPps,
-        toleranceBps: 50
+      setPpsReconcileResult({ 
+        pps: finalPps, 
+        source: "override" 
       });
       
-      finalPps = ppsResult.pps;
-      setPpsReconcileResult(ppsResult);
+      setQuantityReconcileResult({
+        quantity: finalQuantity,
+        source: "derived"
+      });
+    } else if (!overridePps && overrideQuantity) {
+      // Quantity override, PPS derives from consideration / quantity
+      finalQuantity = quantityRaw;
+      finalPps = consideration && finalQuantity ? roundMoney(consideration / finalQuantity) : undefined;
       
-      // Now derive valuation from final PPS
-      const fromPpsValuation = deriveValuationFromPps({ pps: finalPps, preRoundFD });
-      const fromConsValuation = fromConsiderationPps && preRoundFD 
-        ? roundMoney(fromConsiderationPps * preRoundFD) 
-        : undefined;
+      // Check if PPS matches valuation-derived PPS
+      const valuationPps = ppsFromValuation;
+      let hasConflict = false;
+      let warningDeltaPct: number | undefined;
       
-      const valuationResult = reconcileValuation({
-        fromPps: fromPpsValuation,
-        fromConsiderationPps: fromConsValuation,
-        toleranceBps: 50
+      if (finalPps && valuationPps) {
+        const avg = (finalPps + valuationPps) / 2;
+        const delta = Math.abs(finalPps - valuationPps);
+        const deltaPct = (delta / avg) * 100;
+        
+        if (deltaPct > 0.5) {
+          hasConflict = true;
+          warningDeltaPct = Math.round(deltaPct * 100) / 100;
+        }
+      }
+      
+      setPpsReconcileResult({
+        pps: finalPps,
+        source: "consideration",
+        hasConflict,
+        warningDeltaPct,
+        conflictMessage: hasConflict 
+          ? `PPS from consideration/quantity ($${finalPps?.toFixed(4)}) differs from valuation-based PPS ($${valuationPps?.toFixed(4)}) by ${warningDeltaPct}%`
+          : undefined
       });
       
-      finalValuation = valuationResult.valuation;
-      setValuationReconcileResult(valuationResult);
-      
-    } else if (overridePps && !overrideValuation) {
-      // PPS override, valuation derives from PPS
-      const ppsResult = reconcilePps({
-        overridePps: ppsRaw,
-        toleranceBps: 50
+      setQuantityReconcileResult({
+        quantity: finalQuantity,
+        source: "override"
       });
-      
-      finalPps = ppsResult.pps;
-      setPpsReconcileResult(ppsResult);
-      
-      const fromPpsValuation = deriveValuationFromPps({ pps: finalPps, preRoundFD });
-      const valuationResult = reconcileValuation({
-        fromPps: fromPpsValuation,
-        toleranceBps: 50
-      });
-      
-      finalValuation = valuationResult.valuation;
-      setValuationReconcileResult(valuationResult);
-      
-    } else if (!overridePps && overrideValuation) {
-      // Valuation override, PPS derives from valuation
-      const valuationResult = reconcileValuation({
-        overrideValuation: valuationRaw,
-        toleranceBps: 50
-      });
-      
-      finalValuation = valuationResult.valuation;
-      setValuationReconcileResult(valuationResult);
-      
-      const fromValuationPps = derivePpsFromValuation({ valuation: finalValuation, preRoundFD });
-      const fromConsiderationPps = derivePpsFromConsideration({ consideration, quantity });
-      
-      const ppsResult = reconcilePps({
-        fromValuation: fromValuationPps,
-        fromConsideration: fromConsiderationPps,
-        toleranceBps: 50
-      });
-      
-      finalPps = ppsResult.pps;
-      setPpsReconcileResult(ppsResult);
-      
     } else {
-      // Both overrides: both editable, show warnings
-      const ppsResult = reconcilePps({
-        overridePps: ppsRaw,
-        toleranceBps: 50
+      // Both overrides: use manual values, show warnings if inconsistent
+      finalPps = ppsRaw;
+      finalQuantity = quantityRaw;
+      
+      // Check consistency: consideration should equal quantity * PPS
+      const expectedConsideration = finalQuantity && finalPps ? finalQuantity * finalPps : undefined;
+      const actualConsideration = consideration;
+      
+      let hasConflict = false;
+      let warningDeltaPct: number | undefined;
+      
+      if (expectedConsideration && actualConsideration) {
+        const avg = (expectedConsideration + actualConsideration) / 2;
+        const delta = Math.abs(expectedConsideration - actualConsideration);
+        const deltaPct = (delta / avg) * 100;
+        
+        if (deltaPct > 0.5) {
+          hasConflict = true;
+          warningDeltaPct = Math.round(deltaPct * 100) / 100;
+        }
+      }
+      
+      setPpsReconcileResult({
+        pps: finalPps,
+        source: "override",
+        hasConflict,
+        warningDeltaPct,
+        conflictMessage: hasConflict 
+          ? `Manual quantity × PPS (${finalQuantity?.toLocaleString()} × $${finalPps?.toFixed(4)} = $${expectedConsideration?.toLocaleString()}) doesn't match consideration ($${actualConsideration?.toLocaleString()})`
+          : undefined
       });
-      setPpsReconcileResult(ppsResult);
-      finalPps = ppsResult.pps;
       
-      const fromPpsValuation = deriveValuationFromPps({ pps: finalPps, preRoundFD });
-      const fromConsValuation = consideration && quantity && preRoundFD 
-        ? roundMoney((consideration / quantity) * preRoundFD) 
-        : undefined;
-      
-      const valuationResult = reconcileValuation({
-        fromPps: fromPpsValuation,
-        fromConsiderationPps: fromConsValuation,
-        overrideValuation: valuationRaw,
-        toleranceBps: 50
+      setQuantityReconcileResult({
+        quantity: finalQuantity,
+        source: "override"
       });
-      
-      finalValuation = valuationResult.valuation;
-      setValuationReconcileResult(valuationResult);
     }
     
     // Update derived state
     setDerivedPps(finalPps);
-    setDerivedValuation(finalValuation);
+    setDerivedQuantity(finalQuantity);
     
     // Update form fields if not overriding
     if (!overridePps && finalPps !== undefined) {
       form.setValue('pricePerShare', finalPps.toString());
     }
-    if (!overrideValuation && finalValuation !== undefined) {
-      form.setValue('valuation', finalValuation.toString());
+    if (!overrideQuantity && finalQuantity !== undefined) {
+      form.setValue('quantity', finalQuantity.toString());
     }
   };
 
@@ -422,7 +435,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       }
     });
     return () => subscription.unsubscribe();
-  }, [form, overridePps, overrideValuation]);
+  }, [form, overridePps, overrideQuantity]);
 
   // Input sanitization helpers
   const sanitizeMoneyInput = (value: string) => {
@@ -707,11 +720,84 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
-              {/* Company Valuation and Price Per Share Section */}
+              {/* Consideration and Valuation Inputs */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Consideration */}
+                <FormField
+                  control={form.control}
+                  name="consideration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        Consideration ($) *
+                        <HelpBubble 
+                          term="Consideration" 
+                          definition="The value received in exchange for issuing shares, which can be cash, services, intellectual property, or other assets."
+                          example="$100,000 cash payment for shares"
+                        />
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Enter amount" 
+                          {...field}
+                          onBlur={createMoneyBlurHandler(field)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Company Valuation */}
+                <FormField
+                  control={form.control}
+                  name="valuation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        Company Valuation ($) *
+                        <HelpBubble 
+                          term="Company Valuation" 
+                          definition="The pre-money valuation of the company, used to calculate price per share and ownership percentages."
+                          example="$10M valuation determines price per share"
+                        />
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Enter valuation" 
+                          {...field}
+                          onBlur={createMoneyBlurHandler(field)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Calculated Quantity and Price Per Share Section */}
               <div className="space-y-4 border rounded-lg p-4 bg-blue-50/30">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm text-blue-900">Valuation & Pricing</h4>
+                  <h4 className="font-medium text-sm text-blue-900">Calculated Values</h4>
                   <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="override-quantity-basic"
+                        checked={overrideQuantity}
+                        onCheckedChange={(checked) => {
+                          setOverrideQuantity(!!checked);
+                          if (!checked) updateDerivedValues();
+                        }}
+                        className="h-3 w-3"
+                      />
+                      <Label htmlFor="override-quantity-basic" className="cursor-pointer text-xs">
+                        Override quantity
+                      </Label>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="override-pps-basic"
@@ -726,201 +812,174 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         Override price per share
                       </Label>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="override-valuation-basic" 
-                        checked={overrideValuation}
-                        onCheckedChange={(checked) => {
-                          setOverrideValuation(!!checked);
-                          if (!checked) updateDerivedValues();
-                        }}
-                        className="h-3 w-3"
-                      />
-                      <Label htmlFor="override-valuation-basic" className="cursor-pointer text-xs">
-                        Override valuation
-                      </Label>
-                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Company Valuation */}
+                  {/* Quantity */}
                   <FormField
                     control={form.control}
-                    name="valuation"
+                    name="quantity"
                     render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Company Valuation ($)
-                      {!overrideValuation && (
-                        <DerivedPill 
-                          variant={valuationReconcileResult.warningDeltaPct ? "warning" : "default"}
-                          title={
-                            valuationReconcileResult.warningDeltaPct 
-                              ? `PPS vs. consideration valuation differ by ~${valuationReconcileResult.warningDeltaPct}%`
-                              : "Calculated from price per share"
-                          }
-                        />
-                      )}
-                      <HelpBubble 
-                        term="Company Valuation" 
-                        definition="The pre-money valuation of the company, used to calculate price per share and ownership percentages."
-                        example="$10M valuation with 1M shares = $10 per share"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Input 
-                              type="text"
-                              inputMode="numeric" 
-                              placeholder="Auto-calculated"
-                              {...field}
-                              value={overrideValuation ? field.value : (derivedValuation ? derivedValuation.toString() : "")}
-                              readOnly={!overrideValuation}
-                              aria-readonly={!overrideValuation}
-                              className={!overrideValuation ? "bg-gray-50 cursor-default" : ""}
-                              onBlur={overrideValuation ? (e) => {
-                                const sanitized = sanitizeMoneyInput(e.target.value);
-                                field.onChange(sanitized);
-                                e.target.value = formatDisplayValue(sanitized);
-                              } : undefined}
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          Quantity
+                          {!overrideQuantity && (
+                            <DerivedPill 
+                              variant="default"
+                              title="Calculated from consideration ÷ price per share"
                             />
-                          </TooltipTrigger>
-                          {!overrideValuation && (
-                            <TooltipContent>
-                              <p>Derived from price per share</p>
-                            </TooltipContent>
                           )}
-                        </Tooltip>
-                      </TooltipProvider>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          <HelpBubble 
+                            term="Share Quantity" 
+                            definition="The number of shares being issued to the stakeholder. This directly affects ownership percentage and dilution of existing shareholders."
+                            example="Calculated as consideration amount divided by price per share"
+                          />
+                        </FormLabel>
+                        <FormControl>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  placeholder="Auto-calculated"
+                                  {...field}
+                                  value={overrideQuantity ? field.value : (derivedQuantity ? derivedQuantity.toString() : "")}
+                                  readOnly={!overrideQuantity}
+                                  className={!overrideQuantity ? "bg-gray-50 cursor-default" : ""}
+                                  onBlur={overrideQuantity ? createSharesBlurHandler(field) : undefined}
+                                />
+                              </TooltipTrigger>
+                              {!overrideQuantity && (
+                                <TooltipContent>
+                                  <p>Calculated from consideration ÷ price per share</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  {/* Price per Share - Enhanced with derivation */}
+                  {/* Price per Share */}
                   <FormField
                     control={form.control}
                     name="pricePerShare"
                     render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Price per share ($)
-                      {!overridePps && (
-                        <DerivedPill 
-                          variant={ppsReconcileResult.warningDeltaPct ? "warning" : "default"}
-                          title={
-                            ppsReconcileResult.warningDeltaPct 
-                              ? `Valuation vs. consideration PPS differ by ~${ppsReconcileResult.warningDeltaPct}%`
-                              : "Calculated from valuation/consideration"
-                          }
-                        />
-                      )}
-                      <HelpBubble 
-                        term="Price per Share" 
-                        definition="The calculated or set price for each share, derived from valuation and total shares or consideration and quantity."
-                        example="$1.50 per share when issuing 100K shares for $150K consideration"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Input 
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="Auto-calculated"
-                              {...field}
-                              value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
-                              readOnly={!overridePps}
-                              className={!overridePps ? "bg-gray-50 cursor-default" : ""}
-                              onBlur={overridePps ? (e) => {
-                                const sanitized = sanitizeMoneyInput(e.target.value);
-                                field.onChange(sanitized);
-                                e.target.value = formatDisplayValue(sanitized);
-                              } : undefined}
-                            />
-                          </TooltipTrigger>
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          Price per share ($)
                           {!overridePps && (
-                            <TooltipContent>
-                              <p>Derived from valuation/consideration</p>
-                            </TooltipContent>
+                            <DerivedPill 
+                              variant={ppsReconcileResult.warningDeltaPct ? "warning" : "default"}
+                              title={
+                                ppsReconcileResult.warningDeltaPct 
+                                  ? `Price calculation conflict: ${ppsReconcileResult.warningDeltaPct}% difference`
+                                  : "Calculated from company valuation"
+                              }
+                            />
                           )}
-                        </Tooltip>
-                      </TooltipProvider>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                          <HelpBubble 
+                            term="Price per Share" 
+                            definition="The calculated or set price for each share, derived from company valuation divided by fully diluted shares."
+                            example="$10M valuation ÷ 10M shares = $1.00 per share"
+                          />
+                        </FormLabel>
+                        <FormControl>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  placeholder="Auto-calculated"
+                                  {...field}
+                                  value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
+                                  readOnly={!overridePps}
+                                  className={!overridePps ? "bg-gray-50 cursor-default" : ""}
+                                  onBlur={overridePps ? (e) => {
+                                    const sanitized = sanitizeMoneyInput(e.target.value);
+                                    field.onChange(sanitized);
+                                    e.target.value = formatDisplayValue(sanitized);
+                                  } : undefined}
+                                />
+                              </TooltipTrigger>
+                              {!overridePps && (
+                                <TooltipContent>
+                                  <p>Calculated from company valuation</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
+
+                {/* Warning Messages for Calculation Conflicts */}
+                {ppsReconcileResult.hasConflict && ppsReconcileResult.conflictMessage && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-yellow-800">
+                        <strong>Calculation Warning:</strong> {ppsReconcileResult.conflictMessage}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Consideration */}
+              {/* Round Name */}
               <FormField
                 control={form.control}
-                name="consideration"
+                name="roundName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                      Consideration ($)
+                      Round Name *
                       <HelpBubble 
-                        term="Consideration" 
-                        definition="The value received in exchange for issuing shares, which can be cash, services, intellectual property, or other assets."
-                        example="$100,000 cash payment for 10,000 shares"
+                        term="Round Name" 
+                        definition="A descriptive name for this funding round or share issuance event."
+                        example="Seed Round, Series A, Employee Grant #123"
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="" 
-                        {...field}
-                        onBlur={createMoneyBlurHandler(field)}
-                      />
+                      <Input placeholder="e.g., Seed Round" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-
-
-              {/* Valuation Reconciliation Status */}
-              {valuationReconcileResult.source !== "unknown" && valuationReconcileResult.warningDeltaPct && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Valuation derived from PPS vs. consideration differs by ~{valuationReconcileResult.warningDeltaPct}%
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* PPS Reconciliation Status */}
-              {ppsReconcileResult.source !== "unknown" && (
-                <div className="text-sm text-gray-600 bg-gray-50 rounded p-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Price Calculation:</span>
-                    <span>{formatReconcileResult(ppsReconcileResult)}</span>
-                    {!overridePps && (
-                      <button
-                        type="button"
-                        onClick={() => setOverridePps(true)}
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        Override
-                      </button>
-                    )}
-                  </div>
-                  {ppsReconcileResult.hasConflict && (
-                    <div className="mt-1 text-amber-600 text-xs">
-                      {ppsReconcileResult.conflictMessage}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Issue Date */}
+              <FormField
+                control={form.control}
+                name="issueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      Issue Date *
+                      <HelpBubble 
+                        term="Issue Date" 
+                        definition="The date when the shares are officially issued to the stakeholder."
+                        example="The transaction date for the share issuance"
+                      />
+                    </FormLabel>
+                    <FormControl>
+                      <EnhancedDatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select issue date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Override Mode Controls */}
               {overridePps && (
@@ -939,14 +998,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 </div>
               )}
 
-              {/* Valuation Override Mode Controls */}
-              {overrideValuation && (
+              {/* Quantity Override Mode Controls */}
+              {overrideQuantity && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-amber-600">Manual valuation override active</span>
+                  <span className="text-amber-600">Manual quantity override active</span>
                   <button
                     type="button"
                     onClick={() => {
-                      setOverrideValuation(false);
+                      setOverrideQuantity(false);
                       updateDerivedValues();
                     }}
                     className="text-blue-600 hover:text-blue-800 underline"
@@ -996,21 +1055,21 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 </Label>
               </div>
 
-              {/* Override Valuation Checkbox */}
+              {/* Override Quantity Checkbox */}
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="override-valuation-advanced"
-                  checked={overrideValuation}
+                  id="override-quantity-advanced"
+                  checked={overrideQuantity}
                   onCheckedChange={(checked) => {
-                    setOverrideValuation(!!checked);
+                    setOverrideQuantity(!!checked);
                     if (!checked) {
                       // Reset to derived value when disabling override
                       updateDerivedValues();
                     }
                   }}
                 />
-                <Label htmlFor="override-valuation-advanced" className="text-sm cursor-pointer">
-                  Override valuation calculations
+                <Label htmlFor="override-quantity-advanced" className="text-sm cursor-pointer">
+                  Override quantity calculations
                 </Label>
               </div>
             </AdditionalSettings>
