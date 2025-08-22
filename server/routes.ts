@@ -92,21 +92,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
+      console.log('Login attempt for email:', email);
+      
       if (!email || !password) {
+        console.log('Missing email or password in login request');
         return res.status(400).json({ error: "Email and password are required" });
       }
       
       // Find user by email
-      const user = await storage.getUserByEmail(email.toLowerCase());
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log('Looking for user with normalized email:', normalizedEmail);
+      
+      const user = await storage.getUserByEmail(normalizedEmail);
       if (!user) {
+        console.log('No user found with email:', normalizedEmail);
+        // Debug: show available users
+        try {
+          const allUsers = Array.from(storage.users?.values() || []);
+          console.log('Available users:', allUsers.slice(0, 5).map(u => ({ id: u.id, email: u.email })));
+        } catch (e) {
+          console.log('Could not fetch all users for debugging');
+        }
         return res.status(401).json({ error: "Invalid credentials" });
       }
+      
+      console.log('User found:', { id: user.id, email: user.email });
       
       // Verify password
       const isValidPassword = await comparePassword(password, user.passwordHash);
       if (!isValidPassword) {
+        console.log('Password verification failed for user:', user.email);
         return res.status(401).json({ error: "Invalid credentials" });
       }
+      
+      console.log('Password verification successful for user:', user.email);
       
       // Generate token
       const token = generateToken(user);
@@ -114,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = user;
       
+      console.log('Login successful for user:', user.email);
       res.json({ 
         user: userResponse, 
         token,
@@ -141,8 +161,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log('Getting user info for ID:', req.user!.id);
       const user = await storage.getUser(req.user!.id);
       if (!user) {
+        console.log('User not found in database for ID:', req.user!.id);
         return res.status(404).json({ error: "User not found" });
       }
       

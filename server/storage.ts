@@ -911,11 +911,39 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.email === email);
+    if (!this.db) {
+      // Fallback to in-memory storage
+      return Array.from(this.users.values()).find(u => u.email === email);
+    }
+    
+    try {
+      console.log('PostgresStorage: Looking for user with email:', email);
+      const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+      const user = result[0] || null;
+      console.log('PostgresStorage: User lookup result:', user ? { id: user.id, email: user.email } : 'not found');
+      return user || undefined;
+    } catch (error) {
+      console.error('Error in getUserByEmail:', error);
+      return undefined;
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    if (!this.db) {
+      // Fallback to in-memory storage
+      return this.users.get(id);
+    }
+    
+    try {
+      console.log('PostgresStorage: Looking for user with ID:', id);
+      const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+      const user = result[0] || null;
+      console.log('PostgresStorage: User by ID result:', user ? { id: user.id, email: user.email } : 'not found');
+      return user || undefined;
+    } catch (error) {
+      console.error('Error in getUser:', error);
+      return undefined;
+    }
   }
 
   async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
@@ -1337,5 +1365,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Temporarily use MemStorage to avoid database date conversion issues
-export const storage = new MemStorage();
+// Use DatabaseStorage for proper PostgreSQL integration
+export const storage = new DatabaseStorage();
