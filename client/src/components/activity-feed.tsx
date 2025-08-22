@@ -45,6 +45,11 @@ const getEventColor = (event: string) => {
 const formatEventDescription = (event: ActivityEvent) => {
   const { event: eventType, metadata } = event;
   
+  // Debug logging for problematic events
+  if (!eventType || eventType.includes('Unknown') || !metadata) {
+    console.log('Problematic event detected:', { eventType, metadata, fullEvent: event });
+  }
+  
   // Transaction Events
   if (eventType === 'transaction.shares_issued') {
     const quantity = metadata?.quantity ? Number(metadata.quantity).toLocaleString() : 'N/A';
@@ -214,12 +219,24 @@ const groupEventsByDate = (events: ActivityEvent[]) => {
 export function ActivityFeed({ companyId, className = '' }: ActivityFeedProps) {
   const queryClient = useQueryClient();
   
-  const { data: activities = [], isLoading, refetch, isFetching } = useQuery<ActivityEvent[]>({
+  const { data: activities = [], isLoading, refetch, isFetching, error } = useQuery<ActivityEvent[]>({
     queryKey: ['/api/companies', companyId, 'activity'],
     enabled: !!companyId,
     refetchInterval: 30000, // Refetch every 30 seconds for live updates
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
+
+  // Debug log the activities data structure
+  React.useEffect(() => {
+    if (activities.length > 0) {
+      console.log('ACTIVITY FEED DEBUG - Activities received:', {
+        count: activities.length,
+        sampleActivity: activities[0],
+        sampleKeys: Object.keys(activities[0] || {}),
+        allEventTypes: activities.map(a => a.event).slice(0, 10)
+      });
+    }
+  }, [activities]);
 
   // Auto-refetch when mutations occur by listening for query invalidations
   useEffect(() => {
@@ -300,6 +317,19 @@ export function ActivityFeed({ companyId, className = '' }: ActivityFeedProps) {
                   <div className="space-y-3">
                     {events.map((event) => {
                       const IconComponent = getEventIcon(event.event);
+                      const description = formatEventDescription(event);
+                      
+                      // Log problematic events for debugging
+                      if (description.includes('Unknown') || description.includes('undefined') || !event.event) {
+                        console.log('ACTIVITY FEED DEBUG - Problematic event:', {
+                          event,
+                          description,
+                          eventType: event.event,
+                          metadata: event.metadata,
+                          keys: Object.keys(event)
+                        });
+                      }
+                      
                       return (
                         <div key={event.id} className="flex items-start space-x-3">
                           <div className={`p-1.5 rounded-full ${getEventColor(event.event)}`}>
@@ -307,7 +337,7 @@ export function ActivityFeed({ companyId, className = '' }: ActivityFeedProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-gray-900">
-                              {formatEventDescription(event)}
+                              {description}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-gray-500">

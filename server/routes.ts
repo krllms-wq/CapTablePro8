@@ -427,6 +427,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log(`Activity endpoint returning ${sorted.length} entries`);
+      console.log('Sample activity entries:', sorted.slice(0, 2).map(entry => ({
+        event: entry.event,
+        resourceType: entry.resourceType,
+        metadata: entry.metadata
+      })));
       res.json(sorted);
     } catch (error) {
       console.error("Error fetching activity:", error);
