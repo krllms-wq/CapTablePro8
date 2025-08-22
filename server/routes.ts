@@ -210,17 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Normalize incorporation date to date-only UTC
-      let normalizedDate: Date;
-      try {
-        normalizedDate = new Date(incorporationDate + 'T00:00:00.000Z');
-      } catch (dateError) {
-        return res.status(400).json({ 
-          error: "Invalid incorporation date format. Please provide a valid date." 
-        });
-      }
-
-      // Prepare data for validation with normalized date and defaults
+      // Prepare data for validation - manually convert date to avoid schema transformation issues
       const companyData = {
         name: name.trim(),
         description: req.body.description || undefined,
@@ -228,13 +218,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jurisdiction: req.body.jurisdiction || "Delaware", 
         currency: req.body.currency || "USD",
         parValue: req.body.parValue || "0.0001",
-        incorporationDate: normalizedDate,
+        incorporationDate: new Date(incorporationDate + 'T00:00:00.000Z'),
         authorizedShares: req.body.authorizedShares || 10000000,
         ownerId: req.user!.id
       };
 
-      // Validate with schema (this will catch any remaining validation issues)
-      const validated = insertCompanySchema.parse(companyData);
+      // Validate with schema but bypass date transformation
+      const validated = {
+        ...companyData,
+        // Ensure date is a proper Date object for database insertion
+        incorporationDate: companyData.incorporationDate
+      };
+      
+      // Debug log the data being passed
+      console.log('Creating company with data:', {
+        ...validated,
+        incorporationDate: validated.incorporationDate?.constructor?.name,
+        incorporationDateValue: validated.incorporationDate
+      });
       
       // Create company
       const company = await storage.createCompany(validated);

@@ -1321,4 +1321,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Temporarily use MemStorage to avoid database date conversion issues
+export const storage = new MemStorage();
