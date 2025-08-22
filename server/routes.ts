@@ -1539,14 +1539,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Calculate actual investment amount from consideration
         const holderShareEntries = shareLedger.filter(entry => entry.holderId === holderId);
+        
+        console.log(`💰 [INVESTMENT DEBUG] ${stakeholder?.name}:`);
+        console.log(`  Share entries: ${holderShareEntries.length}`);
+        holderShareEntries.forEach((entry, index) => {
+          console.log(`    Entry ${index}: ${entry.quantity} shares, consideration: "${entry.consideration}" (type: ${typeof entry.consideration}), number: ${Number(entry.consideration)}`);
+        });
+        
         const totalInvestment = holderShareEntries.reduce((sum, entry) => {
-          return sum + (entry.consideration ? Number(entry.consideration) : 0);
+          const entryValue = entry.consideration ? Number(entry.consideration) : 0;
+          console.log(`    Adding $${entryValue} to sum (was $${sum})`);
+          return sum + entryValue;
         }, 0);
+        
+        console.log(`  Final total investment for ${stakeholder?.name}: $${totalInvestment}`);
 
         // Calculate current value based on current valuation
         const currentValue = valuationResult.pricePerShare 
           ? holdings.shares * valuationResult.pricePerShare
           : null;
+          
+        console.log(`📊 [VALUE DEBUG] ${stakeholder?.name}:`);
+        console.log(`  Holdings: ${holdings.shares} shares`);
+        console.log(`  Price per share: $${valuationResult.pricePerShare || 0}`);
+        console.log(`  Current value: ${holdings.shares} × ${valuationResult.pricePerShare || 0} = $${currentValue}`);
 
         console.log(`Cap table entry for ${stakeholder?.name}: ${holdings.shares} shares, ${currentOwnership.toFixed(2)}% ownership`);
         

@@ -148,9 +148,19 @@ export function computeCapTable(
       
       // Calculate investment value from share ledger entries
       const holderShareEntries = shareEntries.filter(entry => entry.holderId === holderId);
+      console.log(`💰 [INVESTMENT DEBUG] ${stakeholder?.name}:`);
+      console.log(`  Share entries: ${holderShareEntries.length}`);
+      holderShareEntries.forEach((entry, index) => {
+        console.log(`    Entry ${index}: ${entry.quantity} shares, consideration: "${entry.consideration}" (type: ${typeof entry.consideration}), number: ${Number(entry.consideration)}`);
+      });
+      
       const totalInvestment = holderShareEntries.reduce((sum, entry) => {
-        return sum + (entry.consideration ? Number(entry.consideration) : 0);
+        const entryValue = entry.consideration ? Number(entry.consideration) : 0;
+        console.log(`    Adding ${entryValue} to sum (was ${sum})`);
+        return sum + entryValue;
       }, 0);
+      
+      console.log(`  Total investment for ${stakeholder?.name}: $${totalInvestment}`);
 
       entries.push({
         holderId,
