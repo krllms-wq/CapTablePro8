@@ -418,19 +418,19 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
     setDerivedPps(finalPps);
     setDerivedQuantity(finalQuantity);
     
-    // Update form fields if not overriding
+    // Update form fields if not overriding (but don't trigger validation to avoid loops)
     if (!overridePps && finalPps !== undefined) {
-      form.setValue('pricePerShare', finalPps.toString());
+      form.setValue('pricePerShare', finalPps.toString(), { shouldValidate: false });
     }
     if (!overrideQuantity && finalQuantity !== undefined) {
-      form.setValue('quantity', finalQuantity.toString());
+      form.setValue('quantity', finalQuantity.toString(), { shouldValidate: false });
     }
   };
 
   // Watch form changes to update derived values
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      if (['valuation', 'consideration', 'quantity', 'pricePerShare'].includes(name || '')) {
+      if (['valuation', 'consideration'].includes(name || '')) {
         updateDerivedValues();
       }
     });
