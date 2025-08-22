@@ -6,7 +6,7 @@ import { Round, ShareLedgerEntry, EquityAward, ConvertibleInstrument } from "@sh
 export interface ValuationResult {
   currentValuation: number | null;
   pricePerShare: number | null;
-  source: 'latest_round' | 'explicit_valuation' | 'none';
+  source: 'latest_round' | 'explicit_valuation' | 'share_transaction' | 'none';
   lastRoundDate?: Date;
   lastRoundName?: string;
   sourceDescription?: string;
@@ -50,11 +50,45 @@ export function calculateCurrentValuation(
   }
 
   if (pricedRounds.length === 0) {
+    // If no priced rounds, check for priced share transactions
+    console.log('Valuation Calculator - No priced rounds, checking share entries for pricing:', shareEntries.length);
+    const pricedShareEntries = shareEntries.filter(entry => 
+      entry.consideration && 
+      Number(entry.consideration) > 0 && 
+      entry.quantity > 0 &&
+      entry.considerationType === 'cash'
+    );
+    
+    if (pricedShareEntries.length > 0) {
+      // Sort by issue date (most recent first)
+      const sortedEntries = pricedShareEntries.sort((a, b) => {
+        const dateA = new Date(a.issueDate).getTime();
+        const dateB = new Date(b.issueDate).getTime();
+        return dateB - dateA;
+      });
+      
+      const mostRecentEntry = sortedEntries[0];
+      const pricePerShare = Number(mostRecentEntry.consideration) / mostRecentEntry.quantity;
+      
+      // Calculate implied valuation: total shares outstanding * price per share
+      const totalShares = shareEntries.reduce((sum, entry) => sum + entry.quantity, 0);
+      const impliedValuation = totalShares * pricePerShare;
+      
+      console.log(`Valuation Calculator - From share entry: ${mostRecentEntry.quantity} shares @ $${pricePerShare.toFixed(2)} = $${impliedValuation.toFixed(0)} valuation`);
+      
+      return {
+        currentValuation: impliedValuation,
+        pricePerShare: pricePerShare,
+        source: 'latest_round', // Keep same source type for UI compatibility
+        sourceDescription: `Latest share transaction (${mostRecentEntry.quantity.toLocaleString()} shares @ $${pricePerShare.toFixed(2)})`
+      };
+    }
+    
     return {
       currentValuation: null,
       pricePerShare: null,
       source: 'none',
-      sourceDescription: 'No priced rounds available'
+      sourceDescription: 'No priced rounds or transactions available'
     };
   }
 
