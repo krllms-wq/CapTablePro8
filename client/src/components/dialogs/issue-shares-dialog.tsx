@@ -152,11 +152,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
   const advancedOpen = useAdvancedOpen({
     errors: form.formState.errors,
     values: { ...form.watch(), overridePps, overrideQuantity },
-    advancedFields: ['certificateNo', 'overridePps', 'overrideQuantity'],
+    advancedFields: ['certificateNo'],
     defaultValues: {
       certificateNo: "",
-      overridePps: false,
-      overrideQuantity: false,
     },
   });
 
@@ -977,41 +975,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
               
-              {/* Override PPS Checkbox */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="override-pps-advanced"
-                  checked={overridePps}
-                  onCheckedChange={(checked) => {
-                    setOverridePps(!!checked);
-                    if (!checked) {
-                      // Reset to derived value when disabling override
-                      updateDerivedValues();
-                    }
-                  }}
-                />
-                <Label htmlFor="override-pps-advanced" className="text-sm cursor-pointer">
-                  Override price per share calculations
-                </Label>
-              </div>
 
-              {/* Override Quantity Checkbox */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="override-quantity-advanced"
-                  checked={overrideQuantity}
-                  onCheckedChange={(checked) => {
-                    setOverrideQuantity(!!checked);
-                    if (!checked) {
-                      // Reset to derived value when disabling override
-                      updateDerivedValues();
-                    }
-                  }}
-                />
-                <Label htmlFor="override-quantity-advanced" className="text-sm cursor-pointer">
-                  Override quantity calculations
-                </Label>
-              </div>
             </AdditionalSettings>
 
             {/* Form Actions */}
