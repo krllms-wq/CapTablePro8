@@ -490,6 +490,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Security class does not belong to this company" });
       }
       
+      // Check if security class is used in any transactions
+      const shareLedgerEntries = await storage.getShareLedgerEntries(companyId);
+      const hasShareEntries = shareLedgerEntries.some(entry => entry.classId === id);
+      
+      if (hasShareEntries) {
+        return res.status(409).json({ 
+          error: `Cannot delete security class "${securityClass.name}" because it is used in share transactions. Please remove all transactions using this class first.` 
+        });
+      }
+      
+      // Note: Equity awards don't directly reference security classes in current schema
+      
+      // Check if security class is used in rounds
+      const rounds = await storage.getRounds(companyId);
+      const hasRounds = rounds.some(round => round.newSecurityClassId === id);
+      
+      if (hasRounds) {
+        return res.status(409).json({ 
+          error: `Cannot delete security class "${securityClass.name}" because it is used in funding rounds. Please remove all rounds using this class first.` 
+        });
+      }
+      
       // Delete the security class
       await storage.deleteSecurityClass(id);
       

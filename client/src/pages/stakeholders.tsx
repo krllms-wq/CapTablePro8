@@ -204,9 +204,10 @@ export default function StakeholdersPage() {
       });
     },
     onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to delete security class";
       toast({
         title: "Error",
-        description: error.message || "Failed to delete security class",
+        description: errorMessage,
         variant: "error",
       });
     }
@@ -214,16 +215,7 @@ export default function StakeholdersPage() {
 
   const handleDeleteSecurityClass = async (securityClass: any) => {
     if (window.confirm(`Are you sure you want to delete the security class "${securityClass.name}"? This action cannot be undone.`)) {
-      try {
-        await deleteSecurityClassMutation.mutateAsync(securityClass.id);
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.error || error.message || "Failed to delete security class";
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "error",
-        });
-      }
+      deleteSecurityClassMutation.mutate(securityClass.id);
     }
   };
 
@@ -234,16 +226,7 @@ export default function StakeholdersPage() {
 
   const handleDeleteStakeholder = async (stakeholder: any) => {
     if (window.confirm(`Are you sure you want to delete stakeholder "${stakeholder.name}"? This action cannot be undone.`)) {
-      try {
-        await deleteStakeholderMutation.mutateAsync(stakeholder.id);
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.error || error.message || "Failed to delete stakeholder";
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "error",
-        });
-      }
+      deleteStakeholderMutation.mutate(stakeholder.id);
     }
   };
 
