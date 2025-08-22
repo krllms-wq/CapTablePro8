@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +19,34 @@ import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield } from "
 export default function TransactionsPage() {
   const { companyId } = useParams();
   const [selectedTransactionType, setSelectedTransactionType] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Rollback transaction mutation
+  const rollbackMutation = useMutation({
+    mutationFn: async (transactionId: string) => {
+      return apiRequest('POST', `/api/companies/${companyId}/transactions/${transactionId}/rollback`, {
+        reason: 'Manual rollback from transactions page'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/companies', companyId] });
+      toast({ title: "Transaction rolled back successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to rollback transaction", 
+        description: error.message || "Unknown error",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleRollback = (transactionId: string) => {
+    if (confirm('Are you sure you want to rollback this transaction? This action cannot be undone.')) {
+      rollbackMutation.mutate(transactionId);
+    }
+  };
 
   const { data: shareLedger, isLoading: ledgerLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "share-ledger"],
@@ -243,9 +273,20 @@ export default function TransactionsPage() {
                             ${formatNumber(transaction.value)}
                           </td>
                           <td className="py-3 px-4">
-                            <Badge className={getStatusColor(transaction.status)}>
-                              {transaction.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(transaction.status)}>
+                                {transaction.status}
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                onClick={() => handleRollback(transaction.id)}
+                                data-testid={`rollback-transaction-${transaction.id}`}
+                              >
+                                Rollback
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

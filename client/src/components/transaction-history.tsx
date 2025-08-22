@@ -162,7 +162,9 @@ export function TransactionHistory({ companyId, onBack }: TransactionHistoryProp
                     <TableCell>{transaction.description}</TableCell>
                     <TableCell>{transaction.stakeholderName}</TableCell>
                     <TableCell>{transaction.securityClassName}</TableCell>
-                    <TableCell>{format(new Date(transaction.date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell>
+                      {transaction.date ? format(new Date(transaction.date), 'MMM d, yyyy') : 'Unknown'}
+                    </TableCell>
                     <TableCell className="text-right">
                       {formatNumber(transaction.quantity)}
                     </TableCell>

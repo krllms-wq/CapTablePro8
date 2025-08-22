@@ -1101,13 +1101,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Convertible instruments routes
   app.get("/api/companies/:companyId/convertibles", async (req, res) => {
     try {
-      const [instruments, stakeholders] = await Promise.all([
+      const [instruments, stakeholders, conversions] = await Promise.all([
         storage.getConvertibleInstruments(req.params.companyId),
-        storage.getStakeholders(req.params.companyId)
+        storage.getStakeholders(req.params.companyId),
+        storage.getConvertibleConversions(req.params.companyId)
       ]);
 
-      // Add stakeholder names to instruments
-      const instrumentsWithNames = instruments.map(instrument => {
+      // Filter out converted instruments
+      const activeConversions = conversions.filter(c => c.status === 'active');
+      const convertedIds = new Set(activeConversions.map(c => c.convertibleId));
+      const activeInstruments = instruments.filter(instrument => !convertedIds.has(instrument.id));
+
+      // Add stakeholder names to active instruments
+      const instrumentsWithNames = activeInstruments.map(instrument => {
         const stakeholder = stakeholders.find(s => s.id === instrument.holderId);
         return {
           ...instrument,

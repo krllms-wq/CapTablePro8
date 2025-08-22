@@ -14,7 +14,7 @@ import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
 import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
-import { TransactionHistory } from "@/components/transaction-history";
+
 import type { Company } from "@shared/schema";
 
 export default function Dashboard() {
@@ -26,8 +26,6 @@ export default function Dashboard() {
   const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
   const [showSafeConversion, setShowSafeConversion] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
-  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
-
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
     enabled: !!companyId,
@@ -88,20 +86,7 @@ export default function Dashboard() {
     );
   }
 
-  // Show transaction history if requested
-  if (showTransactionHistory) {
-    return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <TransactionHistory 
-            companyId={companyId!} 
-            onBack={() => setShowTransactionHistory(false)} 
-          />
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -195,12 +180,8 @@ export default function Dashboard() {
             <Button variant="outline">
               Add Stakeholder
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => setShowTransactionHistory(true)}
-              data-testid="view-transaction-history"
-            >
-              Transaction History
+            <Button variant="outline">
+              View Activity
             </Button>
           </div>
         </div>
