@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { formatNumber, formatDate } from "@/lib/formatters";
 import Navigation from "@/components/layout/navigation";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
@@ -45,8 +45,8 @@ export default function TransactionsPage() {
 
   const isLoading = ledgerLoading || equityLoading || convertiblesLoading;
 
-  const stakeholderMap = new Map((stakeholders || []).map((s: any) => [s.id, s.name]));
-  const securityClassMap = new Map((securityClasses || []).map((sc: any) => [sc.id, sc.name]));
+  const stakeholderMap = new Map(Array.isArray(stakeholders) ? stakeholders.map((s: any) => [s.id, s.name]) : []);
+  const securityClassMap = new Map(Array.isArray(securityClasses) ? securityClasses.map((sc: any) => [sc.id, sc.name]) : []);
 
   if (isLoading) {
     return (
@@ -161,47 +161,37 @@ export default function TransactionsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
-            <Select onValueChange={setSelectedTransactionType}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="New Transaction" />
-              </SelectTrigger>
-              <SelectContent>
-                {transactionTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    <div className="flex items-center gap-2">
-                      <type.icon className={`h-4 w-4 ${type.color}`} />
-                      {type.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
-          {/* Transaction Type Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Quick Action Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {transactionTypes.map((type) => {
               const getBgColor = (color: string) => {
                 switch(color) {
-                  case "text-emerald-600": return "bg-emerald-50 border-emerald-200";
-                  case "text-indigo-600": return "bg-indigo-50 border-indigo-200";
-                  case "text-violet-600": return "bg-violet-50 border-violet-200";
-                  case "text-amber-600": return "bg-amber-50 border-amber-200";
-                  case "text-teal-600": return "bg-teal-50 border-teal-200";
-                  default: return "bg-neutral-50 border-neutral-200";
+                  case "text-emerald-600": return "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 hover:border-emerald-300";
+                  case "text-indigo-600": return "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 hover:border-indigo-300";
+                  case "text-violet-600": return "bg-violet-50 hover:bg-violet-100 border-violet-200 hover:border-violet-300";
+                  case "text-amber-600": return "bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300";
+                  case "text-teal-600": return "bg-teal-50 hover:bg-teal-100 border-teal-200 hover:border-teal-300";
+                  default: return "bg-neutral-50 hover:bg-neutral-100 border-neutral-200 hover:border-neutral-300";
                 }
               };
               
               return (
-                <Card key={type.id} className={`hover:shadow-md transition-shadow cursor-pointer border-2 ${getBgColor(type.color)}`} onClick={() => setSelectedTransactionType(type.id)}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-white/70 backdrop-blur-sm">
-                        <type.icon className={`h-5 w-5 ${type.color}`} />
+                <Card 
+                  key={type.id} 
+                  className={`hover:shadow-lg transition-all duration-200 cursor-pointer border ${getBgColor(type.color)} group`} 
+                  onClick={() => setSelectedTransactionType(type.id)}
+                  data-testid={`transaction-card-${type.id}`}
+                >
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className={`p-2.5 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm group-hover:shadow-md transition-shadow ${type.color}`}>
+                        <type.icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{type.name}</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">{type.description}</p>
+                        <CardTitle className="text-sm font-medium leading-tight">{type.name}</CardTitle>
+                        <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{type.description}</p>
                       </div>
                     </div>
                   </CardHeader>
