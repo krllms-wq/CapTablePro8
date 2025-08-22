@@ -2461,5 +2461,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoints for client-side logging
+  app.post("/api/debug/hook-error", async (req, res) => {
+    try {
+      const debugInfo = req.body;
+      console.error("Client Hook Error:", {
+        component: debugInfo.component,
+        hook: debugInfo.error?.hook,
+        message: debugInfo.error?.message,
+        renderCount: debugInfo.renderCount,
+        timestamp: debugInfo.timestamp
+      });
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("Failed to log client hook error:", error);
+      res.status(500).json({ error: "Failed to log debug info" });
+    }
+  });
+
   return createServer(app);
 }

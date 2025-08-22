@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
+import { clientDebugger } from "@/utils/debug";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
@@ -19,7 +20,11 @@ import FundingRoundDialog from "@/components/dialogs/funding-round-dialog";
 import type { Company } from "@shared/schema";
 
 export default function Dashboard() {
+  // All hooks must be called at the top level, before any conditional returns
   const { companyId } = useParams();
+  const [location] = useLocation();
+  
+  // State hooks
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
   const [showSafeAgreement, setShowSafeAgreement] = useState(false);
@@ -29,6 +34,8 @@ export default function Dashboard() {
   const [showNoteConversion, setShowNoteConversion] = useState(false);
   const [showFundingRound, setShowFundingRound] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
+  
+  // Query hooks
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
     enabled: !!companyId,
@@ -41,6 +48,30 @@ export default function Dashboard() {
   }>({
     queryKey: ["/api/companies", companyId, "cap-table"],
     enabled: !!companyId,
+  });
+
+  // Debug logging to track renders and hook order
+  useEffect(() => {
+    const hooksUsed = [
+      'useParams',
+      'useLocation', 
+      'useState (x9)', // 9 state hooks
+      'useQuery (x2)', // 2 query hooks
+      'useEffect (debug)'
+    ];
+    
+    clientDebugger.logRender('Dashboard', { 
+      companyId, 
+      location, 
+      companyLoading, 
+      capTableLoading 
+    }, hooksUsed);
+
+    // Log query states
+    if (companyId) {
+      clientDebugger.logQuery(["/api/companies", companyId], companyLoading ? 'loading' : companyError ? 'error' : 'success', company);
+      clientDebugger.logQuery(["/api/companies", companyId, "cap-table"], capTableLoading ? 'loading' : 'success', capTableData);
+    }
   });
 
   if (!companyId) {
@@ -89,10 +120,7 @@ export default function Dashboard() {
     );
   }
 
-
-
-  const [location] = useLocation();
-  
+  // Navigation array using the location hook that was moved to top of component
   const navigation = [
     { name: 'Companies', href: '/companies', icon: '🏢', current: false },
     { name: 'Dashboard', href: `/companies/${companyId}`, icon: '📊', current: location === `/companies/${companyId}` },
