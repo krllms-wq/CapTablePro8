@@ -22,14 +22,14 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
   const [formData, setFormData] = useState({
     sellerId: "",
     buyerId: "",
-    buyerType: "", // existing or new
+    buyerType: "existing", // existing or new
     newBuyerName: "",
     newBuyerEmail: "",
-    newBuyerType: "",
+    newBuyerType: "individual",
     classId: "",
     quantity: "",
     pricePerShare: "",
-    transactionDate: ""
+    transactionDate: new Date().toISOString().split('T')[0]
   });
 
   const { data: stakeholders } = useQuery({

@@ -82,11 +82,11 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
     resolver: zodResolver(grantOptionsSchema),
     defaultValues: {
       holderId: "",
-      type: "",
+      type: "stock_option",
       quantityGranted: "",
       strikePrice: "",
-      grantDate: "",
-      vestingStartDate: "",
+      grantDate: new Date().toISOString().split('T')[0],
+      vestingStartDate: new Date().toISOString().split('T')[0],
       vestingCliff: "",
       vestingPeriod: "",
     },
@@ -136,8 +136,8 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
           strikePrice: data.type === 'RSU' ? null : parseFloat(data.strikePrice?.replace(/,/g, '') || '0'),
           grantDate: data.grantDate,
           vestingStartDate: data.vestingStartDate,
-          cliffMonths: parseInt(data.vestingCliff || "12"),
-          totalMonths: parseInt(data.vestingPeriod || "48"),
+          cliffMonths: parseInt(data.vestingCliff || "0"),
+          totalMonths: parseInt(data.vestingPeriod || "0"),
         }
       });
     },
@@ -365,7 +365,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input type="number" inputMode="numeric" placeholder="12" {...field} />
+                      <Input type="number" inputMode="numeric" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -385,7 +385,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="48" {...field} />
+                      <Input type="number" inputMode="numeric" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

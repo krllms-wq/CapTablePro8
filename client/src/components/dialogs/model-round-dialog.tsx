@@ -133,7 +133,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
     resolver: zodResolver(modelRoundSchema),
     defaultValues: {
       name: "",
-      roundType: "",
+      roundType: "priced",
       raiseAmount: "",
       preMoneyValuation: "",
       pricePerShare: "",

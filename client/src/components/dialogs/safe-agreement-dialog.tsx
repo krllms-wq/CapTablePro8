@@ -73,11 +73,11 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
     defaultValues: {
       holderId: "",
       principal: "",
-      framework: "",
+      framework: "YC pre-money SAFE",
       valuationCap: "",
       discountRate: "",
       interestRate: "",
-      issueDate: "",
+      issueDate: new Date().toISOString().split('T')[0],
       maturityDate: "",
     },
   });
