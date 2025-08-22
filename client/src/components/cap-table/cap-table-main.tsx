@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface CapTableRow {
   stakeholder: {
@@ -155,116 +154,118 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
   };
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="sticky left-0 bg-background z-10 border-r">
-            Stakeholder
-          </TableHead>
-          {historicalData.milestones.map((milestone: any, index: number) => {
-            
-            return (
-              <TableHead key={`header-${milestone.date}-${index}`} className="text-center min-w-[120px] relative">
-                <div className="flex flex-col">
-                  <span>{milestone.displayDate}</span>
-                  {milestone.events && milestone.events.length > 0 ? (
-                    <div className="mt-1 relative group">
-                      <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center cursor-help hover:bg-primary/80 mx-auto">
-                        <span className="text-primary-foreground text-xs font-bold">!</span>
-                      </div>
-                      {/* Tooltip - positioned below the icon */}
-                      <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 z-[9999] top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 pointer-events-none border shadow-md">
-                        <div className="font-semibold mb-2">Events on {milestone.displayDate}:</div>
-                        {milestone.events.map((event: any, eventIndex: number) => (
-                          <div key={eventIndex} className="mb-1">
-                            • {event.description}
-                          </div>
-                        ))}
-                        {/* Tooltip arrow pointing up */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-popover"></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      No events
-                    </div>
-                  )}
-                </div>
-              </TableHead>
-            );
-          })}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {stakeholders.map((stakeholder: any) => (
-          <TableRow key={stakeholder.id}>
-            <TableCell className="sticky left-0 bg-background z-10 border-r">
-              <div className="flex items-center">
-                <div className={`w-8 h-8 ${
-                  stakeholder.type === "entity" 
-                    ? "bg-purple-100 text-purple-600" 
-                    : "bg-blue-100 text-blue-600"
-                } rounded-full flex items-center justify-center mr-3`}>
-                  {stakeholder.type === "entity" ? (
-                    <i className="fas fa-building text-sm"></i>
-                  ) : (
-                    <span className="text-sm font-semibold">
-                      {stakeholder.name ? 
-                        stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2) :
-                        'UN'
-                      }
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-foreground">{stakeholder.name || 'Unknown Stakeholder'}</div>
-                </div>
-              </div>
-            </TableCell>
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-slate-50/80">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
+              Stakeholder
+            </th>
             {historicalData.milestones.map((milestone: any, index: number) => {
-              const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
-              const ownership = entry ? entry.ownership : 0;
-              const shares = entry ? entry.shares : 0;
-              const delta = getOwnershipDelta(index, stakeholder.id);
               
               return (
-                <TableCell key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="text-center">
-                  <div className="text-sm font-semibold text-foreground">
-                    {ownership > 0 ? `${ownership.toFixed(2)}%` : '0.00%'}
+                <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px] relative">
+                  <div className="flex flex-col">
+                    <span>{milestone.displayDate}</span>
+                    {milestone.events && milestone.events.length > 0 ? (
+                      <div className="mt-1 relative group">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center cursor-help hover:bg-blue-700 mx-auto">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                        {/* Tooltip - positioned below the icon */}
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-800 text-white text-xs rounded-lg px-3 py-2 z-[9999] top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 pointer-events-none">
+                          <div className="font-semibold mb-2">Events on {milestone.displayDate}:</div>
+                          {milestone.events.map((event: any, eventIndex: number) => (
+                            <div key={eventIndex} className="mb-1">
+                              • {event.description}
+                            </div>
+                          ))}
+                          {/* Tooltip arrow pointing up */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-slate-800"></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs text-slate-400">
+                        No events
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {shares.toLocaleString()} shares
-                  </div>
-                  {/* Waterfall Delta */}
-                  {delta !== 0 && index > 0 && (
-                    <div className={`text-xs font-medium mt-1 ${
-                      delta > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {delta > 0 ? '+' : ''}{delta.toFixed(2)}%
-                    </div>
-                  )}
-                </TableCell>
+                </th>
               );
             })}
-          </TableRow>
-        ))}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell className="font-semibold sticky left-0 bg-background z-10 border-r">
-            Total
-          </TableCell>
-          {historicalData.milestones.map((milestone: any, index: number) => (
-            <TableCell key={`footer-${milestone.date}-${index}`} className="text-center font-semibold">
-              <div className="text-sm">100.00%</div>
-              <div className="text-xs text-muted-foreground">
-                {milestone.fullyDilutedShares?.toLocaleString() || milestone.totalShares?.toLocaleString()} shares
-              </div>
-            </TableCell>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {stakeholders.map((stakeholder: any) => (
+            <tr key={stakeholder.id} className="hover:bg-slate-50/50 transition-colors">
+              <td className="px-6 py-4 sticky left-0 bg-white z-10 border-r border-slate-200">
+                <div className="flex items-center">
+                  <div className={`w-8 h-8 ${
+                    stakeholder.type === "entity" 
+                      ? "bg-purple-100 text-purple-600" 
+                      : "bg-blue-100 text-blue-600"
+                  } rounded-full flex items-center justify-center mr-3`}>
+                    {stakeholder.type === "entity" ? (
+                      <i className="fas fa-building text-sm"></i>
+                    ) : (
+                      <span className="text-sm font-semibold">
+                        {stakeholder.name ? 
+                          stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2) :
+                          'UN'
+                        }
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-slate-900">{stakeholder.name || 'Unknown Stakeholder'}</div>
+                  </div>
+                </div>
+              </td>
+              {historicalData.milestones.map((milestone: any, index: number) => {
+                const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
+                const ownership = entry ? entry.ownership : 0;
+                const shares = entry ? entry.shares : 0;
+                const delta = getOwnershipDelta(index, stakeholder.id);
+                
+                return (
+                  <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="px-4 py-4 text-center">
+                    <div className="text-sm font-semibold text-slate-900">
+                      {ownership > 0 ? `${ownership.toFixed(2)}%` : '0.00%'}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {shares.toLocaleString()} shares
+                    </div>
+                    {/* Waterfall Delta */}
+                    {delta !== 0 && index > 0 && (
+                      <div className={`text-xs font-medium mt-1 ${
+                        delta > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {delta > 0 ? '+' : ''}{delta.toFixed(2)}%
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
           ))}
-        </TableRow>
-      </TableFooter>
-    </Table>
+        </tbody>
+        <tfoot className="bg-slate-50/80 border-t-2 border-slate-300">
+          <tr>
+            <td className="px-6 py-4 text-sm font-semibold text-slate-900 sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
+              Total
+            </td>
+            {historicalData.milestones.map((milestone: any, index: number) => (
+              <td key={`footer-${milestone.date}-${index}`} className="px-4 py-4 text-center">
+                <div className="text-sm font-semibold text-slate-900">100.00%</div>
+                <div className="text-xs text-slate-500">
+                  {milestone.fullyDilutedShares?.toLocaleString() || milestone.totalShares?.toLocaleString()} shares
+                </div>
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
@@ -404,87 +405,103 @@ export default function CapTableMain({ companyId, capTable, convertibles, isLoad
       </div>
       
       {mode === "current" ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Stakeholder</TableHead>
-              <TableHead>Security Type</TableHead>
-              <TableHead className="text-right">Shares</TableHead>
-              <TableHead className="text-right">Investment</TableHead>
-              <TableHead className="text-right">% Ownership</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {capTable.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 ${getStakeholderAvatarColor(row.stakeholder.type, row.isPool)} rounded-full flex items-center justify-center mr-3`}>
-                      {row.isPool ? (
-                        <i className="fas fa-users text-sm"></i>
-                      ) : row.stakeholder.type === "entity" ? (
-                        <i className="fas fa-building text-sm"></i>
-                      ) : (
-                        <span className="text-sm font-semibold">
-                          {getStakeholderInitials(row.stakeholder.name)}
-                        </span>
-                      )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-neutral-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Stakeholder
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Security Type
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Shares
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Investment
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  % Ownership
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Value
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {capTable.map((row, index) => (
+                <tr key={index} className="hover:bg-neutral-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <div className={`w-8 h-8 ${getStakeholderAvatarColor(row.stakeholder.type, row.isPool)} rounded-full flex items-center justify-center mr-3`}>
+                        {row.isPool ? (
+                          <i className="fas fa-users text-sm"></i>
+                        ) : row.stakeholder.type === "entity" ? (
+                          <i className="fas fa-building text-sm"></i>
+                        ) : (
+                          <span className="text-sm font-semibold">
+                            {getStakeholderInitials(row.stakeholder.name)}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-neutral-900">{row.stakeholder.name}</div>
+                        {row.stakeholder.title && (
+                          <div className="text-sm text-neutral-500">{row.stakeholder.title}</div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{row.stakeholder.name}</div>
-                      {row.stakeholder.title && (
-                        <div className="text-sm text-muted-foreground">{row.stakeholder.title}</div>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStakeholderBadgeColor(row.securityClass.name, row.isOption, row.isPool)}`}>
-                    {row.securityClass.name}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatNumber(row.shares)}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrency(row.investment || 0)}
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  {formatPercentage(row.ownership)}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrency(row.value)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <button className="text-muted-foreground hover:text-foreground transition-colors">
-                    <i className="fas fa-ellipsis-h"></i>
-                  </button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell className="font-semibold">Total</TableCell>
-              <TableCell></TableCell>
-              <TableCell className="text-right font-semibold font-mono">
-                {formatNumber(totalShares)}
-              </TableCell>
-              <TableCell className="text-right font-semibold font-mono">
-                {formatCurrency(capTable.reduce((sum, row) => sum + (row.investment || 0), 0))}
-              </TableCell>
-              <TableCell className="text-right font-semibold">
-                100.00%
-              </TableCell>
-              <TableCell className="text-right font-semibold font-mono">
-                {formatCurrency(totalValue)}
-              </TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-900">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStakeholderBadgeColor(row.securityClass.name, row.isOption, row.isPool)}`}>
+                      {row.securityClass.name}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
+                    {formatNumber(row.shares)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
+                    {formatCurrency(row.investment || 0)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-900 text-right font-semibold">
+                    {formatPercentage(row.ownership)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
+                    {formatCurrency(row.value)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="text-neutral-400 hover:text-neutral-600 transition-colors">
+                      <i className="fas fa-ellipsis-h"></i>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-neutral-50 border-t-2 border-neutral-300">
+              <tr>
+                <td className="px-6 py-4 text-sm font-semibold text-neutral-900">Total</td>
+                <td className="px-6 py-4"></td>
+                <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right font-mono">
+                  {formatNumber(totalShares)}
+                </td>
+                <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right font-mono">
+                  {formatCurrency(capTable.reduce((sum, row) => sum + (row.investment || 0), 0))}
+                </td>
+                <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right">
+                  100.00%
+                </td>
+                <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right font-mono">
+                  {formatCurrency(totalValue)}
+                </td>
+                <td className="px-6 py-4"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       ) : (
         <HistoricalCapTable companyId={companyId || ''} />
       )}
