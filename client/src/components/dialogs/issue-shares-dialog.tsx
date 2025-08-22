@@ -201,15 +201,26 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           throw new Error("Stakeholder name is required");
         }
         
-        const stakeholder = await apiRequest(`/api/companies/${companyId}/stakeholders`, {
-          method: "POST",
-          body: {
-            name: newStakeholder.name,
-            email: newStakeholder.email || null,
-            type: newStakeholder.type,
-          }
-        });
-        holderId = stakeholder.id;
+        // Check if stakeholder with same name already exists
+        const existingStakeholder = stakeholders?.find(s => 
+          s.name.toLowerCase().trim() === newStakeholder.name.toLowerCase().trim()
+        );
+        
+        if (existingStakeholder) {
+          // Use existing stakeholder instead of creating a new one
+          holderId = existingStakeholder.id;
+        } else {
+          // Create new stakeholder only if one doesn't exist
+          const stakeholder = await apiRequest(`/api/companies/${companyId}/stakeholders`, {
+            method: "POST",
+            body: {
+              name: newStakeholder.name,
+              email: newStakeholder.email || null,
+              type: newStakeholder.type,
+            }
+          });
+          holderId = stakeholder.id;
+        }
       }
 
       // If creating new security class, create it first
@@ -460,8 +471,10 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
   const onSubmit = (data: IssueSharesFormData) => {
     // Prevent multiple submissions
     if (issueSharesMutation.isPending) {
+      console.log("Mutation already pending, ignoring submission");
       return;
     }
+    console.log("Submitting Issue Shares form:", data);
     issueSharesMutation.mutate(data);
   };
 
