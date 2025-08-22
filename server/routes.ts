@@ -1490,8 +1490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: userId
       });
 
-      // Mark convertible as converted (remove from active convertibles)
-      await storage.deleteConvertibleInstrument(convertibleId);
+      // Note: We don't delete the convertible instrument here anymore
+      // The conversion record itself tracks that it's been converted
+      // This allows rollback to restore the convertible properly
 
       // Log activity
       const stakeholder = await storage.getStakeholder(convertible.holderId);
