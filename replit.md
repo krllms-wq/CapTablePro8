@@ -69,6 +69,17 @@ The schema supports complex cap table structures with entities for Companies, Se
 
 ## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
 
+### Enhanced Activity Feed & Event Logging - COMPLETED ✅
+- **Fixed "Unknown Action Unknown undefined" Display**: Implemented comprehensive event formatting with robust fallback handling for all event types
+- **Enhanced Transaction Logging**: Added complete metadata for all transaction types including shares, equity awards, convertibles, and secondary transfers
+- **Human-Readable Event Descriptions**: Activity feed now displays detailed descriptions like "Issued 50,000 Common shares to Bob Founder for $100,000 on 8/22/2025"
+- **Comprehensive Event Coverage**: Added formatting for stakeholder events, company events, corporate actions, and system events
+- **Debug Logging System**: Added extensive debugging to identify and resolve activity feed display issues
+- **Enhanced Metadata**: All transaction logging now includes stakeholder types, security classes, consideration amounts, and transaction dates
+- **Real-time Activity Updates**: Feed automatically refreshes and displays new events with proper date grouping and relative timestamps
+
+## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
+
 ### SAFE Conversion Mathematics - COMPLETED ✅
 - **Fixed SAFE Conversion Logic**: Corrected mathematical formula to preserve new investor ownership percentage
 - **Target Ownership Calculation**: New investors now receive exactly their intended ownership (e.g., 750K/(750K+2.65M) = 22.06%)
