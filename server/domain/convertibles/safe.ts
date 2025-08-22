@@ -47,7 +47,7 @@ export function calculateSafeConversion(
 
     // Calculate discount price if discount rate exists
     if (safe.discountRate && safe.discountRate > 0) {
-      const discountPrice = pricePerShare * (1 - safe.discountRate);
+      const discountPrice = pricePerShare * (1 - (safe.discountRate / 100));
       if (discountPrice < conversionPrice) {
         conversionPrice = discountPrice;
         usedDiscount = true;

@@ -313,8 +313,18 @@ export const insertConvertibleInstrumentSchema = createInsertSchema(convertibleI
   ]).pipe(z.number().positive()).optional(),
   discountRate: z.union([
     z.number(),
-    z.string().transform(str => parseFloat(str) / 100) // Convert percentage to decimal
-  ]).pipe(z.number().min(0).max(1)).optional(),
+    z.string().transform(str => {
+      const parsed = parseFloat(str.replace(/[%\s]/g, ''));
+      return parsed; // Store as percentage (20.0 for 20%), not decimal (0.20)
+    })
+  ]).pipe(z.number().min(0).max(100)).optional(),
+  interestRate: z.union([
+    z.number(),
+    z.string().transform(str => {
+      const parsed = parseFloat(str.replace(/[%\s]/g, ''));
+      return parsed; // Store as percentage (6.0 for 6%), not decimal (0.06)
+    })
+  ]).pipe(z.number().min(0).max(100)).optional(),
 });
 
 export const insertRoundSchema = createInsertSchema(rounds).omit({

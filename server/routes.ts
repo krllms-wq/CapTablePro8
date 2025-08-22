@@ -984,27 +984,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/convertibles", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      // Sanitize numeric inputs
-      const sanitizedBody = {
+      // Prepare data for validation - let schema handle the transformations
+      const validationBody = {
         ...req.body,
         companyId: req.params.companyId,
-        principalAmount: req.body.principalAmount ? sanitizeDecimal(req.body.principalAmount) : "0.00",
-        interestRate: req.body.interestRate ? sanitizeDecimal(req.body.interestRate) : "0.00",
-        discountRate: req.body.discountRate ? sanitizeDecimal(req.body.discountRate) : null,
-        valuationCap: req.body.valuationCap ? sanitizeDecimal(req.body.valuationCap) : null,
-        issueDate: req.body.issueDate ? toDateOnlyUTC(req.body.issueDate) : toDateOnlyUTC(new Date()),
-        maturityDate: req.body.maturityDate ? toDateOnlyUTC(req.body.maturityDate) : null
+        // Map frontend field names to backend field names
+        principal: req.body.principal || req.body.principalAmount || 0,
+        // Don't pre-sanitize - let the schema handle percentage->decimal conversion
       };
 
-      const validated = insertConvertibleInstrumentSchema.parse(sanitizedBody);
+      const validated = insertConvertibleInstrumentSchema.parse(validationBody);
       
       const instrument = await storage.createConvertibleInstrument(validated);
       
       // Get stakeholder for audit log
       const stakeholder = await storage.getStakeholder(instrument.holderId);
       
-      // Log convertible creation
-      const eventType = instrument.type === "safe" ? "transaction.safe_created" : "transaction.convertible_created";
+      // Log convertible creation - normalize type names  
+      const eventType = (instrument.type === "safe" || instrument.type === "SAFE") ? "transaction.safe_created" : "transaction.convertible_created";
       await logTransactionEvent({
         companyId: req.params.companyId,
         actorId: req.user!.id,

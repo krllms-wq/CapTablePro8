@@ -49,7 +49,7 @@ export function calculateNoteConversion(
 
   // Apply discount if available
   if (note.discountRate && note.discountRate > 0) {
-    const discountPrice = pricePerShare * (1 - note.discountRate);
+    const discountPrice = pricePerShare * (1 - (note.discountRate / 100));
     conversionPrice = Math.min(conversionPrice, discountPrice);
   }
 
