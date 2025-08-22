@@ -33,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpBubble } from "@/components/ui/help-bubble";
 import { Label } from "@/components/ui/label";
-import { EnhancedInput, EnhancedDatePicker, StickyFormFooter, FormSection } from "@/components/ui/enhanced-form";
+
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -244,7 +244,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
         body: {
           holderId,
           classId: classId,
-          quantity: parseInt(data.quantity.replace(/,/g, '')),
+          quantity: parseInt((data.quantity || "0").replace(/,/g, '')),
           issueDate: toDateOnlyUTC(data.issueDate),
           consideration: (data.consideration || "").replace(/,/g, ''),
           considerationType: "cash",
@@ -970,9 +970,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                       />
                     </FormLabel>
                     <FormControl>
-                      <EnhancedDatePicker
-                        value={field.value}
-                        onChange={field.onChange}
+                      <Input 
+                        type="date"
+                        {...field}
                         placeholder="Select issue date"
                       />
                     </FormControl>
