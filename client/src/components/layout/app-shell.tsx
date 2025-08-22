@@ -113,7 +113,7 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-bg">
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="container-app">
           <div className="flex items-center justify-between h-16">
             {/* Left: Logo + Company Switcher */}
@@ -189,7 +189,7 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex pt-16">
         {/* Left Sidebar */}
         {companyId && (
           <aside className="w-64 flex-shrink-0 bg-card border-r border-border min-h-screen">
