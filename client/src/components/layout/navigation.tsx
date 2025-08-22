@@ -1,6 +1,7 @@
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, logout } from "@/hooks/useAuth";
+import { useState } from "react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -8,12 +9,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { LogOut, User, Settings, Menu, X } from "lucide-react";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { companyId } = useParams();
   const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const { data: company } = useQuery<{ name: string; id: string }>({
     queryKey: ["/api/companies", companyId],
@@ -44,6 +48,43 @@ export default function Navigation() {
     <nav className="bg-white border-b border-neutral-200 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-6">
+          {/* Mobile menu button */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <SheetHeader className="border-b px-6 py-4">
+                <SheetTitle className="text-left">Navigation</SheetTitle>
+              </SheetHeader>
+              <div className="p-4 space-y-2">
+                {navItems.map((item) => {
+                  const isActive = location === item.path;
+                  return (
+                    <Link 
+                      key={item.path} 
+                      href={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <div
+                        className={`flex items-center px-4 py-3 rounded-lg font-medium transition-colors ${
+                          isActive
+                            ? "text-primary bg-primary/10"
+                            : "text-neutral-600 hover:bg-neutral-100"
+                        }`}
+                      >
+                        <i className={`${item.icon} mr-3 w-5`}></i>
+                        {item.label}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <div className="flex items-center space-x-3">
             <Link href="/">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center cursor-pointer hover:bg-primary-dark transition-colors">
