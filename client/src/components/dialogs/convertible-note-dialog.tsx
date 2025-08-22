@@ -69,13 +69,14 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
 
   const form = useForm<ConvertibleNoteFormData>({
     resolver: zodResolver(convertibleNoteSchema),
+    mode: "onSubmit", // Only validate on submit, not on change
     defaultValues: {
       holderId: "",
-      principal: "",
-      interestRate: "",
-      maturityDate: "",
-      discountRate: "",
-      valuationCap: "",
+      principal: "250000", // $250K default principal
+      interestRate: "6.0", // 6% default interest rate
+      maturityDate: new Date(Date.now() + 24*30*24*60*60*1000).toISOString().split('T')[0], // 24 months from now
+      discountRate: "20.0", // 20% default discount
+      valuationCap: "5000000", // $5M default valuation cap
       issueDate: new Date().toISOString().split('T')[0],
     },
   });

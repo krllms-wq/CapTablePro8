@@ -131,14 +131,15 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
 
   const form = useForm<ModelRoundFormData>({
     resolver: zodResolver(modelRoundSchema),
+    mode: "onSubmit", // Only validate on submit, not on change
     defaultValues: {
-      name: "",
+      name: "Series A",
       roundType: "priced",
-      raiseAmount: "",
-      preMoneyValuation: "",
-      pricePerShare: "",
+      raiseAmount: "2000000", // $2M default raise
+      preMoneyValuation: "8000000", // $8M default pre-money valuation
+      pricePerShare: "4.00", // $4 default price per share
       newSecurityClassId: "",
-      optionPoolIncrease: "",
+      optionPoolIncrease: "10", // 10% option pool increase
     },
   });
 

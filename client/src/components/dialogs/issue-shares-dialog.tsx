@@ -119,15 +119,16 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
 
   const form = useForm<IssueSharesFormData>({
     resolver: zodResolver(issueSharesSchema),
+    mode: "onSubmit", // Only validate on submit, not on change
     defaultValues: {
       holderId: "",
       classId: "",
-      quantity: "",
-      consideration: "",
-      roundName: "",
+      quantity: "100000", // Reasonable default quantity
+      consideration: "100000", // Reasonable default consideration
+      roundName: "Seed Round", // Default round name
       issueDate: new Date().toISOString().split('T')[0],
-      valuation: "",
-      pricePerShare: "",
+      valuation: "1000000", // $1M default pre-money valuation
+      pricePerShare: "1.00", // $1 default price per share
       certificateNo: "",
     },
   });

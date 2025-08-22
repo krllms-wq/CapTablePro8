@@ -70,15 +70,16 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
 
   const form = useForm<SafeAgreementFormData>({
     resolver: zodResolver(safeAgreementSchema),
+    mode: "onSubmit", // Only validate on submit, not on change
     defaultValues: {
       holderId: "",
-      principal: "",
+      principal: "100000", // $100K default principal
       framework: "YC pre-money SAFE",
-      valuationCap: "",
-      discountRate: "",
-      interestRate: "",
+      valuationCap: "10000000", // $10M default valuation cap
+      discountRate: "20.0", // 20% default discount
+      interestRate: "", // No default interest rate for SAFEs
       issueDate: new Date().toISOString().split('T')[0],
-      maturityDate: "",
+      maturityDate: "", // SAFEs typically don't have maturity dates
     },
   });
 

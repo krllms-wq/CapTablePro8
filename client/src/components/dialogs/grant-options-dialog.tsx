@@ -81,15 +81,16 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
 
   const form = useForm<GrantOptionsFormData>({
     resolver: zodResolver(grantOptionsSchema),
+    mode: "onSubmit", // Only validate on submit, not on change
     defaultValues: {
       holderId: "",
       type: "stock_option",
-      quantityGranted: "",
-      strikePrice: "",
+      quantityGranted: "1000", // Provide reasonable default
+      strikePrice: "1.00", // Provide reasonable default 
       grantDate: new Date().toISOString().split('T')[0],
       vestingStartDate: new Date().toISOString().split('T')[0],
-      vestingCliff: "",
-      vestingPeriod: "",
+      vestingCliff: "12", // 12 months default cliff
+      vestingPeriod: "48", // 48 months default vesting period
     },
   });
 
