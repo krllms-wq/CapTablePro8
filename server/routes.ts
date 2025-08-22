@@ -111,8 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('No user found with email:', normalizedEmail);
         // Debug: show available users
         try {
-          const allUsers = Array.from(storage.users?.values() || []);
-          console.log('Available users:', allUsers.slice(0, 5).map(u => ({ id: u.id, email: u.email })));
+          console.log('Could not find user for debugging');
         } catch (e) {
           console.log('Could not fetch all users for debugging');
         }

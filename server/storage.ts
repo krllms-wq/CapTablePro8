@@ -722,6 +722,68 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  // Missing interface methods for MemStorage
+  async updateConvertibleConversion(id: string, updates: Partial<InsertConvertibleConversion>): Promise<ConvertibleConversion | undefined> {
+    const conversion = this.convertibleConversions.get(id);
+    if (!conversion) return undefined;
+    
+    const updated = { ...conversion, ...updates };
+    this.convertibleConversions.set(id, updated);
+    return updated;
+  }
+
+  async rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+    const conversion = this.convertibleConversions.get(conversionId);
+    if (!conversion) return { success: false, error: "Conversion not found" };
+    
+    const updated = {
+      ...conversion,
+      status: 'rolled_back' as const,
+      rolledBackAt: new Date(),
+      rolledBackBy: userId,
+      rollbackReason: reason || null
+    };
+    this.convertibleConversions.set(conversionId, updated);
+    return { success: true };
+  }
+
+  async deleteShareLedgerEntry(id: string): Promise<void> {
+    this.shareLedgerEntries.delete(id);
+  }
+
+  async createConvertibleConversion(insertConversion: InsertConvertibleConversion): Promise<ConvertibleConversion> {
+    const id = randomUUID();
+    const conversion: ConvertibleConversion = {
+      id,
+      companyId: insertConversion.companyId,
+      convertibleId: insertConversion.convertibleId,
+      triggerRoundId: insertConversion.triggerRoundId ?? null,
+      triggerType: insertConversion.triggerType,
+      conversionDate: insertConversion.conversionDate,
+      conversionPrice: insertConversion.conversionPrice,
+      sharesIssued: insertConversion.sharesIssued,
+      securityClassId: insertConversion.securityClassId,
+      priceCalculationDetails: insertConversion.priceCalculationDetails ?? null,
+      shareEntryId: insertConversion.shareEntryId ?? null,
+      status: insertConversion.status ?? "active",
+      rolledBackAt: insertConversion.rolledBackAt ?? null,
+      rolledBackBy: insertConversion.rolledBackBy ?? null,
+      rollbackReason: insertConversion.rollbackReason ?? null,
+      createdBy: insertConversion.createdBy,
+      createdAt: new Date(),
+    };
+    this.convertibleConversions.set(id, conversion);
+    return conversion;
+  }
+
+  async getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]> {
+    return Array.from(this.convertibleConversions.values()).filter(c => c.companyId === companyId);
+  }
+
+  async getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined> {
+    return this.convertibleConversions.get(id);
+  }
+
   // Convertible Instruments
   async createConvertibleInstrument(insertInstrument: InsertConvertibleInstrument): Promise<ConvertibleInstrument> {
     const id = randomUUID();
@@ -1313,6 +1375,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteConvertibleInstrument(id: string): Promise<void> {
     await db.delete(convertibleInstruments).where(eq(convertibleInstruments.id, id));
+  }
+
+  // Convertible Conversions
+  async createConvertibleConversion(insertConversion: InsertConvertibleConversion): Promise<ConvertibleConversion> {
+    const [conversion] = await db.insert(convertibleConversions).values(insertConversion).returning();
+    return conversion;
+  }
+
+  async getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]> {
+    return await db.select().from(convertibleConversions).where(eq(convertibleConversions.companyId, companyId));
+  }
+
+  async getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined> {
+    const [conversion] = await db.select().from(convertibleConversions).where(eq(convertibleConversions.id, id));
+    return conversion;
+  }
+
+  async updateConvertibleConversion(id: string, updates: Partial<InsertConvertibleConversion>): Promise<ConvertibleConversion | undefined> {
+    const [conversion] = await db.update(convertibleConversions).set(updates).where(eq(convertibleConversions.id, id)).returning();
+    return conversion;
+  }
+
+  async rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const [conversion] = await db.update(convertibleConversions)
+        .set({ 
+          status: 'rolled_back',
+          rolledBackAt: new Date(),
+          rolledBackBy: userId,
+          rollbackReason: reason || null
+        })
+        .where(eq(convertibleConversions.id, conversionId))
+        .returning();
+      
+      return { success: !!conversion };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async deleteShareLedgerEntry(id: string): Promise<void> {
+    await db.delete(shareLedgerEntries).where(eq(shareLedgerEntries.id, id));
   }
 
   // Rounds
