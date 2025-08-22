@@ -160,29 +160,43 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
               Stakeholder
             </th>
-            {historicalData.milestones.map((milestone: any, index: number) => (
-              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px] relative">
-                <div className="flex flex-col">
-                  <span>{milestone.displayDate}</span>
-                  {milestone.events && milestone.events.length > 0 && (
-                    <div className="mt-1 relative group">
-                      <i className="fas fa-info-circle text-xs text-blue-500 cursor-help hover:text-blue-700"></i>
-                      {/* Tooltip */}
-                      <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-800 text-white text-xs rounded-lg px-3 py-2 z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 pointer-events-none">
-                        <div className="font-semibold mb-2">Events on {milestone.displayDate}:</div>
-                        {milestone.events.map((event: any, eventIndex: number) => (
-                          <div key={eventIndex} className="mb-1">
-                            • {event.description}
-                          </div>
-                        ))}
-                        {/* Tooltip arrow */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
+            {historicalData.milestones.map((milestone: any, index: number) => {
+              console.log(`🎯 [TOOLTIP DEBUG] Milestone ${index} (${milestone.displayDate}):`, {
+                hasEvents: !!milestone.events,
+                eventsLength: milestone.events?.length || 0,
+                events: milestone.events
+              });
+              
+              return (
+                <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px] relative">
+                  <div className="flex flex-col">
+                    <span>{milestone.displayDate}</span>
+                    {milestone.events && milestone.events.length > 0 ? (
+                      <div className="mt-1 relative group">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center cursor-help hover:bg-blue-700 mx-auto">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                        {/* Tooltip */}
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-800 text-white text-xs rounded-lg px-3 py-2 z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 pointer-events-none">
+                          <div className="font-semibold mb-2">Events on {milestone.displayDate}:</div>
+                          {milestone.events.map((event: any, eventIndex: number) => (
+                            <div key={eventIndex} className="mb-1">
+                              • {event.description}
+                            </div>
+                          ))}
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </th>
-            ))}
+                    ) : (
+                      <div className="mt-1 text-xs text-slate-400">
+                        No events
+                      </div>
+                    )}
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
