@@ -18,11 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/layout/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
 export default function StakeholdersPage() {
@@ -71,24 +71,21 @@ export default function StakeholdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
-      setShowEditDialog(false);
-      setEditingStakeholder(null);
       toast({
         title: "Success",
         description: "Stakeholder updated successfully",
+        variant: "success",
       });
+      setShowEditDialog(false);
+      setEditingStakeholder(null);
     },
-    onError: (error: any) => {
-      let errorMessage = "Failed to update stakeholder";
-      if (error?.message) {
-        errorMessage = error.message;
-      }
+    onError: () => {
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to update stakeholder",
         variant: "error",
       });
-    },
+    }
   });
 
   const createStakeholderMutation = useMutation({
@@ -100,65 +97,45 @@ export default function StakeholdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
-      setShowAddDialog(false);
-      setNewStakeholder({
-        name: "",
-        email: "",
-        title: "",
-        type: "individual",
-        address: ""
-      });
       toast({
         title: "Success",
         description: "Stakeholder created successfully",
+        variant: "success",
       });
+      setShowAddDialog(false);
+      setNewStakeholder({ name: "", email: "", title: "", type: "individual", address: "" });
     },
-    onError: (error: any) => {
-      let errorMessage = "Failed to create stakeholder";
-      if (error?.message) {
-        errorMessage = error.message;
-      }
+    onError: () => {
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to create stakeholder",
         variant: "error",
       });
-    },
+    }
   });
 
-  const handleEditStakeholder = (stakeholder: any) => {
-    setEditingStakeholder(stakeholder);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteStakeholder = async (stakeholderId: string) => {
-    if (confirm('Are you sure you want to delete this stakeholder?')) {
-      try {
-        await apiRequest(`/api/stakeholders/${stakeholderId}`, {
-          method: "DELETE"
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
-        toast({
-          title: "Success",
-          description: "Stakeholder deleted successfully",
-        });
-      } catch (error: any) {
-        let errorMessage = "Failed to delete stakeholder";
-        
-        if (error?.code === "HAS_HOLDINGS") {
-          errorMessage = "Cannot delete a stakeholder with holdings. Please remove all shares, equity awards, and convertible instruments first.";
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-        
-        toast({
-          title: "Error", 
-          description: errorMessage,
-          variant: "error",
-        });
-      }
+  const deleteStakeholderMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/stakeholders/${id}`, {
+        method: "DELETE"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+      toast({
+        title: "Success",
+        description: "Stakeholder deleted successfully",
+        variant: "success",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete stakeholder",
+        variant: "error",
+      });
     }
-  };
+  });
 
   const createSecurityClassMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -235,21 +212,37 @@ export default function StakeholdersPage() {
     }
   });
 
+  const handleEditStakeholder = (stakeholder: any) => {
+    setEditingStakeholder(stakeholder);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteStakeholder = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this stakeholder?")) {
+      try {
+        await deleteStakeholderMutation.mutateAsync(id);
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || error.message || "Failed to delete stakeholder";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "error",
+        });
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-50">
         <Navigation />
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-neutral-200 rounded"></div>
-                ))}
-              </div>
+            <div className="h-8 bg-neutral-200 rounded w-64"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-16 bg-neutral-200 rounded"></div>
+              ))}
             </div>
           </div>
         </div>
@@ -295,211 +288,230 @@ export default function StakeholdersPage() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Shares
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Ownership %
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Value
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
-                  {stakeholderData.map((stakeholder: any) => (
-                    <tr key={stakeholder.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-semibold">
-                              {stakeholder.name.charAt(0)}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Title
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Shares
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Ownership
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Value
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-neutral-200">
+                      {stakeholderData.map((stakeholder: any) => (
+                        <tr key={stakeholder.id} className="hover:bg-neutral-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                <span className="text-white text-sm font-semibold">
+                                  {stakeholder.name.charAt(0)}
+                                </span>
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-medium text-neutral-900">
+                                  {stakeholder.name}
+                                </div>
+                                <div className="text-sm text-neutral-500">
+                                  {stakeholder.email}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
+                            {stakeholder.title || "—"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              stakeholder.type === "individual" 
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-green-100 text-green-800"
+                            }`}>
+                              {stakeholder.type === "individual" ? "Individual" : "Entity"}
                             </span>
-                          </div>
-                          <div className="ml-3">
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                            {formatNumber(stakeholder.shares)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                            {stakeholder.ownership.toFixed(2)}%
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
+                            ${formatNumber(stakeholder.value)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button 
+                              onClick={() => handleEditStakeholder(stakeholder)}
+                              className="text-primary hover:text-primary-dark mr-3"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteStakeholder(stakeholder.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="security-classes" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-neutral-800">Security Classes</h2>
+                <Button onClick={() => {
+                  setEditingSecurityClass(null);
+                  setNewSecurityClass({ name: "", liquidationPreferenceMultiple: "1.0", participating: false, votingRights: "1.0" });
+                  setShowSecurityClassDialog(true);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Security Class
+                </Button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Liquidation Preference
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Participating
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Voting Rights
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-neutral-200">
+                      {Array.isArray(securityClasses) && securityClasses.map((securityClass: any) => (
+                        <tr key={securityClass.id} className="hover:bg-neutral-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-neutral-900">
-                              {stakeholder.name}
+                              {securityClass.name}
                             </div>
-                            <div className="text-sm text-neutral-500">
-                              {stakeholder.email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-neutral-900">
+                              {securityClass.liquidationPreferenceMultiple}x
                             </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
-                        {stakeholder.title || "—"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          stakeholder.type === "individual" 
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}>
-                          {stakeholder.type === "individual" ? "Individual" : "Entity"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        {formatNumber(stakeholder.shares)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        {stakeholder.ownership.toFixed(2)}%
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                        ${formatNumber(stakeholder.value)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
-                          onClick={() => handleEditStakeholder(stakeholder)}
-                          className="text-primary hover:text-primary-dark mr-3"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteStakeholder(stakeholder.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={securityClass.participating ? "default" : "secondary"}>
+                              {securityClass.participating ? "Yes" : "No"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-neutral-900">
+                              {securityClass.votingRights}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end space-x-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingSecurityClass(securityClass);
+                                  setNewSecurityClass({
+                                    name: securityClass.name,
+                                    liquidationPreferenceMultiple: securityClass.liquidationPreferenceMultiple.toString(),
+                                    participating: securityClass.participating,
+                                    votingRights: securityClass.votingRights.toString()
+                                  });
+                                  setShowSecurityClassDialog(true);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
+                              >
+                                <Pencil className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => deleteSecurityClassMutation.mutate(securityClass.id)}
+                                className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-        {/* Add Stakeholder Dialog */}
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Stakeholder</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="add-name">Name</Label>
-                <Input
-                  id="add-name"
-                  value={newStakeholder.name}
-                  onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
-                  placeholder="Enter stakeholder name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add-email">Email</Label>
-                <Input
-                  id="add-email"
-                  type="email"
-                  value={newStakeholder.email}
-                  onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
-                  placeholder="Enter email address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add-title">Title</Label>
-                <Input
-                  id="add-title"
-                  value={newStakeholder.title}
-                  onChange={(e) => setNewStakeholder({...newStakeholder, title: e.target.value})}
-                  placeholder="Enter title or role"
-                />
-              </div>
-              <div>
-                <Label htmlFor="add-type">Type</Label>
-                <Select 
-                  value={newStakeholder.type} 
-                  onValueChange={(value) => setNewStakeholder({...newStakeholder, type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="entity">Entity</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="add-address">Address (Optional)</Label>
-                <Input
-                  id="add-address"
-                  value={newStakeholder.address}
-                  onChange={(e) => setNewStakeholder({...newStakeholder, address: e.target.value})}
-                  placeholder="Enter address"
-                />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowAddDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => createStakeholderMutation.mutate(newStakeholder)}
-                  disabled={createStakeholderMutation.isPending || !newStakeholder.name}
-                >
-                  {createStakeholderMutation.isPending ? "Creating..." : "Create Stakeholder"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Stakeholder Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Edit Stakeholder</DialogTitle>
-            </DialogHeader>
-            {editingStakeholder && (
+          {/* Add Stakeholder Dialog */}
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Stakeholder</DialogTitle>
+              </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-name">Name</Label>
+                  <Label htmlFor="add-name">Name</Label>
                   <Input
-                    id="edit-name"
-                    value={editingStakeholder.name}
-                    onChange={(e) => setEditingStakeholder({...editingStakeholder, name: e.target.value})}
+                    id="add-name"
+                    value={newStakeholder.name}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                    placeholder="Enter stakeholder name"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-email">Email</Label>
+                  <Label htmlFor="add-email">Email</Label>
                   <Input
-                    id="edit-email"
+                    id="add-email"
                     type="email"
-                    value={editingStakeholder.email || ''}
-                    onChange={(e) => setEditingStakeholder({...editingStakeholder, email: e.target.value})}
+                    value={newStakeholder.email}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                    placeholder="Enter email address"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-title">Title</Label>
+                  <Label htmlFor="add-title">Title</Label>
                   <Input
-                    id="edit-title"
-                    value={editingStakeholder.title || ''}
-                    onChange={(e) => setEditingStakeholder({...editingStakeholder, title: e.target.value})}
+                    id="add-title"
+                    value={newStakeholder.title}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, title: e.target.value})}
+                    placeholder="Enter title or role"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-type">Type</Label>
+                  <Label htmlFor="add-type">Type</Label>
                   <Select 
-                    value={editingStakeholder.type} 
-                    onValueChange={(value) => setEditingStakeholder({...editingStakeholder, type: value})}
+                    value={newStakeholder.type} 
+                    onValueChange={(value) => setNewStakeholder({...newStakeholder, type: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -510,24 +522,176 @@ export default function StakeholdersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="add-address">Address (Optional)</Label>
+                  <Input
+                    id="add-address"
+                    value={newStakeholder.address}
+                    onChange={(e) => setNewStakeholder({...newStakeholder, address: e.target.value})}
+                    placeholder="Enter address"
+                  />
+                </div>
                 <div className="flex justify-end space-x-3 pt-4">
                   <Button 
                     variant="outline" 
-                    onClick={() => setShowEditDialog(false)}
+                    onClick={() => setShowAddDialog(false)}
                   >
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => updateStakeholderMutation.mutate(editingStakeholder)}
-                    disabled={updateStakeholderMutation.isPending}
+                    onClick={() => createStakeholderMutation.mutate(newStakeholder)}
+                    disabled={createStakeholderMutation.isPending || !newStakeholder.name}
                   >
-                    {updateStakeholderMutation.isPending ? "Saving..." : "Save Changes"}
+                    {createStakeholderMutation.isPending ? "Creating..." : "Create Stakeholder"}
                   </Button>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Stakeholder Dialog */}
+          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit Stakeholder</DialogTitle>
+              </DialogHeader>
+              {editingStakeholder && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-name">Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editingStakeholder.name}
+                      onChange={(e) => setEditingStakeholder({...editingStakeholder, name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editingStakeholder.email}
+                      onChange={(e) => setEditingStakeholder({...editingStakeholder, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-title">Title</Label>
+                    <Input
+                      id="edit-title"
+                      value={editingStakeholder.title || ""}
+                      onChange={(e) => setEditingStakeholder({...editingStakeholder, title: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-type">Type</Label>
+                    <Select 
+                      value={editingStakeholder.type} 
+                      onValueChange={(value) => setEditingStakeholder({...editingStakeholder, type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="entity">Entity</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowEditDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={() => updateStakeholderMutation.mutate(editingStakeholder)}
+                      disabled={updateStakeholderMutation.isPending}
+                    >
+                      {updateStakeholderMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Security Class Dialog */}
+          <Dialog open={showSecurityClassDialog} onOpenChange={setShowSecurityClassDialog}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingSecurityClass ? "Edit Security Class" : "Add New Security Class"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="sc-name">Security Class Name</Label>
+                  <Input
+                    id="sc-name"
+                    value={newSecurityClass.name}
+                    onChange={(e) => setNewSecurityClass({...newSecurityClass, name: e.target.value})}
+                    placeholder="e.g. Series A Preferred"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sc-liq-pref">Liquidation Preference Multiple</Label>
+                  <Input
+                    id="sc-liq-pref"
+                    type="number"
+                    step="0.1"
+                    value={newSecurityClass.liquidationPreferenceMultiple}
+                    onChange={(e) => setNewSecurityClass({...newSecurityClass, liquidationPreferenceMultiple: e.target.value})}
+                    placeholder="1.0"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="sc-participating"
+                    checked={newSecurityClass.participating}
+                    onChange={(e) => setNewSecurityClass({...newSecurityClass, participating: e.target.checked})}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                  />
+                  <Label htmlFor="sc-participating">Participating Preferred</Label>
+                </div>
+                <div>
+                  <Label htmlFor="sc-voting">Voting Rights</Label>
+                  <Input
+                    id="sc-voting"
+                    type="number"
+                    step="0.1"
+                    value={newSecurityClass.votingRights}
+                    onChange={(e) => setNewSecurityClass({...newSecurityClass, votingRights: e.target.value})}
+                    placeholder="1.0"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowSecurityClassDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (editingSecurityClass) {
+                        updateSecurityClassMutation.mutate(newSecurityClass);
+                      } else {
+                        createSecurityClassMutation.mutate(newSecurityClass);
+                      }
+                    }}
+                    disabled={(createSecurityClassMutation.isPending || updateSecurityClassMutation.isPending) || !newSecurityClass.name}
+                  >
+                    {(createSecurityClassMutation.isPending || updateSecurityClassMutation.isPending) 
+                      ? "Saving..." 
+                      : editingSecurityClass ? "Update Security Class" : "Create Security Class"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </div>
   );
