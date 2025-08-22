@@ -132,6 +132,7 @@ export class MemStorage implements IStorage {
   private userCompanyAccess: Map<string, UserCompanyAccess> = new Map();
   private capTableShares: Map<string, CapTableShare> = new Map();
   private convertibleConversions: Map<string, ConvertibleConversion> = new Map();
+  private cashContributions: Map<string, CashContribution> = new Map();
 
   // Database connection method
   private async getDbConnection() {
@@ -652,7 +653,7 @@ export class MemStorage implements IStorage {
       quantity: insertEntry.quantity,
       issueDate: insertEntry.issueDate,
       certificateNo: insertEntry.certificateNo ?? null,
-      consideration: insertEntry.consideration ?? null,
+      consideration: insertEntry.consideration ? String(insertEntry.consideration) : null,
       considerationType: insertEntry.considerationType ?? "cash",
       sourceTransactionId: insertEntry.sourceTransactionId ?? null,
       createdAt: new Date(),
@@ -679,7 +680,7 @@ export class MemStorage implements IStorage {
       type: insertAward.type,
       planId: insertAward.planId ?? null,
       grantDate: insertAward.grantDate,
-      strikePrice: insertAward.strikePrice ?? null,
+      strikePrice: insertAward.strikePrice ? String(insertAward.strikePrice) : null,
       quantityGranted: insertAward.quantityGranted,
       quantityExercised: insertAward.quantityExercised ?? 0,
       quantityCanceled: insertAward.quantityCanceled ?? 0,
@@ -1068,8 +1069,8 @@ export class MemStorage implements IStorage {
       companyId: insertScenario.companyId,
       name: insertScenario.name,
       description: insertScenario.description ?? null,
-      roundAmount: insertScenario.roundAmount,
-      premoney: insertScenario.premoney,
+      roundAmount: String(insertScenario.roundAmount),
+      premoney: String(insertScenario.premoney),
       investors: insertScenario.investors,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1253,6 +1254,39 @@ export class MemStorage implements IStorage {
 
   async deleteCapTableShare(id: string): Promise<void> {
     this.capTableShares.delete(id);
+  }
+
+  // Cash Contributions
+  async createCashContribution(insertContribution: InsertCashContribution): Promise<CashContribution> {
+    const id = randomUUID();
+    const contribution: CashContribution = {
+      id,
+      companyId: insertContribution.companyId,
+      contributorId: insertContribution.contributorId,
+      amount: String(insertContribution.amount),
+      contributionDate: insertContribution.contributionDate,
+      description: insertContribution.description ?? null,
+      contributionType: insertContribution.contributionType ?? "founder_funding",
+      createdAt: new Date(),
+    };
+    this.cashContributions.set(id, contribution);
+    return contribution;
+  }
+
+  async getCashContributions(companyId: string, contributorId?: string): Promise<CashContribution[]> {
+    let contributions = Array.from(this.cashContributions.values()).filter(c => c.companyId === companyId);
+    if (contributorId) {
+      contributions = contributions.filter(c => c.contributorId === contributorId);
+    }
+    return contributions;
+  }
+
+  async getCashContribution(id: string): Promise<CashContribution | undefined> {
+    return this.cashContributions.get(id);
+  }
+
+  async deleteCashContribution(id: string): Promise<void> {
+    this.cashContributions.delete(id);
   }
 }
 
