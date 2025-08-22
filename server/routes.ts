@@ -735,7 +735,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         consideration: req.body.consideration ? sanitizeDecimal(req.body.consideration) : null,
-        issueDate: req.body.issueDate ? new Date(req.body.issueDate + 'T00:00:00.000Z') : new Date()
+        issueDate: req.body.issueDate && req.body.issueDate.trim() !== '' 
+          ? new Date(req.body.issueDate + 'T00:00:00.000Z') 
+          : new Date()
       };
 
       // Ensure price per share is computed if missing but derivable
