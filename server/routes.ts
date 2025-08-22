@@ -1255,6 +1255,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
       console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
       
+      console.log('🔍 [HISTORICAL API] SHARE ENTRY DETAILS:');
+      shareLedger.forEach((entry: any, index: number) => {
+        console.log(`  Entry ${index}: ${entry.quantity} shares to holder ${entry.holderId} on ${entry.issueDate?.toISOString()}`);
+      });
+      
       
 
       // Use existing computeCapTable function to calculate historical states
