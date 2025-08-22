@@ -255,7 +255,13 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
       });
     },
     onSuccess: () => {
+      // Invalidate and refetch all cap table related queries
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "stakeholders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "share-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "activity"] });
+      
       toast({
         title: "Success",
         description: "Shares issued successfully",
@@ -689,7 +695,8 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        type="text" 
+                        type="text"
+                        inputMode="numeric"
                         placeholder="" 
                         {...field}
                         onBlur={createSharesBlurHandler(field)}
@@ -702,7 +709,39 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
 
               {/* Company Valuation and Price Per Share Section */}
               <div className="space-y-4 border rounded-lg p-4 bg-blue-50/30">
-                <h4 className="font-medium text-sm text-blue-900">Valuation & Pricing</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm text-blue-900">Valuation & Pricing</h4>
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="override-pps-basic"
+                        checked={overridePps}
+                        onCheckedChange={(checked) => {
+                          setOverridePps(!!checked);
+                          if (!checked) updateDerivedValues();
+                        }}
+                        className="h-3 w-3"
+                      />
+                      <Label htmlFor="override-pps-basic" className="cursor-pointer text-xs">
+                        Override price per share
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="override-valuation-basic" 
+                        checked={overrideValuation}
+                        onCheckedChange={(checked) => {
+                          setOverrideValuation(!!checked);
+                          if (!checked) updateDerivedValues();
+                        }}
+                        className="h-3 w-3"
+                      />
+                      <Label htmlFor="override-valuation-basic" className="cursor-pointer text-xs">
+                        Override valuation
+                      </Label>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Company Valuation */}
                   <FormField
@@ -733,7 +772,8 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Input 
-                              type="text" 
+                              type="text"
+                              inputMode="numeric" 
                               placeholder="Auto-calculated"
                               {...field}
                               value={overrideValuation ? field.value : (derivedValuation ? derivedValuation.toString() : "")}
@@ -789,7 +829,8 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Input 
-                              type="text" 
+                              type="text"
+                              inputMode="numeric"
                               placeholder="Auto-calculated"
                               {...field}
                               value={overridePps ? field.value : (derivedPps ? derivedPps.toString() : "")}
@@ -833,7 +874,8 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        type="text" 
+                        type="text"
+                        inputMode="numeric"
                         placeholder="" 
                         {...field}
                         onBlur={createMoneyBlurHandler(field)}
