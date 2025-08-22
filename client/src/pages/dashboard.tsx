@@ -10,12 +10,18 @@ import NewTransactionButton from "@/components/new-transaction-button";
 import { Button } from "@/components/ui/button";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
+import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
+import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
+import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import type { Company } from "@shared/schema";
 
 export default function Dashboard() {
   const { companyId } = useParams();
   const [showIssueShares, setShowIssueShares] = useState(false);
   const [showGrantOptions, setShowGrantOptions] = useState(false);
+  const [showSafeAgreement, setShowSafeAgreement] = useState(false);
+  const [showConvertibleNote, setShowConvertibleNote] = useState(false);
+  const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
 
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -96,7 +102,9 @@ export default function Dashboard() {
                 onTransactionSelect={(type) => {
                   if (type === "shares") setShowIssueShares(true);
                   if (type === "options") setShowGrantOptions(true);
-                  // Add more transaction types as needed
+                  if (type === "safe") setShowSafeAgreement(true);
+                  if (type === "convertible") setShowConvertibleNote(true);
+                  if (type === "secondary") setShowSecondaryTransaction(true);
                 }}
               />
               <button className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors">
@@ -152,7 +160,9 @@ export default function Dashboard() {
               onTransactionSelect={(type) => {
                 if (type === "shares") setShowIssueShares(true);
                 if (type === "options") setShowGrantOptions(true);
-                // Add more transaction types as needed
+                if (type === "safe") setShowSafeAgreement(true);
+                if (type === "convertible") setShowConvertibleNote(true);
+                if (type === "secondary") setShowSecondaryTransaction(true);
               }}
             />
             <Button variant="outline">
@@ -175,6 +185,24 @@ export default function Dashboard() {
       <GrantOptionsDialog
         open={showGrantOptions}
         onOpenChange={setShowGrantOptions}
+        companyId={companyId!}
+      />
+
+      <SafeAgreementDialog
+        open={showSafeAgreement}
+        onOpenChange={setShowSafeAgreement}
+        companyId={companyId!}
+      />
+
+      <ConvertibleNoteDialog
+        open={showConvertibleNote}
+        onOpenChange={setShowConvertibleNote}
+        companyId={companyId!}
+      />
+
+      <SecondaryTransactionDialog
+        open={showSecondaryTransaction}
+        onOpenChange={setShowSecondaryTransaction}
         companyId={companyId!}
       />
     </div>
