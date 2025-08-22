@@ -453,7 +453,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
                           onClick={() => onConvertSafe(instrument)}
                           className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded transition-colors"
                         >
-                          Конвертировать
+                          Convert
                         </button>
                       )}
                     </td>

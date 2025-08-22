@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,9 +11,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface SAFEConversionDialogProps {
   open: boolean;
@@ -50,9 +52,30 @@ export function SAFEConversionDialog({
   const [roundPreMoneyValuation, setRoundPreMoneyValuation] = useState("5000000");
   const [calculation, setCalculation] = useState<ConversionCalculation | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [useLatestRoundData, setUseLatestRoundData] = useState(true);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch cap table data to get latest round information
+  const { data: capTableData } = useQuery<{
+    stats: { pricePerShare?: number; currentValuation?: number; valuationSource?: string };
+  }>({
+    queryKey: ["/api/companies", companyId, "cap-table"],
+    enabled: !!companyId && open,
+  });
+
+  // Auto-populate with latest round data when dialog opens
+  useEffect(() => {
+    if (open && capTableData?.stats && useLatestRoundData) {
+      if (capTableData.stats.pricePerShare) {
+        setRoundPricePerShare(capTableData.stats.pricePerShare.toString());
+      }
+      if (capTableData.stats.currentValuation) {
+        setRoundPreMoneyValuation(capTableData.stats.currentValuation.toString());
+      }
+    }
+  }, [open, capTableData, useLatestRoundData]);
 
   // Calculate conversion
   const calculateMutation = useMutation({
@@ -127,52 +150,83 @@ export function SAFEConversionDialog({
     <Dialog open={open} onOpenChange={(open) => { onOpenChange(open); if (!open) resetForm(); }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Конвертация SAFE в акции</DialogTitle>
+          <DialogTitle>Convert SAFE to Shares</DialogTitle>
           <DialogDescription>
-            Конвертируйте SAFE {convertible.holderName} (${formatCurrency(convertible.principal)}) в обыкновенные акции
+            Convert {convertible.holderName}'s SAFE ({formatCurrency(convertible.principal)}) to common shares
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* SAFE Details */}
           <div className="bg-slate-50 p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Детали SAFE</h3>
+            <h3 className="font-semibold mb-2">SAFE Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-slate-600">Инвестор:</span> {convertible.holderName}
+                <span className="text-slate-600">Investor:</span> {convertible.holderName}
               </div>
               <div>
-                <span className="text-slate-600">Сумма:</span> {formatCurrency(convertible.principal)}
+                <span className="text-slate-600">Principal:</span> {formatCurrency(convertible.principal)}
               </div>
               <div>
-                <span className="text-slate-600">Скидка:</span> {convertible.discountRate ? `${convertible.discountRate}%` : 'Нет'}
+                <span className="text-slate-600">Discount:</span> {convertible.discountRate ? `${convertible.discountRate}%` : 'None'}
               </div>
               <div>
-                <span className="text-slate-600">Оценочный кэп:</span> {convertible.valuationCap ? formatCurrency(convertible.valuationCap) : 'Нет'}
+                <span className="text-slate-600">Valuation Cap:</span> {convertible.valuationCap ? formatCurrency(convertible.valuationCap) : 'None'}
               </div>
             </div>
           </div>
 
+          {/* Latest Round Info Alert */}
+          {capTableData?.stats && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <span>
+                    Latest round data: ${capTableData.stats.pricePerShare || roundPricePerShare} per share, 
+                    {formatCurrency(capTableData.stats.currentValuation || parseInt(roundPreMoneyValuation))} valuation
+                    {capTableData.stats.valuationSource && ` (${capTableData.stats.valuationSource})`}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUseLatestRoundData(!useLatestRoundData)}
+                  >
+                    {useLatestRoundData ? 'Modify Terms' : 'Use Round Data'}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Round Parameters */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="roundPrice">Цена за акцию в раунде ($)</Label>
+              <Label htmlFor="roundPrice">Round Price Per Share ($)</Label>
               <Input
                 id="roundPrice"
                 type="number"
                 step="0.01"
                 value={roundPricePerShare}
-                onChange={(e) => setRoundPricePerShare(e.target.value)}
+                onChange={(e) => {
+                  setRoundPricePerShare(e.target.value);
+                  setUseLatestRoundData(false); // Manual change disables auto-sync
+                }}
                 placeholder="1.00"
+                disabled={useLatestRoundData}
               />
             </div>
             <div>
-              <Label htmlFor="preMoneyVal">Pre-money оценка ($)</Label>
+              <Label htmlFor="preMoneyVal">Pre-money Valuation ($)</Label>
               <Input
                 id="preMoneyVal"
                 value={roundPreMoneyValuation}
-                onChange={(e) => setRoundPreMoneyValuation(e.target.value)}
+                onChange={(e) => {
+                  setRoundPreMoneyValuation(e.target.value);
+                  setUseLatestRoundData(false); // Manual change disables auto-sync
+                }}
                 placeholder="5,000,000"
+                disabled={useLatestRoundData}
               />
             </div>
           </div>
