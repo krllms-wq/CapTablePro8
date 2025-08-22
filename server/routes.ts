@@ -886,8 +886,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Equity awards routes
   app.get("/api/companies/:companyId/equity-awards", async (req, res) => {
     try {
-      const awards = await storage.getEquityAwards(req.params.companyId);
-      res.json(awards);
+      const [awards, stakeholders] = await Promise.all([
+        storage.getEquityAwards(req.params.companyId),
+        storage.getStakeholders(req.params.companyId)
+      ]);
+
+      // Add stakeholder names to equity awards
+      const awardsWithNames = awards.map(award => {
+        const stakeholder = stakeholders.find(s => s.id === award.holderId);
+        return {
+          ...award,
+          holderName: stakeholder?.name || 'Unknown'
+        };
+      });
+
+      res.json(awardsWithNames);
     } catch (error) {
       console.error("Error fetching equity awards:", error);
       res.status(500).json({ error: "Failed to fetch equity awards" });
@@ -929,21 +942,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vestingStartDate: award.vestingStartDate
         }
       });
-      
-      // Log equity award
-      await logTransactionEvent({
-        companyId: req.params.companyId,
-        actorId: req.user!.id,
-        event: "transaction.options_granted",
-        transactionId: award.id,
-        stakeholderName: stakeholder?.name,
-        details: {
-          awardType: award.type,
-          quantity: award.quantityGranted,
-          strikePrice: award.strikePrice,
-          grantDate: award.grantDate,
-        },
-      });
 
       res.status(201).json(award);
     } catch (error) {
@@ -955,6 +953,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ error: "Failed to create equity award" });
+    }
+  });
+
+  // Cancel equity award route
+  app.post("/api/companies/:companyId/equity-awards/:awardId/cancel", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId, awardId } = req.params;
+      
+      // Get the award first to verify it exists and get details
+      const award = await storage.getEquityAward(awardId);
+      if (!award || award.companyId !== companyId) {
+        return res.status(404).json({ error: "Equity award not found" });
+      }
+      
+      // Cancel the award by setting quantityCanceled to remaining quantity
+      const remainingQuantity = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
+      if (remainingQuantity <= 0) {
+        return res.status(400).json({ error: "No remaining quantity to cancel" });
+      }
+      
+      // Update the award
+      const updatedAward = await storage.updateEquityAward(awardId, {
+        quantityCanceled: award.quantityCanceled + remainingQuantity
+      });
+      
+      // Get stakeholder for audit log
+      const stakeholder = await storage.getStakeholder(award.holderId);
+      
+      // Log cancellation
+      await logTransactionEvent({
+        companyId: companyId,
+        actorId: req.user!.id,
+        event: "transaction.options_cancelled",
+        transactionId: awardId,
+        stakeholderName: stakeholder?.name,
+        details: {
+          awardType: award.type,
+          quantityCancelled: remainingQuantity,
+          remainingAfterCancel: 0
+        }
+      });
+      
+      res.json({ success: true, award: updatedAward });
+    } catch (error) {
+      console.error("Error cancelling equity award:", error);
+      res.status(500).json({ error: "Failed to cancel equity award" });
     }
   });
 

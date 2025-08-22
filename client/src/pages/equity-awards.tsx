@@ -1,15 +1,45 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber, formatCurrency } from "@/lib/formatters";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/layout/navigation";
+import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 
 export default function EquityAwards() {
   const { companyId } = useParams();
+  const { toast } = useToast();
+  const [showGrantDialog, setShowGrantDialog] = useState(false);
 
   const { data: equityAwards, isLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "equity-awards"],
     enabled: !!companyId,
+  });
+
+  // Mutation for cancelling equity awards
+  const cancelAwardMutation = useMutation({
+    mutationFn: async (awardId: string) => {
+      return apiRequest(`/api/companies/${companyId}/equity-awards/${awardId}/cancel`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "equity-awards"] });
+      toast({
+        title: "Success",
+        description: "Equity award cancelled successfully",
+        variant: "success",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to cancel equity award",
+        variant: "error",
+      });
+    }
   });
 
   if (isLoading) {
@@ -41,7 +71,7 @@ export default function EquityAwards() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
-            <Button>
+            <Button onClick={() => setShowGrantDialog(true)} data-testid="button-grant-options">
               <i className="fas fa-plus mr-2"></i>
               Grant Options
             </Button>
@@ -83,7 +113,7 @@ export default function EquityAwards() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-neutral-200">
-                  {(equityAwards || []).map((award: any) => {
+                  {Array.isArray(equityAwards) && equityAwards.map((award: any) => {
                     const outstanding = award.quantityGranted - award.quantityExercised - award.quantityCanceled;
                     return (
                       <tr key={award.id} className="hover:bg-neutral-50">
@@ -121,11 +151,31 @@ export default function EquityAwards() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-primary hover:text-primary-dark mr-3">
+                          <button 
+                            className="text-primary hover:text-primary-dark mr-3"
+                            data-testid={`button-edit-${award.id}`}
+                            onClick={() => {
+                              // TODO: Implement edit functionality
+                              toast({
+                                title: "Coming Soon",
+                                description: "Edit functionality will be added soon",
+                                variant: "info",
+                              });
+                            }}
+                          >
                             Edit
                           </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            Cancel
+                          <button 
+                            className="text-red-600 hover:text-red-900"
+                            data-testid={`button-cancel-${award.id}`}
+                            onClick={() => {
+                              if (confirm("Are you sure you want to cancel this equity award?")) {
+                                cancelAwardMutation.mutate(award.id);
+                              }
+                            }}
+                            disabled={cancelAwardMutation.isPending}
+                          >
+                            {cancelAwardMutation.isPending ? "Cancelling..." : "Cancel"}
                           </button>
                         </td>
                       </tr>
@@ -133,7 +183,7 @@ export default function EquityAwards() {
                   })}
                 </tbody>
               </table>
-              {(!equityAwards || equityAwards.length === 0) && (
+              {(!Array.isArray(equityAwards) || equityAwards.length === 0) && (
                 <div className="text-center py-12">
                   <p className="text-neutral-500">No equity awards found</p>
                 </div>
@@ -142,6 +192,13 @@ export default function EquityAwards() {
           </div>
         </div>
       </div>
+
+      {/* Grant Options Dialog */}
+      <GrantOptionsDialog
+        open={showGrantDialog}
+        onOpenChange={setShowGrantDialog}
+        companyId={companyId!}
+      />
     </div>
   );
 }

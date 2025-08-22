@@ -688,6 +688,22 @@ export class MemStorage implements IStorage {
   }
 
   async updateEquityAward(id: string, updates: Partial<InsertEquityAward>): Promise<EquityAward | undefined> {
+    const existingAward = this.equityAwards.get(id);
+    if (!existingAward) {
+      return undefined;
+    }
+
+    const updatedAward = {
+      ...existingAward,
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    this.equityAwards.set(id, updatedAward);
+    return updatedAward;
+  }
+
+  async updateEquityAward(id: string, updates: Partial<InsertEquityAward>): Promise<EquityAward | undefined> {
     const award = this.equityAwards.get(id);
     if (!award) return undefined;
     
