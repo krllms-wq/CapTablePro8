@@ -164,7 +164,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Quick Action Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {transactionTypes.map((type) => {
               const getBgColor = (color: string) => {
                 switch(color) {
@@ -180,18 +180,17 @@ export default function TransactionsPage() {
               return (
                 <Card 
                   key={type.id} 
-                  className={`hover:shadow-lg transition-all duration-200 cursor-pointer border ${getBgColor(type.color)} group`} 
+                  className={`hover:shadow-md transition-all duration-200 cursor-pointer border ${getBgColor(type.color)} group h-20`} 
                   onClick={() => setSelectedTransactionType(type.id)}
                   data-testid={`transaction-card-${type.id}`}
                 >
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <div className="flex flex-col items-center text-center gap-2">
-                      <div className={`p-2.5 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm group-hover:shadow-md transition-shadow ${type.color}`}>
-                        <type.icon className="h-5 w-5" />
+                  <CardHeader className="p-2.5 h-full flex items-center justify-center">
+                    <div className="flex flex-col items-center text-center gap-1">
+                      <div className={`p-1.5 rounded-md bg-white/80 backdrop-blur-sm shadow-sm group-hover:shadow-md transition-shadow ${type.color}`}>
+                        <type.icon className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <CardTitle className="text-sm font-medium leading-tight">{type.name}</CardTitle>
-                        <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{type.description}</p>
+                        <CardTitle className="text-xs font-medium leading-tight">{type.name}</CardTitle>
                       </div>
                     </div>
                   </CardHeader>
