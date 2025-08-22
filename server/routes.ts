@@ -1240,6 +1240,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map(dateStr => new Date(dateStr))
         .sort((a, b) => a.getTime() - b.getTime());
       
+      console.log('📅 [HISTORICAL API] Raw milestone dates:', Array.from(milestoneSet));
+      console.log('📅 [HISTORICAL API] Sorted milestones:', sortedMilestones.map(d => d.toISOString()));
+      console.log('👥 [HISTORICAL API] Stakeholders:', stakeholders.length);
+      console.log('📊 [HISTORICAL API] Share entries:', shareLedger.length);
+      console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
+      console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
+      
+      // Debug convertible instruments with conversion dates
+      console.log('🔍 [HISTORICAL API] Convertible details:');
+      convertibles.forEach((conv, index) => {
+        console.log(`  ${index}: ${conv.type} for ${conv.holderId}`, {
+          issueDate: conv.issueDate?.toISOString()?.split('T')[0],
+          conversionDate: conv.conversionDate?.toISOString()?.split('T')[0] || 'NOT_CONVERTED',
+          amount: conv.amount,
+          isConverted: !!conv.conversionDate
+        });
+      });
 
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
@@ -1255,52 +1272,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           !conv.conversionDate || conv.conversionDate > asOfDate
         );
         
-        // Get transactions that happened on this specific date for tooltips
-        const transactionsOnDate = [];
-        
-        // Check share ledger entries on this date
-        const shareEntriesOnDate = shareLedger.filter(entry => 
-          entry.issueDate.toISOString().split('T')[0] === asOfDate.toISOString().split('T')[0]
-        );
-        shareEntriesOnDate.forEach(entry => {
-          const stakeholder = stakeholders.find(s => s.id === entry.holderId);
-          transactionsOnDate.push({
-            type: 'share_issuance',
-            description: `Issued ${entry.quantity.toLocaleString()} shares to ${stakeholder?.name || 'Unknown'}`,
-            stakeholder: stakeholder?.name || 'Unknown',
-            amount: entry.quantity,
-            consideration: entry.consideration
-          });
+        console.log(`🎯 [HISTORICAL API] As of ${asOfDate.toISOString().split('T')[0]}:`);
+        console.log(`  ✅ Converted: ${convertiblesConvertedByDate.length} convertibles`);
+        convertiblesConvertedByDate.forEach(conv => {
+          console.log(`    - ${conv.type} (${conv.holderId}) converted on ${conv.conversionDate?.toISOString()?.split('T')[0]}`);
         });
-        
-        // Check convertible conversions on this date
-        const conversionsOnDate = convertibles.filter(conv => 
-          conv.conversionDate && conv.conversionDate.toISOString().split('T')[0] === asOfDate.toISOString().split('T')[0]
-        );
-        conversionsOnDate.forEach(conv => {
-          const stakeholder = stakeholders.find(s => s.id === conv.holderId);
-          transactionsOnDate.push({
-            type: 'conversion',
-            description: `${conv.type} converted for ${stakeholder?.name || 'Unknown'}`,
-            stakeholder: stakeholder?.name || 'Unknown',
-            amount: conv.amount,
-            conversionType: conv.type
-          });
-        });
-        
-        // Check equity awards on this date
-        const awardsOnDate = equityAwards.filter(award => 
-          award.grantDate.toISOString().split('T')[0] === asOfDate.toISOString().split('T')[0]
-        );
-        awardsOnDate.forEach(award => {
-          const stakeholder = stakeholders.find(s => s.id === award.holderId);
-          transactionsOnDate.push({
-            type: 'equity_award',
-            description: `Granted ${award.quantityGranted.toLocaleString()} ${award.awardType} to ${stakeholder?.name || 'Unknown'}`,
-            stakeholder: stakeholder?.name || 'Unknown',
-            amount: award.quantityGranted,
-            awardType: award.awardType
-          });
+        console.log(`  ⏳ Not yet converted: ${convertiblesNotConvertedByDate.length} convertibles`);
+        convertiblesNotConvertedByDate.forEach(conv => {
+          console.log(`    - ${conv.type} (${conv.holderId}) conversion: ${conv.conversionDate?.toISOString()?.split('T')[0] || 'never'}`);
         });
         
         const result = computeCapTable(
@@ -1314,24 +1293,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'FullyDiluted'
         );
         
+        console.log(`📊 [HISTORICAL API] Cap table result for ${asOfDate.toISOString()}:`, {
+          totalEntries: result.entries.length,
+          totalShares: result.totalShares,
+          fullyDiluted: result.fullyDilutedShares,
+          entries: result.entries.map(e => ({
+            holderId: e.holderId,
+            holderName: e.holderName,
+            shares: e.shares,
+            ownership: e.ownership
+          }))
+        });
         
         return {
           date: asOfDate.toISOString().split('T')[0],
           displayDate: asOfDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-          entries: result.entries.map(entry => ({
-            stakeholderId: entry.holderId,
-            stakeholder: entry.holderName,
-            shares: entry.shares,
-            ownership: entry.ownership,
-            securityClass: entry.securityClass
-          })),
+          entries: result.entries.map(entry => {
+            console.log(`📈 [HISTORICAL API] Processing entry: ${entry.holderName} - ${entry.shares} shares (${entry.ownership.toFixed(2)}%)`);
+            return {
+              stakeholderId: entry.holderId,
+              stakeholder: entry.holderName,
+              shares: entry.shares,
+              ownership: entry.ownership,
+              securityClass: entry.securityClass
+            };
+          }),
           totalShares: result.totalShares,
-          fullyDilutedShares: result.fullyDilutedShares,
-          transactions: transactionsOnDate
+          fullyDilutedShares: result.fullyDilutedShares
         };
       });
 
       // Also include current state as the final point
+      console.log('🧮 [HISTORICAL API] Computing current state...');
       const currentResult = computeCapTable(
         shareLedger,
         equityAwards, 
@@ -1342,6 +1335,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new Date(),
         'FullyDiluted'
       );
+      
+      console.log('📊 [HISTORICAL API] Current cap table result:', {
+        totalEntries: currentResult.entries.length,
+        totalShares: currentResult.totalShares,
+        fullyDiluted: currentResult.fullyDilutedShares,
+        entries: currentResult.entries.map(e => ({
+          holderId: e.holderId,
+          holderName: e.holderName,
+          shares: e.shares,
+          ownership: e.ownership
+        }))
+      });
 
       historicalData.push({
         date: new Date().toISOString().split('T')[0],
@@ -1354,8 +1359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           securityClass: entry.securityClass
         })),
         totalShares: currentResult.totalShares,
-        fullyDilutedShares: currentResult.fullyDilutedShares,
-        transactions: [] // Current state has no specific transactions
+        fullyDilutedShares: currentResult.fullyDilutedShares
       });
 
       const response = {

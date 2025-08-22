@@ -62,10 +62,20 @@ export function computeCapTable(
   const preRoundFD = totalShares + outstandingOptions + unallocatedPool;
   
   // Add convertibles if AsConverted or FullyDiluted
+  console.log(`💰 [COMPUTE] Processing ${convertibles.length} convertibles as of ${asOf.toISOString()}`);
   if (view === 'AsConverted' || view === 'FullyDiluted') {
     for (const convertible of convertibles) {
+      console.log(`💰 [COMPUTE] Checking convertible ${convertible.type} for ${convertible.holderId}:`, {
+        issueDate: convertible.issueDate?.toISOString()?.split('T')[0],
+        conversionDate: convertible.conversionDate?.toISOString()?.split('T')[0] || 'NOT_CONVERTED',
+        asOfDate: asOf.toISOString().split('T')[0],
+        oldCondition: convertible.issueDate <= asOf,
+        newCondition: convertible.conversionDate && convertible.conversionDate <= asOf
+      });
+      
       // CRITICAL BUG FIX: Check conversionDate, not issueDate!
       if (convertible.conversionDate && convertible.conversionDate <= asOf) {
+        console.log(`✅ [COMPUTE] Converting ${convertible.type} - conversion happened on/before asOf date`);
         let sharesFromConversion = 0;
         
         if (convertible.type === 'SAFE') {
@@ -87,6 +97,11 @@ export function computeCapTable(
         const current = stakeholderShares.get(convertible.holderId) || 0;
         stakeholderShares.set(convertible.holderId, current + sharesFromConversion);
         fullyDilutedShares += sharesFromConversion;
+        console.log(`💰 [COMPUTE] Added ${sharesFromConversion} shares from conversion to ${convertible.holderId}`);
+      } else if (convertible.issueDate <= asOf) {
+        console.log(`⏳ [COMPUTE] ${convertible.type} issued but not yet converted as of ${asOf.toISOString().split('T')[0]}`);
+      } else {
+        console.log(`❌ [COMPUTE] ${convertible.type} not yet issued as of ${asOf.toISOString().split('T')[0]}`);
       }
     }
   }
