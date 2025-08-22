@@ -1447,17 +1447,8 @@ export class DatabaseStorage implements IStorage {
         return { success: false, error: "Conversion has already been rolled back" };
       }
 
-      // Get the original convertible instrument to restore it
-      const convertible = await this.getConvertibleInstrument(conversion.convertibleId);
-      if (convertible) {
-        // Restore the convertible to unconverted state
-        await this.updateConvertibleInstrument(conversion.convertibleId, {
-          converted: false,
-          convertedAt: null,
-          convertedShares: null,
-          conversionPrice: null
-        });
-      }
+      // Note: Since the convertible instrument doesn't have conversion status fields,
+      // we just need to delete the conversion record to make it available again
 
       // Delete the conversion record to remove the foreign key constraint
       await db.delete(convertibleConversions).where(eq(convertibleConversions.id, conversionId));
