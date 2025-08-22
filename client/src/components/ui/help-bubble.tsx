@@ -18,7 +18,7 @@ export function HelpBubble({ term, definition, example, size = "sm", className =
   const iconSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button 
@@ -30,22 +30,23 @@ export function HelpBubble({ term, definition, example, size = "sm", className =
           </button>
         </TooltipTrigger>
         <TooltipContent 
-          className="max-w-sm p-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[9999]"
-          sideOffset={5}
-          side="top"
-          align="center"
+          className="max-w-xs p-3 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl z-[99999] relative"
+          sideOffset={8}
+          side="bottom"
+          align="start"
           avoidCollisions={true}
-          collisionPadding={8}
+          collisionPadding={16}
+          sticky="always"
         >
-          <div className="space-y-2">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">
+          <div className="space-y-1.5">
+            <div className="font-semibold text-gray-900 dark:text-gray-100 text-xs">
               {term}
             </div>
-            <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-xs">
               {definition}
             </div>
             {example && (
-              <div className="text-xs text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-600">
+              <div className="text-xs text-gray-600 dark:text-gray-400 pt-1.5 border-t border-gray-100 dark:border-gray-600">
                 <span className="font-medium">Example:</span> {example}
               </div>
             )}
