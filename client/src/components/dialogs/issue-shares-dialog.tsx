@@ -700,11 +700,15 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
-              {/* Company Valuation - Enhanced with derivation */}
-              <FormField
-                control={form.control}
-                name="valuation"
-                render={({ field }) => (
+              {/* Company Valuation and Price Per Share Section */}
+              <div className="space-y-4 border rounded-lg p-4 bg-blue-50/30">
+                <h4 className="font-medium text-sm text-blue-900">Valuation & Pricing</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Company Valuation */}
+                  <FormField
+                    control={form.control}
+                    name="valuation"
+                    render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       Company Valuation ($)
@@ -756,11 +760,11 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
-              {/* Price per Share - Enhanced with derivation */}
-              <FormField
-                control={form.control}
-                name="pricePerShare"
-                render={({ field }) => (
+                  {/* Price per Share - Enhanced with derivation */}
+                  <FormField
+                    control={form.control}
+                    name="pricePerShare"
+                    render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       Price per share ($)
@@ -809,7 +813,9 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+                  />
+                </div>
+              </div>
 
               {/* Consideration */}
               <FormField

@@ -31,13 +31,16 @@ export function calculateCurrentValuation(
     };
   }
 
-  // Find latest priced round
+  // Find latest priced round - be more flexible with round types
   const pricedRounds = rounds
-    .filter(round => 
-      round.roundType === 'priced' && 
-      round.pricePerShare && 
-      Number(round.pricePerShare) > 0
-    )
+    .filter(round => {
+      // Accept any round with a valid pricePerShare, regardless of roundType
+      const hasValidPrice = round.pricePerShare && Number(round.pricePerShare) > 0;
+      
+      console.log(`Round ${round.name}: type=${round.roundType}, pricePerShare=${round.pricePerShare}, valid=${hasValidPrice}`);
+      
+      return hasValidPrice;
+    })
     .sort((a, b) => new Date(b.closeDate).getTime() - new Date(a.closeDate).getTime());
 
   console.log('Valuation Calculator - Total rounds:', rounds.length);

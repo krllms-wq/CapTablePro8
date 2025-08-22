@@ -1151,6 +1151,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get valuation source information
       console.log('Cap table endpoint - rounds found:', rounds.length);
+      console.log('Cap table endpoint - shareLedger entries:', shareLedger.length);
+      console.log('Cap table endpoint - rounds data:', rounds.map(r => ({ name: r.name, type: r.roundType, pricePerShare: r.pricePerShare, closeDate: r.closeDate })));
+      
       const currentValuationInfo = calculateCurrentValuation(rounds, shareLedger);
       console.log('Cap table endpoint - valuation result:', currentValuationInfo);
       
@@ -1260,20 +1263,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalConvertibles,
           stakeholderCount: stakeholders.length,
           fullyDilutedShares: valuationResult.fullyDilutedShares,
-          currentValuation: valuationResult.currentValuation,
+          currentValuation: currentValuationInfo.currentValuation, // Use the correct current valuation
           fullyDilutedValuation: valuationResult.fullyDilutedValuation,
           optionPoolAvailable: Math.max(0, 10000000 - totalOptionsOutstanding), // Unallocated pool
-          pricePerShare: valuationResult.pricePerShare,
+          pricePerShare: currentValuationInfo.pricePerShare, // Use the correct price per share
           valuationSource: currentValuationInfo.sourceDescription,
           rsuInclusionMode: 'granted'
         },
         capTable,
         convertibles: convertiblesWithNames,
         valuationInfo: {
-          pricePerShare: valuationResult.pricePerShare,
-          sharesOutstanding: valuationResult.sharesOutstanding,
+          pricePerShare: currentValuationInfo.pricePerShare, // Use correct PPS
+          sharesOutstanding: totalShares, // Use actual total shares
           fullyDilutedShares: valuationResult.fullyDilutedShares,
-          currentValuation: valuationResult.currentValuation,
+          currentValuation: currentValuationInfo.currentValuation, // Use correct current valuation
           fullyDilutedValuation: valuationResult.fullyDilutedValuation,
           source: currentValuationInfo.source,
           sourceDescription: currentValuationInfo.sourceDescription,
