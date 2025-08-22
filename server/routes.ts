@@ -1243,7 +1243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
       
-      const historicalData = sortedMilestones.map(asOfDate => {
+      const historicalData = sortedMilestones.map((asOfDate) => {
         const result = computeCapTable(
           shareLedger,
           equityAwards, 
@@ -1259,8 +1259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           date: asOfDate.toISOString().split('T')[0],
           displayDate: asOfDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
           entries: result.entries.map(entry => ({
-            stakeholderId: entry.stakeholderId,
-            stakeholder: entry.stakeholder,
+            stakeholderId: entry.holderId,        // Fix: holderId -> stakeholderId
+            stakeholder: entry.holderName,       // Fix: holderName -> stakeholder
             shares: entry.shares,
             ownership: entry.ownership,
             securityClass: entry.securityClass
@@ -1286,8 +1286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: new Date().toISOString().split('T')[0],
         displayDate: 'Current',
         entries: currentResult.entries.map(entry => ({
-          stakeholderId: entry.stakeholderId,
-          stakeholder: entry.stakeholder,
+          stakeholderId: entry.holderId,        // Fix: holderId -> stakeholderId
+          stakeholder: entry.holderName,       // Fix: holderName -> stakeholder
           shares: entry.shares,
           ownership: entry.ownership,
           securityClass: entry.securityClass
@@ -1296,10 +1296,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullyDilutedShares: currentResult.fullyDilutedShares
       });
 
-      res.json({
+      const response = {
         milestones: historicalData,
         stakeholders: stakeholders.map(s => ({ id: s.id, name: s.name, type: s.type }))
-      });
+      };
+      
+      res.json(response);
 
     } catch (error) {
       console.error("Error calculating historical cap table:", error);

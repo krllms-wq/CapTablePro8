@@ -113,12 +113,15 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
 
   // Get all unique stakeholders from all milestones
   const allStakeholders = new Map<string, { name: string; type?: string }>();
+  
   historicalData.milestones.forEach((milestone: any) => {
     milestone.entries.forEach((entry: any) => {
       if (!allStakeholders.has(entry.stakeholderId)) {
+        const stakeholderFromAPI = historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId);
+        
         allStakeholders.set(entry.stakeholderId, { 
-          name: entry.stakeholder,
-          type: historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId)?.type 
+          name: entry.stakeholder || stakeholderFromAPI?.name || 'Unknown Stakeholder',
+          type: stakeholderFromAPI?.type || 'individual'
         });
       }
     });
@@ -134,8 +137,8 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
               Stakeholder
             </th>
-            {historicalData.milestones.map((milestone: any) => (
-              <th key={milestone.date} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">
+            {historicalData.milestones.map((milestone: any, index: number) => (
+              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">
                 {milestone.displayDate}
               </th>
             ))}
@@ -155,22 +158,25 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
                       <i className="fas fa-building text-sm"></i>
                     ) : (
                       <span className="text-sm font-semibold">
-                        {stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2)}
+                        {stakeholder.name ? 
+                          stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2) :
+                          'UN'
+                        }
                       </span>
                     )}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-900">{stakeholder.name}</div>
+                    <div className="text-sm font-medium text-slate-900">{stakeholder.name || 'Unknown Stakeholder'}</div>
                   </div>
                 </div>
               </td>
-              {historicalData.milestones.map((milestone: any) => {
+              {historicalData.milestones.map((milestone: any, index: number) => {
                 const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
                 const ownership = entry ? entry.ownership : 0;
                 const shares = entry ? entry.shares : 0;
                 
                 return (
-                  <td key={milestone.date} className="px-4 py-4 text-center">
+                  <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="px-4 py-4 text-center">
                     <div className="text-sm font-semibold text-slate-900">
                       {(ownership * 100).toFixed(2)}%
                     </div>
@@ -188,8 +194,8 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
             <td className="px-6 py-4 text-sm font-semibold text-slate-900 sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
               Total
             </td>
-            {historicalData.milestones.map((milestone: any) => (
-              <td key={milestone.date} className="px-4 py-4 text-center">
+            {historicalData.milestones.map((milestone: any, index: number) => (
+              <td key={`footer-${milestone.date}-${index}`} className="px-4 py-4 text-center">
                 <div className="text-sm font-semibold text-slate-900">100.00%</div>
                 <div className="text-xs text-slate-500">
                   {milestone.fullyDilutedShares?.toLocaleString() || milestone.totalShares?.toLocaleString()} shares
