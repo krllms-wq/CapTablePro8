@@ -139,9 +139,9 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
           holderId,
           principal: parseFloat(data.principal.replace(/,/g, '')),
           framework: "Standard Convertible Note",
-          interestRate: parseFloat(data.interestRate.replace(/,/g, '')),
+          interestRate: parseFloat(data.interestRate.replace(/,/g, '')) / 100,
           maturityDate: toDateOnlyUTC(data.maturityDate),
-          discountRate: data.discountRate ? parseFloat(data.discountRate.replace(/,/g, '')) : null,
+          discountRate: data.discountRate ? parseFloat(data.discountRate.replace(/,/g, '')) / 100 : null,
           valuationCap: data.valuationCap ? parseFloat(data.valuationCap.replace(/,/g, '')) : null,
           issueDate: toDateOnlyUTC(data.issueDate),
         }

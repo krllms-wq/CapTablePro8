@@ -154,8 +154,8 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
           principal: data.principal.replace(/,/g, ''),
           framework: data.framework,
           valuationCap: data.valuationCap ? data.valuationCap.replace(/,/g, '') : null,
-          discountRate: data.discountRate ? data.discountRate.replace(/,/g, '') : null,
-          interestRate: data.interestRate ? parseFloat(data.interestRate.replace(/,/g, '')) : null,
+          discountRate: data.discountRate ? parseFloat(data.discountRate.replace(/,/g, '')) / 100 : null,
+          interestRate: data.interestRate ? parseFloat(data.interestRate.replace(/,/g, '')) / 100 : null,
           issueDate: toDateOnlyUTC(data.issueDate),
           maturityDate: data.maturityDate?.trim() ? toDateOnlyUTC(data.maturityDate) : null,
         }
