@@ -402,20 +402,11 @@ export type InsertEquityAward = z.infer<typeof insertEquityAwardSchema>;
 export type ConvertibleInstrument = typeof convertibleInstruments.$inferSelect;
 export type InsertConvertibleInstrument = z.infer<typeof insertConvertibleInstrumentSchema>;
 
-// Convertible Conversions schema
 export const insertConvertibleConversionSchema = createInsertSchema(convertibleConversions).omit({
   id: true,
   createdAt: true,
 }).extend({
   conversionDate: z.union([z.date(), z.string()]).transform(transformDateInput),
-  conversionPrice: z.union([
-    z.number(),
-    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
-  ]).pipe(z.number().positive()),
-  sharesIssued: z.union([
-    z.number(),
-    z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
-  ]).pipe(z.number().int().positive()),
 });
 
 export type ConvertibleConversion = typeof convertibleConversions.$inferSelect;

@@ -66,6 +66,11 @@ export interface IStorage {
   createConvertibleConversion(conversion: InsertConvertibleConversion): Promise<ConvertibleConversion>;
   getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]>;
   getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined>;
+
+  // Convertible Conversions
+  createConvertibleConversion(conversion: InsertConvertibleConversion): Promise<ConvertibleConversion>;
+  getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]>;
+  getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined>;
   rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }>;
 
   // Rounds
@@ -1411,6 +1416,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteScenario(id: string): Promise<void> {
     await db.delete(scenarios).where(eq(scenarios.id, id));
+  }
+
+  // Convertible Conversions
+  async createConvertibleConversion(insertConversion: InsertConvertibleConversion): Promise<ConvertibleConversion> {
+    const [conversion] = await db.insert(convertibleConversions).values(insertConversion).returning();
+    return conversion;
+  }
+
+  async getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]> {
+    return await db.select().from(convertibleConversions).where(eq(convertibleConversions.companyId, companyId));
+  }
+
+  async getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined> {
+    const [conversion] = await db.select().from(convertibleConversions).where(eq(convertibleConversions.id, id));
+    return conversion;
   }
 
   // Users
