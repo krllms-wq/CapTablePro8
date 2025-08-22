@@ -66,12 +66,9 @@ export interface IStorage {
   createConvertibleConversion(conversion: InsertConvertibleConversion): Promise<ConvertibleConversion>;
   getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]>;
   getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined>;
-
-  // Convertible Conversions
-  createConvertibleConversion(conversion: InsertConvertibleConversion): Promise<ConvertibleConversion>;
-  getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]>;
-  getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined>;
+  updateConvertibleConversion(id: string, updates: Partial<InsertConvertibleConversion>): Promise<ConvertibleConversion | undefined>;
   rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }>;
+  deleteShareLedgerEntry(id: string): Promise<void>;
 
   // Rounds
   createRound(round: InsertRound): Promise<Round>;
@@ -1431,6 +1428,47 @@ export class DatabaseStorage implements IStorage {
   async getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined> {
     const [conversion] = await db.select().from(convertibleConversions).where(eq(convertibleConversions.id, id));
     return conversion;
+  }
+
+  async updateConvertibleConversion(id: string, updates: Partial<InsertConvertibleConversion>): Promise<ConvertibleConversion | undefined> {
+    const [conversion] = await db.update(convertibleConversions).set(updates).where(eq(convertibleConversions.id, id)).returning();
+    return conversion;
+  }
+
+  async rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get the conversion record
+      const conversion = await this.getConvertibleConversion(conversionId);
+      if (!conversion) {
+        return { success: false, error: "Conversion not found" };
+      }
+
+      if (conversion.status !== 'active') {
+        return { success: false, error: "Conversion has already been rolled back" };
+      }
+
+      // Mark conversion as rolled back
+      await this.updateConvertibleConversion(conversionId, {
+        status: 'rolled_back',
+        rolledBackAt: new Date(),
+        rolledBackBy: userId,
+        rollbackReason: reason || 'Manual rollback'
+      });
+
+      // Remove the associated share ledger entry if it exists
+      if (conversion.shareEntryId) {
+        await db.delete(shareLedgerEntries).where(eq(shareLedgerEntries.id, conversion.shareEntryId));
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error rolling back conversion:", error);
+      return { success: false, error: "Failed to rollback conversion" };
+    }
+  }
+
+  async deleteShareLedgerEntry(id: string): Promise<void> {
+    await db.delete(shareLedgerEntries).where(eq(shareLedgerEntries.id, id));
   }
 
   // Users

@@ -1426,6 +1426,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Convertible instrument not found" });
       }
 
+      // Check if this convertible has already been converted (prevent duplicates)
+      const existingConversions = await storage.getConvertibleConversions(companyId);
+      const alreadyConverted = existingConversions.find(c => c.convertibleId === convertibleId && c.status === 'active');
+      if (alreadyConverted) {
+        return res.status(400).json({ error: "This convertible has already been converted" });
+      }
+
       // Validate conversion eligibility
       const validation = validateSAFEConversion(convertible);
       if (!validation.valid) {
@@ -1571,6 +1578,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rolling back conversion:", error);
       res.status(500).json({ error: "Failed to rollback conversion" });
+    }
+  });
+
+  // Rollback any transaction by ID
+  app.post("/api/companies/:companyId/transactions/:transactionId/rollback", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId, transactionId } = req.params;
+      const { reason } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      // Find the share ledger entry to rollback
+      const shareEntry = await storage.getShareLedgerEntry(transactionId);
+      if (!shareEntry || shareEntry.companyId !== companyId) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      // Check if this transaction is from a SAFE conversion
+      const conversions = await storage.getConvertibleConversions(companyId);
+      const conversion = conversions.find(c => c.shareEntryId === transactionId && c.status === 'active');
+
+      if (conversion) {
+        // This is a SAFE conversion transaction - use the conversion rollback
+        const result = await storage.rollbackConvertibleConversion(conversion.id, userId, reason);
+        if (!result.success) {
+          return res.status(400).json({ error: result.error });
+        }
+      } else {
+        // Regular share transaction - just delete it
+        await storage.deleteShareLedgerEntry(transactionId);
+      }
+
+      // Log the rollback
+      await storage.createAuditLog({
+        companyId,
+        actorId: userId,
+        event: "transaction_rollback",
+        resourceType: "transaction",
+        resourceId: transactionId,
+        metadata: {
+          rollbackReason: reason,
+          isConversion: !!conversion,
+          stakeholderId: shareEntry.holderId,
+          quantity: shareEntry.quantity,
+          consideration: shareEntry.consideration
+        }
+      });
+
+      res.json({
+        success: true,
+        message: `Transaction successfully rolled back`
+      });
+    } catch (error) {
+      console.error("Error rolling back transaction:", error);
+      res.status(500).json({ error: "Failed to rollback transaction" });
     }
   });
 

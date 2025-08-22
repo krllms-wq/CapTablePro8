@@ -14,6 +14,7 @@ import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
 import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
+import { TransactionHistory } from "@/components/transaction-history";
 import type { Company } from "@shared/schema";
 
 export default function Dashboard() {
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
   const [showSafeConversion, setShowSafeConversion] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
 
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -81,6 +83,21 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold text-blue-800">COMPANY NOT FOUND</h2>
           <p className="text-blue-700 mt-2">Company ID: {companyId}</p>
           <p className="text-blue-600 text-sm mt-2">API call finished but no company data returned.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show transaction history if requested
+  if (showTransactionHistory) {
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <TransactionHistory 
+            companyId={companyId!} 
+            onBack={() => setShowTransactionHistory(false)} 
+          />
         </div>
       </div>
     );
@@ -178,8 +195,12 @@ export default function Dashboard() {
             <Button variant="outline">
               Add Stakeholder
             </Button>
-            <Button variant="outline">
-              View Activity
+            <Button 
+              variant="outline"
+              onClick={() => setShowTransactionHistory(true)}
+              data-testid="view-transaction-history"
+            >
+              Transaction History
             </Button>
           </div>
         </div>
