@@ -15,7 +15,7 @@ import { Plus, Trash2, Save } from "lucide-react";
 interface Investor {
   id: string;
   name: string;
-  investmentAmount: number;
+  investmentAmount: string | number;
 }
 
 interface ModelingResults {
@@ -47,7 +47,7 @@ export default function ScenariosPage() {
   const [roundAmount, setRoundAmount] = useState("");
   const [premoney, setPremoney] = useState("");
   const [investors, setInvestors] = useState<Investor[]>([
-    { id: "1", name: "", investmentAmount: 0 }
+    { id: "1", name: "", investmentAmount: "" }
   ]);
   const [modelingResults, setModelingResults] = useState<ModelingResults | null>(null);
   const [showSavedScenarios, setShowSavedScenarios] = useState(false);
@@ -129,7 +129,7 @@ export default function ScenariosPage() {
     const newInvestor: Investor = {
       id: Date.now().toString(),
       name: "",
-      investmentAmount: 0
+      investmentAmount: ""
     };
     setInvestors([...investors, newInvestor]);
   };
@@ -159,7 +159,7 @@ export default function ScenariosPage() {
       return;
     }
 
-    const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
+    const totalInvestment = investors.reduce((sum, inv) => sum + (typeof inv.investmentAmount === 'string' ? parseFloat(inv.investmentAmount.replace(/,/g, '')) || 0 : inv.investmentAmount), 0);
     
     if (Math.abs(totalInvestment - roundAmountValue) > 1) {
       toast({
@@ -175,9 +175,9 @@ export default function ScenariosPage() {
         body: {
           roundAmount: parseFloat(roundAmountValue.toString().replace(/,/g, '')),
           premoney: parseFloat(premoneyValue.toString().replace(/,/g, '')),
-          investors: investors.filter(inv => inv.name && inv.investmentAmount > 0).map(inv => ({
+          investors: investors.filter(inv => inv.name && (typeof inv.investmentAmount === 'string' ? parseFloat(inv.investmentAmount.replace(/,/g, '')) || 0 : inv.investmentAmount) > 0).map(inv => ({
             name: inv.name,
-            amount: inv.investmentAmount
+            amount: typeof inv.investmentAmount === 'string' ? parseFloat(inv.investmentAmount.replace(/,/g, '')) || 0 : inv.investmentAmount
           }))
         },
       });
@@ -217,14 +217,14 @@ export default function ScenariosPage() {
       description: scenarioDescription.trim() || null,
       roundAmount: parseFormattedNumber(roundAmount),
       premoney: parseFormattedNumber(premoney),
-      investors: investors.filter(inv => inv.name && inv.investmentAmount > 0)
+      investors: investors.filter(inv => inv.name && (typeof inv.investmentAmount === 'string' ? parseFloat(inv.investmentAmount.replace(/,/g, '')) || 0 : inv.investmentAmount) > 0)
     });
   };
 
   const loadScenario = (scenario: any) => {
     setRoundAmount(formatNumberInput(scenario.roundAmount.toString()));
     setPremoney(formatNumberInput(scenario.premoney.toString()));
-    setInvestors(scenario.investors.length > 0 ? scenario.investors : [{ id: "1", name: "", investmentAmount: 0 }]);
+    setInvestors(scenario.investors.length > 0 ? scenario.investors : [{ id: "1", name: "", investmentAmount: "" }]);
     setScenarioName(scenario.name);
     setScenarioDescription(scenario.description || "");
     setShowSavedScenarios(false);
@@ -454,8 +454,8 @@ export default function ScenariosPage() {
                             id={`investor-amount-${investor.id}`}
                             type="number"
                             value={investor.investmentAmount}
-                            onChange={(e) => updateInvestor(investor.id, "investmentAmount", parseFloat(e.target.value) || 0)}
-                            placeholder="0"
+                            onChange={(e) => updateInvestor(investor.id, "investmentAmount", formatNumberInput(e.target.value))}
+                            placeholder=""
                           />
                         </div>
                         {investors.length > 1 && (
