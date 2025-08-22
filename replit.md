@@ -69,6 +69,16 @@ The schema supports complex cap table structures with entities for Companies, Se
 
 ## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
 
+### Issue Shares Dialog Redesign - COMPLETED ✅
+- **New Input Model**: Changed from "quantity + consideration" to "consideration + valuation" input model for clearer user workflow
+- **Auto-Calculated Values**: Quantity and Price per Share now automatically calculated from Consideration and Company Valuation inputs
+- **Override System**: Added toggle controls for manual override of both Quantity and Price per Share calculations
+- **Conflict Detection**: Smart validation when manual values don't align with calculated values, with tolerance-based warnings
+- **Eliminated Duplicates**: Removed duplicate fields (Quantity, Round Name, Issue Date) that appeared in multiple sections
+- **Enhanced UX**: Added "Derived" badges, mobile-friendly numeric keyboards, and comprehensive help tooltips
+- **Fixed Infinite Recursion**: Resolved "Maximum call stack size exceeded" error by breaking circular dependencies in form watching logic
+- **Real-time Updates**: Calculations update instantly as user types with proper validation and error handling
+
 ### Authentication System Fixed - COMPLETED ✅
 - **Resolved User Login Issues**: Fixed authentication system that was preventing existing users from logging in with correct credentials
 - **Database Storage Integration**: Switched from MemStorage to DatabaseStorage for proper PostgreSQL user authentication

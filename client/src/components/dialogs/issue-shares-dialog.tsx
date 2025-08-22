@@ -480,7 +480,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   name="roundName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Round Name *</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        Round Name *
+                        <HelpBubble 
+                          term="Round Name" 
+                          definition="A descriptive name for this funding round or share issuance event."
+                          example="Seed Round, Series A, Employee Grant #123"
+                        />
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Seed Round" {...field} />
                       </FormControl>
@@ -493,7 +500,14 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                   name="issueDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Issue Date *</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        Issue Date *
+                        <HelpBubble 
+                          term="Issue Date" 
+                          definition="The date when the shares are officially issued to the stakeholder."
+                          example="The transaction date for the share issuance"
+                        />
+                      </FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -905,53 +919,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               </div>
 
-              {/* Round Name */}
-              <FormField
-                control={form.control}
-                name="roundName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Round Name *
-                      <HelpBubble 
-                        term="Round Name" 
-                        definition="A descriptive name for this funding round or share issuance event."
-                        example="Seed Round, Series A, Employee Grant #123"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Seed Round" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
-              {/* Issue Date */}
-              <FormField
-                control={form.control}
-                name="issueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Issue Date *
-                      <HelpBubble 
-                        term="Issue Date" 
-                        definition="The date when the shares are officially issued to the stakeholder."
-                        example="The transaction date for the share issuance"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="date"
-                        {...field}
-                        placeholder="Select issue date"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Override Mode Controls */}
               {overridePps && (
