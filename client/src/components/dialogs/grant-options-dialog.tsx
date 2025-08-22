@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
+import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 
 const grantOptionsSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
@@ -117,6 +118,15 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
           throw new Error("Stakeholder name is required");
         }
         
+        // Check if stakeholder with this name already exists to prevent duplicates
+        const duplicate = stakeholders.find((s: Stakeholder) => 
+          s.name.toLowerCase().trim() === newStakeholder.name.toLowerCase().trim()
+        );
+        
+        if (duplicate) {
+          throw new Error(`Stakeholder "${newStakeholder.name}" already exists. Please select from the dropdown.`);
+        }
+        
         const stakeholder = await createStakeholderMutation.mutateAsync({
           name: newStakeholder.name,
           email: newStakeholder.email || null,
@@ -134,8 +144,8 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
           quantityExercised: 0,
           quantityCanceled: 0,
           strikePrice: data.type === 'RSU' ? null : parseFloat(data.strikePrice?.replace(/,/g, '') || '0'),
-          grantDate: data.grantDate,
-          vestingStartDate: data.vestingStartDate,
+          grantDate: toDateOnlyUTC(data.grantDate),
+          vestingStartDate: toDateOnlyUTC(data.vestingStartDate),
           cliffMonths: parseInt(data.vestingCliff || "0"),
           totalMonths: parseInt(data.vestingPeriod || "0"),
         }
