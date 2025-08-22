@@ -28,12 +28,14 @@ interface CapTableMainProps {
     framework?: string; 
     discountRate?: number; 
     valuationCap?: number; 
+    interestRate?: number;
     issueDate: string;
     status?: 'active' | 'converted';
     conversionDate?: string | null;
   }>;
   isLoading: boolean;
   onConvertSafe?: (convertible: any) => void;
+  onConvertNote?: (convertible: any) => void;
 }
 
 // Historical Cap Table Component  
@@ -140,7 +142,7 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
   );
 }
 
-export default function CapTableMain({ capTable, convertibles, isLoading, onConvertSafe }: CapTableMainProps) {
+export default function CapTableMain({ capTable, convertibles, isLoading, onConvertSafe, onConvertNote }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
   const [mode, setMode] = useState<"current" | "historical">("current");
   const [convertibleFilter, setConvertibleFilter] = useState<"active" | "all">("active");
@@ -520,7 +522,21 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
                               ? 'text-neutral-400 bg-neutral-100 cursor-not-allowed'
                               : 'text-white bg-orange-600 hover:bg-orange-700'
                           }`}
-                          data-testid={`button-convert-${instrument.status === 'converted' ? 'disabled' : 'enabled'}`}
+                          data-testid={`button-convert-safe-${instrument.status === 'converted' ? 'disabled' : 'enabled'}`}
+                        >
+                          Convert
+                        </button>
+                      )}
+                      {(instrument.type === 'note' || instrument.framework === 'Convertible Note') && onConvertNote && (
+                        <button
+                          onClick={() => onConvertNote(instrument)}
+                          disabled={instrument.status === 'converted'}
+                          className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded transition-colors ${
+                            instrument.status === 'converted'
+                              ? 'text-neutral-400 bg-neutral-100 cursor-not-allowed'
+                              : 'text-white bg-purple-600 hover:bg-purple-700'
+                          }`}
+                          data-testid={`button-convert-note-${instrument.status === 'converted' ? 'disabled' : 'enabled'}`}
                         >
                           Convert
                         </button>

@@ -96,7 +96,7 @@ export function SAFEConversionDialog({
       toast({
         title: "Calculation Error",
         description: error.message || "Failed to calculate conversion",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -125,7 +125,7 @@ export function SAFEConversionDialog({
       toast({
         title: "Conversion Error",
         description: error.message || "Failed to execute conversion",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });

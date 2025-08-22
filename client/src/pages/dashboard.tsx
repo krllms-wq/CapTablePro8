@@ -14,6 +14,7 @@ import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
 import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
+import { NoteConversionDialog } from "@/components/dialogs/note-conversion-dialog";
 
 import type { Company } from "@shared/schema";
 
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [showConvertibleNote, setShowConvertibleNote] = useState(false);
   const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
   const [showSafeConversion, setShowSafeConversion] = useState(false);
+  const [showNoteConversion, setShowNoteConversion] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -150,6 +152,10 @@ export default function Dashboard() {
             setSelectedConvertible(convertible);
             setShowSafeConversion(true);
           }}
+          onConvertNote={(convertible) => {
+            setSelectedConvertible(convertible);
+            setShowNoteConversion(true);
+          }}
         />
 
         {/* Charts and Activity */}
@@ -230,6 +236,24 @@ export default function Dashboard() {
             framework: selectedConvertible.framework,
             discountRate: selectedConvertible.discountRate,
             valuationCap: selectedConvertible.valuationCap,
+          }}
+        />
+      )}
+
+      {selectedConvertible && (
+        <NoteConversionDialog
+          open={showNoteConversion}
+          onOpenChange={setShowNoteConversion}
+          companyId={companyId!}
+          convertible={{
+            id: selectedConvertible.id,
+            holderName: selectedConvertible.holderName,
+            principal: selectedConvertible.principal,
+            framework: selectedConvertible.framework,
+            discountRate: selectedConvertible.discountRate,
+            valuationCap: selectedConvertible.valuationCap,
+            interestRate: selectedConvertible.interestRate,
+            issueDate: selectedConvertible.issueDate,
           }}
         />
       )}

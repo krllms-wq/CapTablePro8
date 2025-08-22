@@ -25,6 +25,7 @@ import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numbe
 import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 import { ensurePricePerShare } from "./domain/util/price";
 import { calculateSAFEConversion, validateSAFEConversion, formatConversionSummary } from "./utils/safeConversion";
+import { calculateNoteConversionForUI, validateNoteConversion, formatNoteConversionSummary } from "./utils/noteConversion";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -1387,9 +1388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SAFE Conversion endpoints
+  // Convertible Conversion endpoints (SAFE and Notes)
   
-  // Calculate potential SAFE conversion
+  // Calculate potential convertible conversion
   app.post("/api/companies/:companyId/convertibles/:convertibleId/calculate-conversion", requireAuth, async (req, res) => {
     try {
       const { companyId, convertibleId } = req.params;
@@ -1406,36 +1407,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Convertible instrument not found" });
       }
 
-      // Validate conversion eligibility
-      const validation = validateSAFEConversion(convertible);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.reason });
-      }
+      let calculation;
+      let summary;
 
-      // Calculate conversion
-      const calculation = calculateSAFEConversion(
-        convertible,
-        Number(roundPricePerShare),
-        Number(roundPreMoneyValuation)
-      );
+      if (convertible.type === 'SAFE') {
+        // Validate SAFE conversion eligibility
+        const validation = validateSAFEConversion(convertible);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.reason });
+        }
+
+        // Calculate SAFE conversion
+        calculation = calculateSAFEConversion(
+          convertible,
+          Number(roundPricePerShare),
+          Number(roundPreMoneyValuation)
+        );
+        summary = formatConversionSummary(calculation);
+      } else if (convertible.type === 'note') {
+        // Validate Note conversion eligibility
+        const validation = validateNoteConversion(convertible);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.reason });
+        }
+
+        // Calculate Note conversion (including interest)
+        const preRoundShares = Math.floor(Number(roundPreMoneyValuation) / Number(roundPricePerShare));
+        calculation = calculateNoteConversionForUI(
+          convertible,
+          Number(roundPricePerShare),
+          new Date(),
+          preRoundShares
+        );
+        summary = formatNoteConversionSummary(calculation);
+      } else {
+        return res.status(400).json({ error: "Unknown convertible instrument type" });
+      }
 
       res.json({
         calculation,
-        summary: formatConversionSummary(calculation),
+        summary,
         convertible: {
           id: convertible.id,
           holderName: (await storage.getStakeholder(convertible.holderId))?.name,
           principal: convertible.principal,
-          framework: convertible.framework
+          framework: convertible.framework,
+          type: convertible.type
         }
       });
     } catch (error) {
-      console.error("Error calculating SAFE conversion:", error);
+      console.error("Error calculating convertible conversion:", error);
       res.status(500).json({ error: "Failed to calculate conversion" });
     }
   });
 
-  // Execute SAFE conversion
+  // Execute convertible conversion (SAFE or Note)
   app.post("/api/companies/:companyId/convertibles/:convertibleId/convert", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { companyId, convertibleId } = req.params;
@@ -1459,18 +1485,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "This convertible has already been converted" });
       }
 
-      // Validate conversion eligibility
-      const validation = validateSAFEConversion(convertible);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.reason });
-      }
+      let calculation: any;
 
-      // Calculate conversion
-      const calculation = calculateSAFEConversion(
-        convertible,
-        Number(roundPricePerShare),
-        Number(roundPreMoneyValuation)
-      );
+      if (convertible.type === 'SAFE') {
+        // Validate SAFE conversion eligibility
+        const validation = validateSAFEConversion(convertible);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.reason });
+        }
+
+        // Calculate SAFE conversion
+        calculation = calculateSAFEConversion(
+          convertible,
+          Number(roundPricePerShare),
+          Number(roundPreMoneyValuation)
+        );
+      } else if (convertible.type === 'note') {
+        // Validate Note conversion eligibility
+        const validation = validateNoteConversion(convertible);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.reason });
+        }
+
+        // Calculate Note conversion (including interest)
+        const preRoundShares = Math.floor(Number(roundPreMoneyValuation) / Number(roundPricePerShare));
+        calculation = calculateNoteConversionForUI(
+          convertible,
+          Number(roundPricePerShare),
+          new Date(),
+          preRoundShares
+        );
+      } else {
+        return res.status(400).json({ error: "Unknown convertible instrument type" });
+      }
 
       // Find appropriate security class (default to preferred stock)
       let targetSecurityClassId = securityClassId;
@@ -1484,6 +1531,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No suitable security class found" });
       }
 
+      // For notes, use total amount (principal + interest), for SAFEs use principal only
+      const considerationAmount = convertible.type === 'note' && calculation.totalAmount 
+        ? calculation.totalAmount 
+        : Number(convertible.principal);
+
       // Create share ledger entry for converted shares
       const shareEntry = await storage.createShareLedgerEntry({
         companyId,
@@ -1491,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         classId: targetSecurityClassId,
         quantity: calculation.sharesIssued,
         issueDate: new Date(),
-        consideration: Number(convertible.principal),
+        consideration: considerationAmount,
         considerationType: 'cash'
       });
 
@@ -1516,25 +1568,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log activity
       const stakeholder = await storage.getStakeholder(convertible.holderId);
+      const logData: any = {
+        convertibleId,
+        stakeholder: stakeholder?.name,
+        principal: Number(convertible.principal),
+        sharesIssued: calculation.sharesIssued,
+        conversionPrice: calculation.conversionPrice,
+        type: convertible.type
+      };
+
+      // Add note-specific data
+      if (convertible.type === 'note' && calculation.interestAmount) {
+        logData.interestAmount = calculation.interestAmount;
+        logData.totalAmount = calculation.totalAmount;
+      }
+
+      // Add calculation method if available
+      if (calculation.calculationMethod) {
+        logData.calculationMethod = calculation.calculationMethod;
+      }
+
       await logTransactionEvent(
         companyId,
         'convertible_conversion',
-        {
-          convertibleId,
-          stakeholder: stakeholder?.name,
-          principal: Number(convertible.principal),
-          sharesIssued: calculation.sharesIssued,
-          conversionPrice: calculation.conversionPrice,
-          calculationMethod: calculation.calculationMethod
-        }
+        logData
       );
+
+      const summary = convertible.type === 'note' 
+        ? formatNoteConversionSummary(calculation)
+        : formatConversionSummary(calculation);
 
       res.json({
         success: true,
         conversion,
         shareEntry,
         calculation,
-        summary: formatConversionSummary(calculation)
+        summary
       });
     } catch (error) {
       console.error("Error executing SAFE conversion:", error);
