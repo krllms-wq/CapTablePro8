@@ -13,6 +13,7 @@ interface CapTableRow {
   };
   shares: number;
   ownership: number;
+  investment: number; // Added missing investment field!
   value: number;
   isOption?: boolean;
   isPool?: boolean;
@@ -464,7 +465,7 @@ export default function CapTableMain({ companyId, capTable, convertibles, isLoad
                     {formatNumber(row.shares)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
-                    {formatCurrency((row as any).investment || 0)}
+                    {formatCurrency(row.investment || 0)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-semibold">
                     {formatPercentage(row.ownership)}
@@ -488,7 +489,7 @@ export default function CapTableMain({ companyId, capTable, convertibles, isLoad
                   {formatNumber(totalShares)}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right font-mono">
-                  {formatCurrency(capTable.reduce((sum, row) => sum + ((row as any).investment || 0), 0))}
+                  {formatCurrency(capTable.reduce((sum, row) => sum + (row.investment || 0), 0))}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right">
                   100.00%

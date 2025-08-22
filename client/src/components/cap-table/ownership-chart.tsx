@@ -11,6 +11,7 @@ interface CapTableRow {
   };
   shares: number;
   ownership: number;
+  investment: number; // Added missing investment field!
   value: number;
   isOption?: boolean;
   isPool?: boolean;

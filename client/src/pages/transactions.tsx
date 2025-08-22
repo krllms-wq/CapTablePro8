@@ -15,7 +15,8 @@ import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
 import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
-import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield } from "lucide-react";
+import CashContributionDialog from "@/components/dialogs/cash-contribution-dialog";
+import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield, Banknote } from "lucide-react";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 
 export default function TransactionsPage() {
@@ -137,6 +138,13 @@ export default function TransactionsPage() {
       description: "Transfer shares between stakeholders",
       icon: ArrowRightLeft,
       color: "text-teal-600"
+    },
+    {
+      id: "cash-contribution",
+      name: "Cash Contribution",
+      description: "Record founder funding or bridge loans",
+      icon: Banknote,
+      color: "text-blue-600"
     }
   ];
 
@@ -209,6 +217,7 @@ export default function TransactionsPage() {
                   case "text-violet-600": return "bg-violet-50 hover:bg-violet-100 border-violet-200 hover:border-violet-300";
                   case "text-amber-600": return "bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300";
                   case "text-teal-600": return "bg-teal-50 hover:bg-teal-100 border-teal-200 hover:border-teal-300";
+                  case "text-blue-600": return "bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300";
                   default: return "bg-neutral-50 hover:bg-neutral-100 border-neutral-200 hover:border-neutral-300";
                 }
               };
@@ -331,6 +340,12 @@ export default function TransactionsPage() {
 
       <SecondaryTransactionDialog
         open={selectedTransactionType === "secondary"}
+        onOpenChange={() => setSelectedTransactionType(null)}
+        companyId={companyId || ""}
+      />
+
+      <CashContributionDialog
+        open={selectedTransactionType === "cash-contribution"}
         onOpenChange={() => setSelectedTransactionType(null)}
         companyId={companyId || ""}
       />

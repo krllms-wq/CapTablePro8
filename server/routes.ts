@@ -2788,5 +2788,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cash Contributions endpoints
+  app.get("/api/companies/:companyId/cash-contributions", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { contributorId } = req.query;
+      
+      const contributions = await storage.getCashContributions(companyId, contributorId as string);
+      res.json(contributions);
+    } catch (error) {
+      console.error("Error fetching cash contributions:", error);
+      res.status(500).json({ error: "Failed to fetch cash contributions" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/cash-contributions", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { contributorId, amount, contributionDate, description } = req.body;
+
+      if (!contributorId || !amount || !contributionDate) {
+        return res.status(400).json({ error: "Missing required fields: contributorId, amount, contributionDate" });
+      }
+
+      if (amount <= 0) {
+        return res.status(400).json({ error: "Amount must be positive" });
+      }
+
+      const contribution = await storage.createCashContribution({
+        companyId,
+        contributorId,
+        amount,
+        contributionDate,
+        description: description || null
+      });
+
+      res.json(contribution);
+    } catch (error) {
+      console.error("Error creating cash contribution:", error);
+      res.status(500).json({ error: "Failed to create cash contribution" });
+    }
+  });
+
   return createServer(app);
 }
