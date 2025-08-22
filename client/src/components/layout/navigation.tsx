@@ -108,16 +108,13 @@ export default function Navigation() {
               const isActive = location === item.path;
               return (
                 <Link key={item.path} href={item.path}>
-                  <button
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isActive
-                        ? "text-primary bg-primary/10"
-                        : "text-neutral-600 hover:bg-neutral-100"
-                    }`}
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className="w-full justify-start font-medium"
                   >
                     <i className={`${item.icon} mr-2`}></i>
                     {item.label}
-                  </button>
+                  </Button>
                 </Link>
               );
             })}
@@ -125,9 +122,9 @@ export default function Navigation() {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+          <Button variant="ghost" size="icon" className="text-neutral-600">
             <i className="fas fa-bell text-lg"></i>
-          </button>
+          </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

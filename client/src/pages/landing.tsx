@@ -281,17 +281,18 @@ export default function Landing() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
                     onClick={() => {
                       setIsLogin(!isLogin);
                       setErrors({});
                       setFormData({ email: "", password: "", firstName: "", lastName: "" });
                     }}
-                    className="ml-1 text-primary hover:underline font-medium"
+                    className="ml-1 p-0 h-auto"
                   >
                     {isLogin ? "Sign up" : "Sign in"}
-                  </button>
+                  </Button>
                 </p>
               </div>
             </CardContent>

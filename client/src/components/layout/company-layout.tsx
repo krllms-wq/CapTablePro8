@@ -1,5 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import type { Company } from "@shared/schema";
 
 interface CompanyLayoutProps {
@@ -84,17 +85,14 @@ export default function CompanyLayout({ children }: CompanyLayoutProps) {
           <ul className="space-y-2">
             {navigation.map((item) => (
               <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    item.current
-                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
-                      : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-                  }`}
-                  data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  {item.name}
+                <Link href={item.href} className="block" data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}>
+                  <Button
+                    variant={item.current ? "secondary" : "ghost"}
+                    className={`w-full justify-start text-sm font-medium ${item.current ? 'bg-primary/10 text-primary border-l-4 border-primary' : ''}`}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    {item.name}
+                  </Button>
                 </Link>
               </li>
             ))}

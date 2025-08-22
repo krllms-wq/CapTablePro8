@@ -1,5 +1,6 @@
 import Navigation from "@/components/layout/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown, Book, Calculator, FileText, Users, Banknote, TrendingUp, Settings } from "lucide-react";
 
 interface HelpSection {
@@ -479,12 +480,12 @@ export default function Help() {
               Can't find what you're looking for? Our team is here to help with any questions about cap table management.
             </p>
             <div className="flex justify-center space-x-4">
-              <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+              <Button className="bg-primary text-white hover:bg-primary-dark">
                 Contact Support
-              </button>
-              <button className="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200 transition-colors">
+              </Button>
+              <Button variant="outline">
                 Schedule Demo
-              </button>
+              </Button>
             </div>
           </div>
         </div>

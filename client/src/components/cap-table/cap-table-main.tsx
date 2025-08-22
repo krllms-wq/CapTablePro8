@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters";
+import { Button } from "@/components/ui/button";
 
 interface CapTableRow {
   stakeholder: {
@@ -171,26 +172,22 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
           <h3 className="text-lg font-semibold text-neutral-900">Capitalization Table</h3>
           <div className="flex items-center space-x-2">
             <div className="flex rounded-lg border border-neutral-200 overflow-hidden">
-              <button
+              <Button
+                size="sm"
+                variant={mode === "current" ? "default" : "outline"}
                 onClick={() => setMode("current")}
-                className={`px-3 py-1 text-sm font-medium transition-colors ${
-                  mode === "current"
-                    ? "bg-primary text-white"
-                    : "bg-white text-neutral-600 hover:bg-neutral-50"
-                }`}
+                className="rounded-none rounded-l-lg"
               >
                 Current
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant={mode === "historical" ? "default" : "outline"}
                 onClick={() => setMode("historical")}
-                className={`px-3 py-1 text-sm font-medium transition-colors ${
-                  mode === "historical"
-                    ? "bg-primary text-white"
-                    : "bg-white text-neutral-600 hover:bg-neutral-50"
-                }`}
+                className="rounded-none rounded-r-lg border-l-0"
               >
                 Historical
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -239,54 +236,44 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
           <div className="flex items-center space-x-4">
             <h3 className="text-lg font-semibold text-neutral-900">Capitalization Table</h3>
             <div className="flex rounded-lg border border-neutral-300 overflow-hidden">
-              <button
+              <Button
+                size="sm"
+                variant={mode === "current" ? "default" : "outline"}
                 onClick={() => setMode("current")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  mode === "current"
-                    ? "bg-primary text-white"
-                    : "bg-white text-neutral-700 hover:bg-neutral-50"
-                }`}
+                className="rounded-none rounded-l-lg"
               >
                 Current
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant={mode === "historical" ? "default" : "outline"}
                 onClick={() => setMode("historical")}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  mode === "historical"
-                    ? "bg-primary text-white"
-                    : "bg-white text-neutral-700 hover:bg-neutral-50"
-                }`}
+                className="rounded-none rounded-r-lg border-l-0"
               >
                 Historical
-              </button>
+              </Button>
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <button
+              <Button
+                size="sm"
+                variant={viewType === "fully-diluted" ? "default" : "ghost"}
                 onClick={() => setViewType("fully-diluted")}
-                className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
-                  viewType === "fully-diluted"
-                    ? "bg-primary text-white"
-                    : "text-neutral-600 hover:bg-neutral-100"
-                }`}
               >
                 Fully Diluted
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant={viewType === "outstanding" ? "default" : "ghost"}
                 onClick={() => setViewType("outstanding")}
-                className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
-                  viewType === "outstanding"
-                    ? "bg-primary text-white"
-                    : "text-neutral-600 hover:bg-neutral-100"
-                }`}
               >
                 Outstanding Only
-              </button>
+              </Button>
             </div>
-            <button className="p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+            <Button variant="ghost" size="icon">
               <i className="fas fa-filter"></i>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

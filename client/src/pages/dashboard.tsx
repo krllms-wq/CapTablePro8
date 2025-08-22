@@ -79,9 +79,9 @@ export default function Dashboard() {
               if (type === "secondary") setShowSecondaryTransaction(true);
             }}
           />
-          <button className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg font-medium hover:bg-neutral-50 transition-colors">
-            <i className="fas fa-download mr-2"></i>Export
-          </button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <i className="fas fa-download"></i>Export
+          </Button>
         </div>
       </div>
 
