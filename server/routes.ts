@@ -768,6 +768,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Verify seller exists and belongs to this company
+      const seller = await storage.getStakeholder(sellerId);
+      if (!seller || seller.companyId !== req.params.companyId) {
+        return res.status(400).json({
+          error: "Seller not found in this company",
+          code: "SELLER_NOT_FOUND"
+        });
+      }
+
+      // Verify security class exists and belongs to this company
+      const securityClass = await storage.getSecurityClass(classId);
+      if (!securityClass || securityClass.companyId !== req.params.companyId) {
+        return res.status(400).json({
+          error: "Security class not found in this company",
+          code: "SECURITY_CLASS_NOT_FOUND"
+        });
+      }
+
+      // Prevent self-transfer
+      if (sellerId === buyerId) {
+        return res.status(400).json({
+          error: "Cannot transfer shares to the same stakeholder",
+          code: "SELF_TRANSFER_NOT_ALLOWED"
+        });
+      }
+
       // Handle new stakeholder creation if buyerId is "NEW_STAKEHOLDER"
       if (buyerId === "NEW_STAKEHOLDER") {
         // Create new stakeholder from the request data
@@ -794,6 +820,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             code: "BUYER_NOT_FOUND"
           });
         }
+        
+        // Verify buyer belongs to the same company
+        if (existingBuyer.companyId !== req.params.companyId) {
+          return res.status(400).json({
+            error: "Buyer does not belong to this company",
+            code: "BUYER_WRONG_COMPANY"
+          });
+        }
       }
 
       // Get current seller holdings to validate balance
@@ -801,6 +835,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerBalance = sellerEntries
         .filter(entry => entry.holderId === sellerId && entry.classId === classId)
         .reduce((sum, entry) => sum + Number(entry.quantity), 0);
+
+      console.log(`Secondary transfer validation: 
+        Seller: ${sellerId}
+        SecurityClass: ${classId}
+        RequestedQty: ${quantity}
+        AvailableBalance: ${sellerBalance}
+        FoundEntries: ${sellerEntries.filter(e => e.holderId === sellerId && e.classId === classId).length}
+      `);
 
       if (sellerBalance < quantity) {
         return res.status(400).json({
@@ -843,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       // Log secondary transfer event
-      const [seller, buyer, securityClass] = await Promise.all([
+      const [sellerInfo, buyerInfo, securityClassInfo] = await Promise.all([
         storage.getStakeholder(sellerId),
         storage.getStakeholder(buyerId),
         storage.getSecurityClass(classId)
@@ -854,14 +896,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actorId: req.user!.id,
         event: "transaction.secondary_transfer",
         transactionId,
-        stakeholderName: `${seller?.name} → ${buyer?.name}`,
+        stakeholderName: `${sellerInfo?.name} → ${buyerInfo?.name}`,
         details: {
-          seller: seller?.name,
-          buyer: buyer?.name,
+          seller: sellerInfo?.name,
+          buyer: buyerInfo?.name,
           quantity,
           pricePerShare,
           totalValue,
-          securityClassName: securityClass?.name
+          securityClassName: securityClassInfo?.name
         }
       });
 
@@ -1183,6 +1225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const currentValue = valuationResult.pricePerShare 
           ? holdings.shares * valuationResult.pricePerShare
           : null;
+
+        console.log(`Cap table entry for ${stakeholder?.name}: ${holdings.shares} shares, ${currentOwnership.toFixed(2)}% ownership`);
         
         const fullyDilutedValue = valuationResult.pricePerShare 
           ? (holdings.shares + holdings.options) * valuationResult.pricePerShare
