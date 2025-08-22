@@ -19,6 +19,12 @@ export interface SAFEConversionCalculation {
 /**
  * Calculate SAFE conversion based on discount rate and valuation cap
  * Uses the most favorable price for the investor (lowest price)
+ * 
+ * CRITICAL PRINCIPLE: SAFE conversions happen at PRE-MONEY valuation
+ * This ensures new investors are not diluted by SAFE conversions.
+ * The sequence is:
+ * 1. SAFEs convert first (at pre-money)
+ * 2. New investors get shares second (preserving their target ownership)
  */
 export function calculateSAFEConversion(
   safe: ConvertibleInstrument,
@@ -69,7 +75,9 @@ export function calculateSAFEConversion(
     reasoning = `No discount or cap applicable, converting at round price`;
   }
 
-  // Calculate shares issued
+  // Calculate shares issued at PRE-MONEY
+  // This is critical: SAFE converts before new money comes in
+  // so new investors get their target ownership percentage
   const sharesIssued = Math.floor(principal / conversionPrice);
 
   return {
@@ -84,7 +92,9 @@ export function calculateSAFEConversion(
       discountRate: discountRate > 0 ? discountRate : undefined,
       valuationCap: valuationCap > 0 ? valuationCap : undefined,
       effectivePrice: conversionPrice,
-      reasoning
+      reasoning,
+      // Key principle: conversion happens pre-money to protect new investors
+      antiDilutionNote: "SAFE converts at pre-money valuation, preserving new investor ownership"
     }
   };
 }

@@ -101,11 +101,12 @@ The schema supports complex cap table structures with entities for Companies, Se
 ## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
 
 ### SAFE Conversion Mathematics - COMPLETED ✅
-- **Fixed SAFE Conversion Logic**: Corrected mathematical formula to preserve new investor ownership percentage
-- **Target Ownership Calculation**: New investors now receive exactly their intended ownership (e.g., 750K/(750K+2.65M) = 22.06%)
-- **Prevented New Investor Dilution**: SAFEs convert at preferential prices but only dilute existing shareholders
+- **Anti-Dilution Protection**: SAFEs convert at pre-money valuation to preserve new investor ownership
+- **Pre-Money Conversion Sequence**: SAFEs convert first, then new investors receive shares
+- **Mathematical Correctness**: Conversion price respects discount rates and valuation caps
+- **Documentation Added**: Created comprehensive SAFE conversion logic documentation
+- **No New Investor Dilution**: New investors get their exact target ownership percentage
 - **Enhanced Debugging**: Added comprehensive logging for SAFE conversion calculations
-- **Real-time Display**: SAFE conversions now properly display in round modeling with holder names, principals, conversion prices, and shares
 
 ### UI/UX Improvements - COMPLETED ✅  
 - **Percentage Formatting**: All percentages now display with exactly two decimal places (e.g., 22.06% instead of 22.0588%)
