@@ -50,21 +50,11 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
     const fetchHistoricalData = async () => {
       try {
         setIsLoading(true);
-        console.log('🚀 [HISTORICAL] Fetching data for company:', companyId);
         const response = await fetch(`/api/companies/${companyId}/cap-table/historical`);
         if (!response.ok) {
           throw new Error('Failed to fetch historical data');
         }
         const data = await response.json();
-        console.log('📊 [HISTORICAL] Raw API response:', JSON.stringify(data, null, 2));
-        console.log('📅 [HISTORICAL] Milestones:', data?.milestones?.map(m => ({
-          date: m.date,
-          displayDate: m.displayDate,
-          entriesCount: m.entries?.length,
-          totalShares: m.totalShares,
-          fullyDiluted: m.fullyDilutedShares
-        })));
-        console.log('👥 [HISTORICAL] API Stakeholders:', data?.stakeholders);
         setHistoricalData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -124,39 +114,35 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
   // Get all unique stakeholders from all milestones
   const allStakeholders = new Map<string, { name: string; type?: string }>();
   
-  console.log('🔍 [HISTORICAL] Processing milestones for stakeholders...');
-  historicalData.milestones.forEach((milestone: any, mIndex: number) => {
-    console.log(`📊 [HISTORICAL] Milestone ${mIndex} (${milestone.displayDate}):`, {
-      entries: milestone.entries?.length || 0,
-      totalShares: milestone.totalShares,
-      fullyDiluted: milestone.fullyDilutedShares
-    });
-    
-    milestone.entries.forEach((entry: any, eIndex: number) => {
-      console.log(`📈 [HISTORICAL] Entry ${eIndex}:`, {
-        stakeholderId: entry.stakeholderId,
-        stakeholder: entry.stakeholder,
-        shares: entry.shares,
-        ownership: entry.ownership,
-        securityClass: entry.securityClass
-      });
-      
+  historicalData.milestones.forEach((milestone: any) => {
+    milestone.entries.forEach((entry: any) => {
       if (entry.stakeholderId && !allStakeholders.has(entry.stakeholderId)) {
         const stakeholderFromAPI = historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId);
-        console.log(`👤 [HISTORICAL] Found API stakeholder for ${entry.stakeholderId}:`, stakeholderFromAPI);
-        
         allStakeholders.set(entry.stakeholderId, { 
           name: entry.stakeholder || stakeholderFromAPI?.name || 'Unknown Stakeholder',
           type: stakeholderFromAPI?.type || 'individual'
         });
-      } else if (!entry.stakeholderId) {
-        console.warn('⚠️ [HISTORICAL] Entry missing stakeholderId:', entry);
       }
     });
   });
 
   const stakeholders = Array.from(allStakeholders.entries()).map(([id, data]) => ({ id, ...data }));
-  console.log('👥 [HISTORICAL] Final processed stakeholders:', stakeholders);
+
+  // Calculate ownership changes between milestones for highlighting
+  const getOwnershipChange = (stakeholderId: string, currentIndex: number): number => {
+    if (currentIndex === 0) return 0;
+    
+    const currentMilestone = historicalData.milestones[currentIndex];
+    const previousMilestone = historicalData.milestones[currentIndex - 1];
+    
+    const currentEntry = currentMilestone.entries.find((e: any) => e.stakeholderId === stakeholderId);
+    const previousEntry = previousMilestone.entries.find((e: any) => e.stakeholderId === stakeholderId);
+    
+    const currentOwnership = currentEntry?.ownership || 0;
+    const previousOwnership = previousEntry?.ownership || 0;
+    
+    return currentOwnership - previousOwnership;
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -167,8 +153,24 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
               Stakeholder
             </th>
             {historicalData.milestones.map((milestone: any, index: number) => (
-              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">
-                {milestone.displayDate}
+              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px] group relative">
+                <div className="flex flex-col items-center">
+                  {milestone.displayDate}
+                  {milestone.transactions && milestone.transactions.length > 0 && (
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-1 opacity-60"></div>
+                  )}
+                </div>
+                
+                {/* Tooltip for transactions */}
+                {milestone.transactions && milestone.transactions.length > 0 && (
+                  <div className="invisible group-hover:visible absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap max-w-xs">
+                    <div className="font-semibold mb-1">Transactions on {milestone.displayDate}:</div>
+                    {milestone.transactions.map((tx: any, i: number) => (
+                      <div key={i} className="text-xs opacity-90">{tx.description}</div>
+                    ))}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                  </div>
+                )}
               </th>
             ))}
           </tr>
@@ -203,14 +205,41 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
                 const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
                 const ownership = entry ? entry.ownership : 0;
                 const shares = entry ? entry.shares : 0;
+                const ownershipChange = getOwnershipChange(stakeholder.id, index);
+                const hasSignificantChange = Math.abs(ownershipChange) >= 5; // 5% threshold
+                
+                let cellClass = "px-4 py-4 text-center relative group";
+                if (hasSignificantChange) {
+                  cellClass += ownershipChange > 0 
+                    ? " bg-green-50 border border-green-200" 
+                    : " bg-red-50 border border-red-200";
+                }
                 
                 return (
-                  <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="px-4 py-4 text-center">
+                  <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className={cellClass}>
                     <div className="text-sm font-semibold text-slate-900">
                       {ownership > 0 ? `${ownership.toFixed(2)}%` : '0.00%'}
+                      {hasSignificantChange && (
+                        <span className={`ml-1 text-xs font-normal ${ownershipChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ({ownershipChange > 0 ? '+' : ''}{ownershipChange.toFixed(1)}%)
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500">
                       {shares.toLocaleString()} shares
+                    </div>
+                    
+                    {/* Tooltip for ownership details */}
+                    <div className="invisible group-hover:visible absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
+                      <div className="font-semibold">{stakeholder.name}</div>
+                      <div>Shares: {shares.toLocaleString()}</div>
+                      <div>Ownership: {ownership.toFixed(2)}%</div>
+                      {index > 0 && (
+                        <div className={ownershipChange > 0 ? 'text-green-400' : ownershipChange < 0 ? 'text-red-400' : 'text-gray-400'}>
+                          Change: {ownershipChange > 0 ? '+' : ''}{ownershipChange.toFixed(2)}%
+                        </div>
+                      )}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
                     </div>
                   </td>
                 );
