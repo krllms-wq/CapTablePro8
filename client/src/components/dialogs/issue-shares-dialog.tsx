@@ -201,10 +201,13 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           throw new Error("Stakeholder name is required");
         }
         
-        const stakeholder = await createStakeholderMutation.mutateAsync({
-          name: newStakeholder.name,
-          email: newStakeholder.email || null,
-          type: newStakeholder.type,
+        const stakeholder = await apiRequest(`/api/companies/${companyId}/stakeholders`, {
+          method: "POST",
+          body: {
+            name: newStakeholder.name,
+            email: newStakeholder.email || null,
+            type: newStakeholder.type,
+          }
         });
         holderId = stakeholder.id;
       }
@@ -225,12 +228,15 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           classId = existingClass.id;
         } else {
           // Create new security class
-          const securityClass = await createSecurityClassMutation.mutateAsync({
-            name: newSecurityClass.name,
-            liquidationPreferenceMultiple: newSecurityClass.liquidationPreferenceMultiple,
-            participating: newSecurityClass.participating,
-            votingRights: newSecurityClass.votingRights,
-            companyId: companyId,
+          const securityClass = await apiRequest(`/api/companies/${companyId}/security-classes`, {
+            method: "POST",
+            body: {
+              name: newSecurityClass.name,
+              liquidationPreferenceMultiple: newSecurityClass.liquidationPreferenceMultiple,
+              participating: newSecurityClass.participating,
+              votingRights: newSecurityClass.votingRights,
+              companyId: companyId,
+            }
           });
           classId = securityClass.id;
         }
@@ -452,6 +458,10 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
   };
 
   const onSubmit = (data: IssueSharesFormData) => {
+    // Prevent multiple submissions
+    if (issueSharesMutation.isPending) {
+      return;
+    }
     issueSharesMutation.mutate(data);
   };
 
