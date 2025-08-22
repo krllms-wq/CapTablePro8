@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, logout } from "@/hooks/useAuth";
@@ -17,13 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { 
-  Search, 
   LogOut, 
   User, 
-  Settings, 
-  Menu,
   BarChart3,
   Users,
   FileText,
@@ -42,7 +37,6 @@ export default function AppShell({ children }: AppShellProps) {
   const [location, navigate] = useLocation();
   const { companyId } = useParams();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
   
   // Get current company data
   const { data: company } = useQuery<Company>({
@@ -150,58 +144,47 @@ export default function AppShell({ children }: AppShellProps) {
               )}
             </div>
 
-            {/* Center: Search */}
-            <div className="flex-1 max-w-md mx-xl">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted" />
-                <Input
-                  placeholder="Search transactions, stakeholders..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
             {/* Right: Avatar Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-10 w-10 rounded-full">
-                  <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">
-                      {user?.email?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-10 w-10 rounded-full">
+                    <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-semibold">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium text-sm">{user?.email}</p>
+                      {user?.firstName && user?.lastName && (
+                        <p className="text-xs text-muted">
+                          {user.firstName} {user.lastName}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium text-sm">{user?.email}</p>
-                    {user?.firstName && user?.lastName && (
-                      <p className="text-xs text-muted">
-                        {user.firstName} {user.lastName}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-danger focus:text-danger cursor-pointer"
-                  onClick={() => logout()}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-danger focus:text-danger cursor-pointer"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
