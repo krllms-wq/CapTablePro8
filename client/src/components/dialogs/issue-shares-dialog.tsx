@@ -201,15 +201,18 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           throw new Error("Stakeholder name is required");
         }
         
-        // Check if stakeholder with same name already exists
-        const existingStakeholder = stakeholders?.find(s => 
+        // Always fetch fresh stakeholder list to check for duplicates
+        const freshStakeholders = await apiRequest(`/api/companies/${companyId}/stakeholders`);
+        const existingStakeholder = freshStakeholders?.find((s: any) => 
           s.name.toLowerCase().trim() === newStakeholder.name.toLowerCase().trim()
         );
         
         if (existingStakeholder) {
+          console.log(`Found existing stakeholder: ${existingStakeholder.name} (${existingStakeholder.id})`);
           // Use existing stakeholder instead of creating a new one
           holderId = existingStakeholder.id;
         } else {
+          console.log(`Creating new stakeholder: ${newStakeholder.name}`);
           // Create new stakeholder only if one doesn't exist
           const stakeholder = await apiRequest(`/api/companies/${companyId}/stakeholders`, {
             method: "POST",
