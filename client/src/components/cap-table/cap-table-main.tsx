@@ -448,7 +448,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {instrument.type === 'SAFE' && onConvertSafe && (
+                      {(instrument.type === 'SAFE' || instrument.type === 'safe') && onConvertSafe && (
                         <button
                           onClick={() => onConvertSafe(instrument)}
                           className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded transition-colors"

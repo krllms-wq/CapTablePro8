@@ -168,7 +168,7 @@ export function SAFEConversionDialog({
                 <span className="text-slate-600">Principal:</span> {formatCurrency(convertible.principal)}
               </div>
               <div>
-                <span className="text-slate-600">Discount:</span> {convertible.discountRate ? `${convertible.discountRate}%` : 'None'}
+                <span className="text-slate-600">Discount:</span> {convertible.discountRate ? `${(convertible.discountRate * 100).toFixed(2)}%` : 'None'}
               </div>
               <div>
                 <span className="text-slate-600">Valuation Cap:</span> {convertible.valuationCap ? formatCurrency(convertible.valuationCap) : 'None'}
