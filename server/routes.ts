@@ -729,15 +729,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/companies/:companyId/share-ledger", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      // Sanitize numeric inputs
+      // Sanitize numeric inputs and handle date conversion
+      let issueDate: Date;
+      if (req.body.issueDate && typeof req.body.issueDate === 'string' && req.body.issueDate.trim() !== '') {
+        // Convert string date to Date object
+        issueDate = new Date(req.body.issueDate + 'T00:00:00.000Z');
+        console.log(`Date conversion: "${req.body.issueDate}" -> ${issueDate.toISOString()}`);
+      } else {
+        issueDate = new Date();
+        console.log(`Using current date: ${issueDate.toISOString()}`);
+      }
+
       const sanitizedBody = {
         ...req.body,
         companyId: req.params.companyId,
         quantity: sanitizeQuantity(req.body.quantity),
         consideration: req.body.consideration ? sanitizeDecimal(req.body.consideration) : null,
-        issueDate: req.body.issueDate && req.body.issueDate.trim() !== '' 
-          ? new Date(req.body.issueDate + 'T00:00:00.000Z') 
-          : new Date()
+        issueDate: issueDate
       };
 
       // Ensure price per share is computed if missing but derivable
