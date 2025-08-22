@@ -1583,7 +1583,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           convertibles: holdings.convertibles || 0,
           percentage: currentOwnership.toFixed(2),
           investment: totalInvestment, // Actual cash investment
-          currentValue: currentValue,
+          value: currentValue, // Frontend expects "value" not "currentValue"
+          currentValue: currentValue, // Keep for compatibility  
           fullyDilutedValue: fullyDilutedValue
         };
       });
