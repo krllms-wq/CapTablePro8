@@ -1246,12 +1246,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 [HISTORICAL API] Share entries:', shareLedger.length);
       console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
       console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
+      
+      // Debug convertible instruments with conversion dates
+      console.log('🔍 [HISTORICAL API] Convertible details:');
+      convertibles.forEach((conv, index) => {
+        console.log(`  ${index}: ${conv.type} for ${conv.holderId}`, {
+          issueDate: conv.issueDate?.toISOString()?.split('T')[0],
+          conversionDate: conv.conversionDate?.toISOString()?.split('T')[0] || 'NOT_CONVERTED',
+          amount: conv.amount,
+          isConverted: !!conv.conversionDate
+        });
+      });
 
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
       
       const historicalData = sortedMilestones.map((asOfDate, index) => {
         console.log(`🧮 [HISTORICAL API] Computing milestone ${index}: ${asOfDate.toISOString()}`);
+        
+        // Check which convertibles should have converted by this date
+        const convertiblesConvertedByDate = convertibles.filter(conv => 
+          conv.conversionDate && conv.conversionDate <= asOfDate
+        );
+        const convertiblesNotConvertedByDate = convertibles.filter(conv => 
+          !conv.conversionDate || conv.conversionDate > asOfDate
+        );
+        
+        console.log(`🎯 [HISTORICAL API] As of ${asOfDate.toISOString().split('T')[0]}:`);
+        console.log(`  ✅ Converted: ${convertiblesConvertedByDate.length} convertibles`);
+        convertiblesConvertedByDate.forEach(conv => {
+          console.log(`    - ${conv.type} (${conv.holderId}) converted on ${conv.conversionDate?.toISOString()?.split('T')[0]}`);
+        });
+        console.log(`  ⏳ Not yet converted: ${convertiblesNotConvertedByDate.length} convertibles`);
+        convertiblesNotConvertedByDate.forEach(conv => {
+          console.log(`    - ${conv.type} (${conv.holderId}) conversion: ${conv.conversionDate?.toISOString()?.split('T')[0] || 'never'}`);
+        });
         
         const result = computeCapTable(
           shareLedger,
