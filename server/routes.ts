@@ -1272,6 +1272,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           instrumentType?: string;
         }> = [];
         
+        // Check for conversions first to identify conversion-related share issuances
+        const conversionsOnDate = convertibles.filter((conv: any) =>
+          (conv as any).conversionDate && (conv as any).conversionDate.toDateString() === asOfDate.toDateString()
+        );
+        const conversionHolderIds = new Set(conversionsOnDate.map((conv: any) => conv.holderId));
+
         // Check for share issuances
         const shareIssuances = shareLedger.filter((entry: any) => 
           entry.issueDate.toDateString() === asOfDate.toDateString()
@@ -1279,9 +1285,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareIssuances.forEach((entry: any) => {
           const stakeholder = stakeholders.find((s: any) => s.id === entry.holderId);
           const secClass = securityClasses.find((sc: any) => sc.id === entry.classId);
+          
+          // Check if this share issuance is from a conversion
+          const isFromConversion = conversionHolderIds.has(entry.holderId);
+          const verb = isFromConversion ? 'converted to' : 'issued';
+          
           eventsOnDate.push({
-            type: 'share_issuance',
-            description: `${stakeholder?.name} issued ${entry.quantity.toLocaleString()} ${secClass?.name || 'shares'}`,
+            type: isFromConversion ? 'share_conversion' : 'share_issuance',
+            description: `${stakeholder?.name} ${verb} ${entry.quantity.toLocaleString()} ${secClass?.name || 'shares'}`,
             stakeholder: stakeholder?.name,
             amount: entry.quantity,
             securityClass: secClass?.name
@@ -1307,18 +1318,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         });
         
-        // Check for conversions
-        const conversionsOnDate = convertibles.filter((conv: any) =>
-          (conv as any).conversionDate && (conv as any).conversionDate.toDateString() === asOfDate.toDateString()
-        );
+        // Add additional conversion details (only if we want to show both the conversion trigger and the resulting shares)
         conversionsOnDate.forEach((conv: any) => {
           const stakeholder = stakeholders.find((s: any) => s.id === conv.holderId);
-          eventsOnDate.push({
-            type: 'conversion',
-            description: `${stakeholder?.name} converted ${conv.type} to shares`,
-            stakeholder: stakeholder?.name,
-            instrumentType: conv.type
-          });
+          const investmentAmount = conv.principal || 0;
+          
+          // Only add if not already covered by share_conversion events above
+          const hasShareIssuanceOnDate = shareIssuances.some(entry => entry.holderId === conv.holderId);
+          if (!hasShareIssuanceOnDate) {
+            eventsOnDate.push({
+              type: 'conversion',
+              description: `${stakeholder?.name} converted ${conv.type} ($${investmentAmount.toLocaleString()}) to shares`,
+              stakeholder: stakeholder?.name,
+              amount: investmentAmount,
+              instrumentType: conv.type
+            });
+          }
         });
         
         // For historical computation, use end-of-day to ensure all transactions on this date are included
