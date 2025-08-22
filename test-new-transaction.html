@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test New Transaction Button</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .test-step {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test New Transaction Button Fix</h1>
+    
+    <div class="status success">
+        <h3>✅ Исправления выполнены:</h3>
+        <ul>
+            <li><strong>Dashboard.tsx</strong> - добавлены обработчики для всех типов транзакций</li>
+            <li><strong>State variables</strong> - созданы для safe, convertible, secondary диалогов</li>
+            <li><strong>Import statements</strong> - импортированы все диалоги</li>
+            <li><strong>LSP errors</strong> - все ошибки TypeScript исправлены</li>
+        </ul>
+    </div>
+
+    <div class="test-step">
+        <h3>🧪 Инструкции для тестирования:</h3>
+        <ol>
+            <li>Войдите в приложение как <code>work@me.com</code> / <code>123456</code></li>
+            <li>Перейдите на страницу Dashboard любой компании</li>
+            <li>Найдите синюю кнопку <strong>"New Transaction"</strong></li>
+            <li>Нажмите на нее и проверьте выпадающее меню</li>
+            <li>Попробуйте каждый из пунктов меню:</li>
+            <ul>
+                <li>📄 Issue Shares (должно работать)</li>
+                <li>🎯 Grant Options (должно работать)</li>
+                <li>🔒 SAFE Agreement (теперь должно работать)</li>
+                <li>💰 Convertible Note (теперь должно работать)</li>
+                <li>🔄 Secondary Transfer (теперь должно работать)</li>
+            </ul>
+        </ol>
+    </div>
+
+    <div class="test-step">
+        <h3>🔍 Что было исправлено:</h3>
+        <div class="code">
+// Добавлены missing state variables:
+const [showSafeAgreement, setShowSafeAgreement] = useState(false);
+const [showConvertibleNote, setShowConvertibleNote] = useState(false);
+const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
+
+// Обновлены обработчики кнопки:
+onTransactionSelect={(type) => {
+  if (type === "shares") setShowIssueShares(true);
+  if (type === "options") setShowGrantOptions(true);
+  if (type === "safe") setShowSafeAgreement(true);         // ← НОВОЕ
+  if (type === "convertible") setShowConvertibleNote(true); // ← НОВОЕ
+  if (type === "secondary") setShowSecondaryTransaction(true); // ← НОВОЕ
+}}
+
+// Добавлены диалоги:
+&lt;SafeAgreementDialog ... /&gt;
+&lt;ConvertibleNoteDialog ... /&gt;
+&lt;SecondaryTransactionDialog ... /&gt;
+        </div>
+    </div>
+
+    <div class="status error">
+        <h3>⚠️ Проблема со скриншотами:</h3>
+        <p>Автоматические скриншоты показывают страницу входа потому что у них нет доступа к сессии пользователя. 
+        Это нормально - нужно тестировать вручную в браузере.</p>
+    </div>
+
+    <div class="test-step">
+        <h3>🎯 Ожидаемый результат:</h3>
+        <p>Теперь ВСЕ пункты меню "New Transaction" должны открывать соответствующие модальные окна для создания транзакций.</p>
+    </div>
+
+    <p><a href="http://localhost:5000">← Вернуться к приложению</a></p>
+</body>
+</html>
