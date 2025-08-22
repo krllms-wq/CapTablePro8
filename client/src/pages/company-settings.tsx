@@ -68,10 +68,10 @@ export default function CompanySettings() {
     mutationFn: async (data: CompanySettingsForm) => {
       return apiRequest(`/api/companies/${companyId}`, {
         method: "PUT",
-        body: JSON.stringify({
+        body: {
           ...data,
-          incorporationDate: new Date(data.incorporationDate + "T00:00:00.000Z"), // Ensure UTC midnight
-        }),
+          incorporationDate: data.incorporationDate, // Keep as string, let backend handle conversion
+        },
       });
     },
     onSuccess: () => {
