@@ -154,6 +154,18 @@ export const convertibleInstruments = pgTable("convertible_instruments", {
   createdAt: timestamp("created_at").default(sql`now()`).notNull(),
 });
 
+// Cash Contributions (separate from share issuance)
+export const cashContributions = pgTable("cash_contributions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  contributorId: varchar("contributor_id").notNull().references(() => stakeholders.id),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  contributionDate: timestamp("contribution_date").notNull(),
+  description: text("description"),
+  contributionType: varchar("contribution_type", { length: 30 }).notNull().default("founder_funding"), // founder_funding, bridge_loan, etc.
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+});
+
 // Financing Rounds
 export const rounds = pgTable("rounds", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -422,6 +434,21 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 
 export type Scenario = typeof scenarios.$inferSelect;
+export type InsertScenario = z.infer<typeof insertScenarioSchema>;
+
+export const insertCashContributionSchema = createInsertSchema(cashContributions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  contributionDate: z.union([z.date(), z.string()]).transform(transformDateInput),
+  amount: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()),
+});
+
+export type CashContribution = typeof cashContributions.$inferSelect;
+export type InsertCashContribution = z.infer<typeof insertCashContributionSchema>;
 export type InsertScenario = z.infer<typeof insertScenarioSchema>;
 
 // User schemas

@@ -1518,6 +1518,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      // Get all cash contributions upfront for efficiency
+      const allCashContributions = await storage.getCashContributions?.(req.params.companyId) || [];
+      const cashContributionsByHolder = new Map<string, number>();
+      
+      allCashContributions.forEach((contribution: any) => {
+        const current = cashContributionsByHolder.get(contribution.contributorId) || 0;
+        cashContributionsByHolder.set(contribution.contributorId, current + Number(contribution.amount || 0));
+      });
+
       // Build cap table with corrected ownership percentages
       const capTable = Array.from(ownershipMap.entries()).map(([holderId, holdings]) => {
         const stakeholder = stakeholders.find(s => s.id === holderId);
@@ -1548,11 +1557,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const totalInvestment = holderShareEntries.reduce((sum, entry) => {
           const entryValue = entry.consideration ? Number(entry.consideration) : 0;
-          console.log(`    Adding $${entryValue} to sum (was $${sum})`);
-          return sum + entryValue;
+          const pricePerShare = entry.quantity > 0 ? entryValue / entry.quantity : 0;
+          
+          // Treat as sweat equity if price per share is very low (< $0.10)
+          // This covers founder shares issued for minimal consideration
+          const isSweatEquity = pricePerShare < 0.10;
+          const investmentValue = isSweatEquity ? 0 : entryValue;
+          
+          console.log(`    Entry: $${entryValue} total, $${pricePerShare.toFixed(4)}/share, ${isSweatEquity ? 'SWEAT EQUITY' : 'CASH INVESTMENT'} -> Adding $${investmentValue}`);
+          return sum + investmentValue;
         }, 0);
         
-        console.log(`  Final total investment for ${stakeholder?.name}: $${totalInvestment}`);
+        // Add cash contributions (founder funding, bridge loans, etc.)
+        const totalCashContributions = cashContributionsByHolder.get(holderId) || 0;
+        console.log(`  Cash contributions for ${stakeholder?.name}: $${totalCashContributions}`);
+        
+        const combinedInvestment = totalInvestment + totalCashContributions;
+        
+        console.log(`  Final total investment for ${stakeholder?.name}: $${combinedInvestment}`);
 
         // Calculate current value based on current valuation
         const currentValue = valuationResult.pricePerShare 
@@ -1582,7 +1604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           options: holdings.options,
           convertibles: holdings.convertibles || 0,
           percentage: currentOwnership.toFixed(2),
-          investment: totalInvestment, // Actual cash investment
+          investment: combinedInvestment, // Actual cash investment + cash contributions
           value: currentValue, // Frontend expects "value" not "currentValue"
           currentValue: currentValue, // Keep for compatibility  
           fullyDilutedValue: fullyDilutedValue

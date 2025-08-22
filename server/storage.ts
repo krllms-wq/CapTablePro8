@@ -5,6 +5,7 @@ import {
   type ShareLedgerEntry, type InsertShareLedgerEntry,
   type EquityAward, type InsertEquityAward,
   type ConvertibleInstrument, type InsertConvertibleInstrument,
+  type CashContribution, type InsertCashContribution,
   type Round, type InsertRound,
   type CorporateAction, type InsertCorporateAction,
   type AuditLog,
@@ -16,7 +17,7 @@ import {
 } from "@shared/schema";
 import { 
   companies, securityClasses, stakeholders, shareLedgerEntries, equityAwards,
-  convertibleInstruments, rounds, corporateActions, auditLogs, scenarios, users,
+  convertibleInstruments, cashContributions, rounds, corporateActions, auditLogs, scenarios, users,
   userCompanyAccess, capTableShares, convertibleConversions
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -101,6 +102,12 @@ export interface IStorage {
   getUserCompanyAccess(userId: string, companyId: string): Promise<UserCompanyAccess | undefined>;
   getUserCompanies(userId: string): Promise<Company[]>;
   getCompanyUsers(companyId: string): Promise<UserCompanyAccess[]>;
+
+  // Cash Contributions
+  createCashContribution(contribution: InsertCashContribution): Promise<CashContribution>;
+  getCashContributions(companyId: string, contributorId?: string): Promise<CashContribution[]>;
+  getCashContribution(id: string): Promise<CashContribution | undefined>;
+  deleteCashContribution(id: string): Promise<void>;
 
   // Cap Table Sharing
   createCapTableShare(share: InsertCapTableShare): Promise<CapTableShare>;
@@ -1662,6 +1669,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCapTableShare(id: string): Promise<void> {
     await db.delete(capTableShares).where(eq(capTableShares.id, id));
+  }
+
+  // Cash Contributions  
+  async createCashContribution(insertContribution: InsertCashContribution): Promise<CashContribution> {
+    const [contribution] = await db.insert(cashContributions).values(insertContribution).returning();
+    return contribution;
+  }
+
+  async getCashContributions(companyId: string, contributorId?: string): Promise<CashContribution[]> {
+    if (contributorId) {
+      return await db.select().from(cashContributions)
+        .where(and(eq(cashContributions.companyId, companyId), eq(cashContributions.contributorId, contributorId)));
+    }
+    return await db.select().from(cashContributions).where(eq(cashContributions.companyId, companyId));
+  }
+
+  async getCashContribution(id: string): Promise<CashContribution | undefined> {
+    const [contribution] = await db.select().from(cashContributions).where(eq(cashContributions.id, id));
+    return contribution;
+  }
+
+  async deleteCashContribution(id: string): Promise<void> {
+    await db.delete(cashContributions).where(eq(cashContributions.id, id));
   }
 }
 
