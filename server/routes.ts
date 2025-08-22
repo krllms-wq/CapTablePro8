@@ -1247,6 +1247,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
       console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
       
+      // Debug all convertibles data structure
+      console.log('💰 [CONVERTIBLE DEBUG] All convertibles data:');
+      convertibles.forEach((conv: any, index: number) => {
+        console.log(`  Convertible ${index}:`, {
+          id: conv.id,
+          type: conv.type,
+          holderId: conv.holderId,
+          amount: conv.amount,
+          principal: conv.principal,
+          value: conv.value,
+          investmentAmount: conv.investmentAmount,
+          issueDate: conv.issueDate?.toISOString()?.split('T')[0],
+          conversionDate: conv.conversionDate?.toISOString()?.split('T')[0] || 'NOT_CONVERTED'
+        });
+      });
+      
 
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
@@ -1283,13 +1299,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const convertibleIssuances = convertibles.filter((conv: any) =>
           conv.issueDate.toDateString() === asOfDate.toDateString()
         );
-        convertibleIssuances.forEach((conv: any) => {
+        console.log(`💰 [CONVERTIBLE DEBUG] Date ${asOfDate.toISOString().split('T')[0]} - Found ${convertibleIssuances.length} convertible issuances`);
+        convertibleIssuances.forEach((conv: any, convIndex: number) => {
+          console.log(`💰 [CONVERTIBLE DEBUG] Convertible ${convIndex}:`, {
+            type: conv.type,
+            holderId: conv.holderId,
+            amount: conv.amount,
+            principal: conv.principal,
+            value: conv.value,
+            investmentAmount: conv.investmentAmount,
+            rawConvertible: conv
+          });
+          
           const stakeholder = stakeholders.find((s: any) => s.id === conv.holderId);
+          
+          // Try different amount fields
+          const actualAmount = conv.amount || conv.principal || conv.value || conv.investmentAmount || 0;
+          console.log(`💰 [CONVERTIBLE DEBUG] Amount resolution:`, {
+            amount: conv.amount,
+            principal: conv.principal,
+            value: conv.value,
+            investmentAmount: conv.investmentAmount,
+            finalAmount: actualAmount
+          });
+          
           eventsOnDate.push({
             type: 'convertible_issuance',
-            description: `${stakeholder?.name} issued ${conv.type} for $${conv.amount?.toLocaleString() || '0'}`,
+            description: `${stakeholder?.name} issued ${conv.type} for $${actualAmount?.toLocaleString() || '0'}`,
             stakeholder: stakeholder?.name,
-            amount: conv.amount,
+            amount: actualAmount,
             instrumentType: conv.type
           });
         });
