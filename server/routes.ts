@@ -1456,12 +1456,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId,
         holderId: convertible.holderId,
         classId: targetSecurityClassId,
-        transactionType: 'issue',
         quantity: calculation.sharesIssued,
-        pricePerShare: calculation.conversionPrice,
+        issueDate: new Date(),
         consideration: Number(convertible.principal),
-        transactionDate: new Date(),
-        notes: `SAFE conversion: ${formatConversionSummary(calculation)}`
+        considerationType: 'cash'
       });
 
       // Record conversion in conversion history
