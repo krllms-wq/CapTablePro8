@@ -722,7 +722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stakeholder = await storage.getStakeholder(entry.holderId);
       const securityClass = await storage.getSecurityClass(entry.classId);
       
-      // Log share issuance
+      // Log share issuance with comprehensive details
       await logTransactionEvent({
         companyId: req.params.companyId,
         actorId: req.user!.id,
@@ -732,7 +732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: {
           quantity: entry.quantity,
           securityClassName: securityClass?.name,
-          consideration: entry.consideration,
+          securityClass: securityClass?.name, // Backup field name for activity feed
+          consideration: entry.consideration || 0,
+          considerationType: entry.considerationType || 'cash',
+          certificateNo: entry.certificateNo,
+          issueDate: entry.issueDate,
+          stakeholderType: stakeholder?.type,
         },
       });
 
@@ -903,7 +908,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity,
           pricePerShare,
           totalValue,
-          securityClassName: securityClassInfo?.name
+          securityClassName: securityClassInfo?.name,
+          transferDate: transactionDate,
+          sellerType: sellerInfo?.type,
+          buyerType: buyerInfo?.type,
         }
       });
 
@@ -969,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get stakeholder for audit log
       const stakeholder = await storage.getStakeholder(award.holderId);
 
-      // Log equity award creation
+      // Log equity award creation with comprehensive details
       await logTransactionEvent({
         companyId: req.params.companyId,
         actorId: req.user!.id,
@@ -978,10 +986,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stakeholderName: stakeholder?.name,
         details: {
           awardType: award.type,
+          type: award.type, // Backup field name for activity feed
           quantity: award.quantityGranted,
           strikePrice: award.strikePrice,
           grantDate: award.grantDate,
-          vestingStartDate: award.vestingStartDate
+          vestingStartDate: award.vestingStartDate,
+          vestingPeriodMonths: award.vestingPeriodMonths,
+          cliffPeriodMonths: award.cliffPeriodMonths,
+          stakeholderType: stakeholder?.type,
         }
       });
 
@@ -1086,7 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get stakeholder for audit log
       const stakeholder = await storage.getStakeholder(instrument.holderId);
       
-      // Log convertible creation - normalize type names  
+      // Log convertible creation with comprehensive details
       const eventType = (instrument.type === "safe" || instrument.type === "SAFE") ? "transaction.safe_created" : "transaction.convertible_created";
       await logTransactionEvent({
         companyId: req.params.companyId,
@@ -1099,6 +1111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           framework: instrument.framework,
           principal: instrument.principal,
           issueDate: instrument.issueDate,
+          discountRate: instrument.discountRate,
+          valuationCap: instrument.valuationCap,
+          interestRate: instrument.interestRate,
+          maturityDate: instrument.maturityDate,
+          stakeholderType: stakeholder?.type,
         },
       });
 

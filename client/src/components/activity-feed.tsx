@@ -45,40 +45,154 @@ const getEventColor = (event: string) => {
 const formatEventDescription = (event: ActivityEvent) => {
   const { event: eventType, metadata } = event;
   
-  if (eventType === 'transaction.options_granted') {
-    return `Granted ${metadata?.quantity || 'N/A'} ${metadata?.awardType || 'options'} to ${metadata?.stakeholderName || 'stakeholder'}`;
+  // Transaction Events
+  if (eventType === 'transaction.shares_issued') {
+    const quantity = metadata?.quantity ? Number(metadata.quantity).toLocaleString() : 'N/A';
+    const securityClass = metadata?.securityClassName || metadata?.securityClass || 'Common';
+    const stakeholder = metadata?.stakeholderName || 'Unknown';
+    const consideration = metadata?.consideration ? `$${Number(metadata.consideration).toLocaleString()}` : '';
+    const date = metadata?.issueDate ? new Date(metadata.issueDate).toLocaleDateString() : '';
+    
+    return `Issued ${quantity} ${securityClass} shares to ${stakeholder}${consideration ? ` for ${consideration}` : ''}${date ? ` on ${date}` : ''}`;
+  }
+  
+  if (eventType === 'transaction.options_granted' || eventType === 'transaction.equity_awarded') {
+    const quantity = metadata?.quantity ? Number(metadata.quantity).toLocaleString() : 'N/A';
+    const awardType = metadata?.awardType || metadata?.type || 'options';
+    const stakeholder = metadata?.stakeholderName || 'Unknown';
+    const strikePrice = metadata?.strikePrice ? `$${metadata.strikePrice}` : '';
+    const date = metadata?.grantDate ? new Date(metadata.grantDate).toLocaleDateString() : '';
+    
+    return `Granted ${quantity} ${awardType}${strikePrice ? ` at ${strikePrice}` : ''} to ${stakeholder}${date ? ` on ${date}` : ''}`;
   }
   
   if (eventType === 'transaction.secondary_transfer') {
-    return `Secondary transfer: ${metadata?.seller || 'Unknown'} → ${metadata?.buyer || 'Unknown'} (${metadata?.quantity || 'N/A'} shares)`;
+    const seller = metadata?.seller || 'Unknown';
+    const buyer = metadata?.buyer || 'Unknown';
+    const quantity = metadata?.quantity ? Number(metadata.quantity).toLocaleString() : 'N/A';
+    const pricePerShare = metadata?.pricePerShare ? `$${metadata.pricePerShare}` : '';
+    const totalValue = metadata?.totalValue ? `$${Number(metadata.totalValue).toLocaleString()}` : '';
+    
+    return `Secondary transfer: ${seller} → ${buyer} (${quantity} shares${pricePerShare ? ` @ ${pricePerShare}` : ''}${totalValue ? ` = ${totalValue}` : ''})`;
   }
   
+  if (eventType === 'transaction.safe_created') {
+    const stakeholder = metadata?.stakeholderName || 'Unknown';
+    const principal = metadata?.principal ? `$${Number(metadata.principal).toLocaleString()}` : 'N/A';
+    const framework = metadata?.framework || 'SAFE';
+    const date = metadata?.issueDate ? new Date(metadata.issueDate).toLocaleDateString() : '';
+    
+    return `Created ${framework} for ${stakeholder} (${principal}${date ? ` on ${date}` : ''})`;
+  }
+  
+  if (eventType === 'transaction.convertible_created') {
+    const stakeholder = metadata?.stakeholderName || 'Unknown';
+    const principal = metadata?.principal ? `$${Number(metadata.principal).toLocaleString()}` : 'N/A';
+    const interestRate = metadata?.interestRate ? `${metadata.interestRate}%` : '';
+    const date = metadata?.issueDate ? new Date(metadata.issueDate).toLocaleDateString() : '';
+    
+    return `Created convertible note for ${stakeholder} (${principal}${interestRate ? ` @ ${interestRate}` : ''}${date ? ` on ${date}` : ''})`;
+  }
+  
+  if (eventType === 'transaction.equity_canceled') {
+    const quantity = metadata?.quantity ? Number(metadata.quantity).toLocaleString() : 'N/A';
+    const awardType = metadata?.awardType || 'equity awards';
+    const stakeholder = metadata?.stakeholderName || 'Unknown';
+    
+    return `Canceled ${quantity} ${awardType} for ${stakeholder}`;
+  }
+  
+  // Stakeholder Events
   if (eventType === 'stakeholder.created') {
-    return `Added new stakeholder: ${metadata?.stakeholderName || 'Unknown'}`;
+    const name = metadata?.stakeholderName || 'Unknown';
+    const type = metadata?.stakeholderType || '';
+    return `Added new ${type ? `${type} ` : ''}stakeholder: ${name}`;
   }
   
   if (eventType === 'stakeholder.updated') {
     const stakeholderName = metadata?.stakeholderName || 'Unknown';
     const changes = metadata?.changes;
     
-    if (changes?.type) {
-      return `Updated ${stakeholderName} type from ${changes.type.from} to ${changes.type.to}`;
+    if (changes) {
+      const changeDescriptions = [];
+      if (changes.type) changeDescriptions.push(`type: ${changes.type.from} → ${changes.type.to}`);
+      if (changes.name) changeDescriptions.push(`name: ${changes.name.from} → ${changes.name.to}`);
+      if (changes.email) changeDescriptions.push(`email: ${changes.email.from} → ${changes.email.to}`);
+      
+      if (changeDescriptions.length > 0) {
+        return `Updated ${stakeholderName} (${changeDescriptions.join(', ')})`;
+      }
     }
     
     return `Updated stakeholder: ${stakeholderName}`;
   }
   
-  if (eventType === 'transaction.shares_issued') {
-    return `Issued ${metadata?.quantity || 'N/A'} shares to ${metadata?.stakeholderName || 'Unknown'}`;
+  if (eventType === 'stakeholder.deleted') {
+    const name = metadata?.stakeholderName || 'Unknown';
+    return `Removed stakeholder: ${name}`;
   }
   
+  // Company Events
+  if (eventType === 'company.created') {
+    const name = metadata?.companyName || 'Company';
+    return `Created company: ${name}`;
+  }
+  
+  if (eventType === 'company.updated') {
+    const changes = metadata?.changedFields || {};
+    const changeCount = Object.keys(changes).length;
+    return `Updated company settings (${changeCount} ${changeCount === 1 ? 'change' : 'changes'})`;
+  }
+  
+  // Corporate Actions
+  if (eventType === 'corporate.stock_split') {
+    const ratio = metadata?.splitRatio || 'N/A';
+    const affectedShares = metadata?.affectedShares ? Number(metadata.affectedShares).toLocaleString() : 'N/A';
+    return `Stock split executed (${ratio}:1 ratio, ${affectedShares} shares affected)`;
+  }
+  
+  if (eventType === 'corporate.name_change') {
+    const from = metadata?.oldName || 'Unknown';
+    const to = metadata?.newName || 'Unknown';
+    return `Company name changed: ${from} → ${to}`;
+  }
+  
+  // Demo/System Events
   if (eventType === 'demo.seeded') {
-    return `Demo data seeded: ${metadata?.stakeholders || 0} stakeholders, ${metadata?.shareIssuances || 0} share issuances`;
+    const stakeholders = metadata?.stakeholders || 0;
+    const transactions = metadata?.shareIssuances || metadata?.transactions || 0;
+    return `Demo data seeded: ${stakeholders} stakeholders, ${transactions} transactions`;
   }
   
-  // Default formatting - handle any unrecognized event types
-  const formattedType = eventType.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  return `${formattedType}${metadata?.stakeholderName ? ` - ${metadata.stakeholderName}` : ''}`;
+  if (eventType === 'system.data_imported') {
+    const records = metadata?.recordCount || 0;
+    const type = metadata?.importType || 'data';
+    return `Imported ${records} ${type} records`;
+  }
+  
+  // Fallback for any unrecognized event types
+  // Convert event type to readable format
+  const parts = eventType.split(/[._]/);
+  const category = parts[0] || 'system';
+  const action = parts[1] || 'action';
+  
+  const readableCategory = category.charAt(0).toUpperCase() + category.slice(1);
+  const readableAction = action.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
+  
+  const stakeholder = metadata?.stakeholderName || metadata?.name;
+  const quantity = metadata?.quantity;
+  
+  let description = `${readableCategory} ${readableAction}`;
+  
+  if (stakeholder) {
+    description += ` - ${stakeholder}`;
+  }
+  
+  if (quantity) {
+    description += ` (${Number(quantity).toLocaleString()})`;
+  }
+  
+  return description;
 };
 
 const groupEventsByDate = (events: ActivityEvent[]) => {
