@@ -1345,22 +1345,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate new shares and final price per share that preserves new investor ownership
-      // The new investors should get exactly roundAmount / pricePerShare shares
-      // But the price per share needs to account for SAFE dilution
+      // CORRECT SAFE CONVERSION MATH:
+      // The new investor should get exactly their target ownership percentage
+      // SAFEs convert but should not dilute the new investor's intended ownership
+      
+      // Calculate target ownership for new investor: roundAmount / (premoney + roundAmount)
+      const targetNewInvestorOwnership = roundAmount / (premoney + roundAmount);
+      console.log(`Target new investor ownership: ${(targetNewInvestorOwnership * 100).toFixed(2)}%`);
       
       // Total shares after SAFE conversion but before new investment
       const sharesAfterSafeConversion = totalShares + totalSafeShares;
       
-      // Calculate the final price per share that accounts for SAFE dilution
-      // New premoney = (premoney + SAFE principal) because SAFEs convert at preferential prices
-      const totalSafePrincipal = safeConversions.reduce((sum, conv) => sum + conv.principal, 0);
-      const adjustedPremoney = premoney + totalSafePrincipal;
-      const finalPricePerShare = sharesAfterSafeConversion > 0 ? adjustedPremoney / sharesAfterSafeConversion : 1;
+      // Calculate how many new shares are needed to give the new investor their target ownership
+      // If new investor gets newShares and total becomes (sharesAfterSafeConversion + newShares)
+      // Then: newShares / (sharesAfterSafeConversion + newShares) = targetNewInvestorOwnership
+      // Solving: newShares = (targetNewInvestorOwnership * sharesAfterSafeConversion) / (1 - targetNewInvestorOwnership)
+      const newShares = Math.round((targetNewInvestorOwnership * sharesAfterSafeConversion) / (1 - targetNewInvestorOwnership));
       
-      // New shares issued to new investors at the adjusted price
-      const newShares = Math.round(roundAmount / finalPricePerShare);
-      const postMoneyValuation = adjustedPremoney + roundAmount;
+      // Final price per share to achieve this
+      const finalPricePerShare = roundAmount / newShares;
+      const postMoneyValuation = premoney + roundAmount;
+      
+      console.log(`SAFE conversion math:
+        - Premoney: ${premoney}
+        - Round amount: ${roundAmount} 
+        - Target ownership: ${(targetNewInvestorOwnership * 100).toFixed(2)}%
+        - Shares after SAFE: ${sharesAfterSafeConversion}
+        - New shares needed: ${newShares}
+        - Final PPS: ${finalPricePerShare.toFixed(4)}`);
 
       // After cap table (with new investment and SAFE conversions)
       const afterOwnershipMap = new Map(ownershipMap);
