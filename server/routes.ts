@@ -1340,6 +1340,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const endOfDay = new Date(asOfDate);
         endOfDay.setHours(23, 59, 59, 999);
         
+        // Debug logging for date issues
+        console.log(`🐛 [DEBUG] Computing cap table for ${asOfDate.toISOString().split('T')[0]}`);
+        console.log(`🐛 [DEBUG] End of day: ${endOfDay.toISOString()}`);
+        console.log(`🐛 [DEBUG] Share entries on or before this date:`);
+        shareLedger.forEach((entry: any) => {
+          if (entry.issueDate <= endOfDay) {
+            console.log(`  ✅ ${entry.quantity} shares to ${stakeholders.find((s: any) => s.id === entry.holderId)?.name} on ${entry.issueDate.toISOString()}`);
+          } else {
+            console.log(`  ❌ ${entry.quantity} shares to ${stakeholders.find((s: any) => s.id === entry.holderId)?.name} on ${entry.issueDate.toISOString()} (EXCLUDED)`);
+          }
+        });
+        
         const result = computeCapTable(
           shareLedger,
           equityAwards, 
@@ -1350,6 +1362,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endOfDay,  // Use end-of-day instead of asOfDate
           'FullyDiluted'
         );
+        
+        console.log(`🐛 [DEBUG] Cap table result: ${result.totalShares} total shares, ${result.entries.length} entries`);
         
         
         return {
