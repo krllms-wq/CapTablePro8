@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Building, Save, X, CalendarDays, MapPin, FileText, Trash2, AlertTriangle } from "lucide-react";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -139,18 +140,14 @@ export default function CompanySettings() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <AppShell>
+      <PageHeader
+        title="Company Settings"
+        subtitle="Manage your company's basic information"
+        icon={Building}
+      />
       
-      <div className="max-w-4xl mx-auto px-6 py-6">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <Building className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900">Company Settings</h1>
-              <p className="text-neutral-600 mt-1">Manage your company's basic information</p>
-            </div>
-          </div>
+      <div className="space-y-xl">
 
           {/* Settings Form */}
           <Card>
@@ -346,7 +343,6 @@ export default function CompanySettings() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* Delete Company Dialog */}
       {company && (
@@ -356,6 +352,6 @@ export default function CompanySettings() {
           company={company}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
