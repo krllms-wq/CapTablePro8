@@ -501,6 +501,49 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
+              {/* New Stakeholder Form */}
+              {showNewStakeholder && (
+                <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-medium text-sm">New Stakeholder Details</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Name *</Label>
+                      <Input
+                        value={newStakeholder.name}
+                        onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
+                        placeholder="Enter name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={newStakeholder.email}
+                        onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
+                        placeholder="Enter email"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <Select 
+                      value={newStakeholder.type} 
+                      onValueChange={(value: "individual" | "entity") => 
+                        setNewStakeholder({...newStakeholder, type: value})
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="entity">Entity</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
               {/* Security Class Selection */}
               <FormField
                 control={form.control}
@@ -782,48 +825,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
               )}
             </div>
 
-            {/* New Stakeholder Form */}
-            {showNewStakeholder && (
-              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
-                <h4 className="font-medium text-sm">New Stakeholder Details</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Name *</Label>
-                    <Input
-                      value={newStakeholder.name}
-                      onChange={(e) => setNewStakeholder({...newStakeholder, name: e.target.value})}
-                      placeholder="Enter name"
-                    />
-                  </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={newStakeholder.email}
-                      onChange={(e) => setNewStakeholder({...newStakeholder, email: e.target.value})}
-                      placeholder="Enter email"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Type</Label>
-                  <Select 
-                    value={newStakeholder.type} 
-                    onValueChange={(value: "individual" | "entity") => 
-                      setNewStakeholder({...newStakeholder, type: value})
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="entity">Entity</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
+
 
             {/* New Security Class Form */}
             {showNewSecurityClass && (
