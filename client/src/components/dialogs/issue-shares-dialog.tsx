@@ -151,12 +151,12 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
   // Advanced fields accordion state
   const advancedOpen = useAdvancedOpen({
     errors: form.formState.errors,
-    values: { ...form.watch(), overridePps, overrideValuation },
-    advancedFields: ['certificateNo', 'overridePps', 'overrideValuation'],
+    values: { ...form.watch(), overridePps, overrideQuantity },
+    advancedFields: ['certificateNo', 'overridePps', 'overrideQuantity'],
     defaultValues: {
       certificateNo: "",
       overridePps: false,
-      overrideValuation: false,
+      overrideQuantity: false,
     },
   });
 
