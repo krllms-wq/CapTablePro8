@@ -122,8 +122,8 @@ export default function Dashboard() {
             securityClass: { name: "Common Stock" },
             shares: row.shares,
             ownership: parseFloat(row.percentage),
-            investment: 0,
-            investmentAmount: 0,
+            investment: row.investment || 0,
+            investmentAmount: row.investment || 0,
             value: row.value || 0,
             convertibles: row.convertibles || 0
           })) || []} 
