@@ -2603,13 +2603,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           preferredClass = await storage.createSecurityClass({
             companyId,
             name: newSecurityClassName,
-            type: 'preferred',
-            description: `Preferred shares issued in ${name}`,
-            votingRights: true,
-            liquidationPreference: 1.0,
-            dividendRate: null,
-            participationRights: false,
-            antidilutionProtection: antiDilutionProvisions !== 'none'
+            seniorityTier: 1,
+            liquidationPreferenceMultiple: "1.0",
+            participating: false,
+            participationCap: null,
+            dividendRate: "0.0",
+            dividendType: "non-cumulative",
+            convertToCommonRatio: "1.0",
+            votingRights: "1.0"
           });
           console.log(`Created new security class: ${preferredClass.name}`);
         }
