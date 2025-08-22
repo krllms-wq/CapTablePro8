@@ -75,9 +75,9 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
 
   return (
     <MobileNavProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-neutral-50">
         {/* Header */}
-        <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+        <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-neutral-200">
         <div className="flex h-16 items-center gap-4 px-4 lg:px-6">
           {/* Mobile menu button */}
           <Button
@@ -167,7 +167,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
       <div className="flex">
         {/* Sidebar */}
         <aside className={`
-          fixed inset-y-0 left-0 z-sticky w-64 bg-surface-muted border-r border-border
+          fixed inset-y-0 left-0 z-sticky w-64 bg-white border-r border-neutral-200
           transform transition-transform duration-200 ease-in-out
           md:relative md:transform-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -183,8 +183,8 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
                         flex gap-x-3 rounded-md px-3 py-2 text-sm font-medium
                         transition-colors duration-200
                         ${item.current
-                          ? 'bg-primary text-primary-text'
-                          : 'text-text-muted hover:text-text hover:bg-surface-hover'
+                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
+                          : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50'
                         }
                       `}
                       onClick={() => setSidebarOpen(false)}
