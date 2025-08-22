@@ -1280,7 +1280,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? ((holdings.shares + holdings.options) / valuationResult.fullyDilutedShares) * 100 
           : currentOwnership;
         
-        // Calculate value based on current valuation
+        // Calculate actual investment amount from consideration
+        const holderShareEntries = shareLedger.filter(entry => entry.holderId === holderId);
+        const totalInvestment = holderShareEntries.reduce((sum, entry) => {
+          return sum + (entry.consideration ? Number(entry.consideration) : 0);
+        }, 0);
+
+        // Calculate current value based on current valuation
         const currentValue = valuationResult.pricePerShare 
           ? holdings.shares * valuationResult.pricePerShare
           : null;
@@ -1303,6 +1309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           options: holdings.options,
           convertibles: holdings.convertibles || 0,
           percentage: currentOwnership.toFixed(2),
+          investment: totalInvestment, // Actual cash investment
           currentValue: currentValue,
           fullyDilutedValue: fullyDilutedValue
         };

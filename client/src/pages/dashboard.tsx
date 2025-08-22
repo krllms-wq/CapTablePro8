@@ -134,6 +134,7 @@ export default function Dashboard() {
             securityClass: { name: row.securityType || "Unknown" },
             shares: row.shares,
             ownership: parseFloat(row.percentage),
+            investment: row.investment || 0, // Use actual investment amount
             value: row.currentValue || 0,
             convertibles: row.convertibles || 0
           })) || []} 
