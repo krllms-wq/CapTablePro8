@@ -370,18 +370,22 @@ export default function StakeholdersPage() {
                             ${formatNumber(stakeholder.value)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button 
-                              onClick={() => handleEditStakeholder(stakeholder)}
-                              className="text-primary hover:text-primary-dark mr-3"
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteStakeholder(stakeholder)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
+                            <div className="flex justify-end space-x-2">
+                              <button 
+                                onClick={() => handleEditStakeholder(stakeholder)}
+                                className="text-indigo-600 hover:text-indigo-900 p-1"
+                                title="Edit stakeholder"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteStakeholder(stakeholder)}
+                                className="text-red-600 hover:text-red-900 p-1"
+                                title="Delete stakeholder"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -462,17 +466,17 @@ export default function StakeholdersPage() {
                                   });
                                   setShowSecurityClassDialog(true);
                                 }}
-                                className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
+                                className="text-indigo-600 hover:text-indigo-900 p-1"
+                                title="Edit security class"
                               >
-                                <Pencil className="h-3 w-3" />
-                                Edit
+                                <Pencil className="h-4 w-4" />
                               </button>
                               <button 
                                 onClick={() => handleDeleteSecurityClass(securityClass)}
-                                className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                                className="text-red-600 hover:text-red-900 p-1"
+                                title="Delete security class"
                               >
-                                <Trash2 className="h-3 w-3" />
-                                Delete
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
