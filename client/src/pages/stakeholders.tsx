@@ -398,14 +398,6 @@ export default function StakeholdersPage() {
             <TabsContent value="security-classes" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-neutral-800">Security Classes</h2>
-                <Button onClick={() => {
-                  setEditingSecurityClass(null);
-                  setNewSecurityClass({ name: "", liquidationPreferenceMultiple: "1.0", participating: false, votingRights: "1.0" });
-                  setShowSecurityClassDialog(true);
-                }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Security Class
-                </Button>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
