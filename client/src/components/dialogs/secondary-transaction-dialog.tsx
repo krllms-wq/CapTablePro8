@@ -316,7 +316,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                   e.target.value = formatted;
                   setFormData({...formData, quantity: value});
                 }}
-                placeholder="1,000"
+                placeholder=""
               />
             </div>
             <div>
@@ -331,7 +331,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                   e.target.value = formatted;
                   setFormData({...formData, pricePerShare: value});
                 }}
-                placeholder="4.47"
+                placeholder=""
               />
             </div>
           </div>

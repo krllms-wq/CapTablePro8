@@ -290,7 +290,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                   <FormItem>
                     <FormLabel>Quantity *</FormLabel>
                     <FormControl>
-                      <Input type="number" inputMode="numeric" placeholder="10000" {...field} />
+                      <Input type="number" inputMode="numeric" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -314,7 +314,7 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
                         />
                       </FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" inputMode="numeric" placeholder="1.00" {...field} />
+                        <Input type="number" step="0.01" inputMode="numeric" placeholder="" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

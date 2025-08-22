@@ -563,7 +563,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                     <FormControl>
                       <Input 
                         type="text" 
-                        placeholder="100,000" 
+                        placeholder="" 
                         {...field}
                         onBlur={createSharesBlurHandler(field)}
                       />
@@ -701,7 +701,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                     <FormControl>
                       <Input 
                         type="text" 
-                        placeholder="1,000,000" 
+                        placeholder="" 
                         {...field}
                         onBlur={createMoneyBlurHandler(field)}
                       />
@@ -845,7 +845,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                       step="0.1"
                       value={newSecurityClass.liquidationPreferenceMultiple}
                       onChange={(e) => setNewSecurityClass({...newSecurityClass, liquidationPreferenceMultiple: e.target.value})}
-                      placeholder="1.0"
+                      placeholder=""
                     />
                   </div>
                 </div>
@@ -874,7 +874,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                       step="0.1"
                       value={newSecurityClass.votingRights}
                       onChange={(e) => setNewSecurityClass({...newSecurityClass, votingRights: e.target.value})}
-                      placeholder="1.0"
+                      placeholder=""
                     />
                   </div>
                 </div>

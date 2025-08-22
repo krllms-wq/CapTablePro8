@@ -257,7 +257,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
                   <FormItem>
                     <FormLabel>Principal Amount ($) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" inputMode="numeric" placeholder="500000" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -307,7 +307,7 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
                       />
                     </FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" inputMode="numeric" placeholder="100000" {...field} />
+                      <Input type="number" step="0.01" inputMode="numeric" placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

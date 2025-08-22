@@ -349,7 +349,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder="5,000,000"
+                          placeholder=""
                           inputMode="numeric"
                           {...field}
                           onBlur={(e) => {
@@ -376,7 +376,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                           <FormControl>
                             <Input
                               type="text"
-                              placeholder="20,000,000"
+                              placeholder=""
                               inputMode="numeric"
                               {...field}
                               onBlur={(e) => {
