@@ -600,7 +600,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stakeholder);
     } catch (error) {
       console.error("Error updating stakeholder:", error);
-      res.status(500).json({ error: "Failed to update stakeholder" });
+      
+      // Handle Zod validation errors
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        const fieldName = firstError.path.join('.');
+        return res.status(400).json({ 
+          error: `Validation failed: ${fieldName} ${firstError.message}` 
+        });
+      }
+      
+      // Handle database constraint errors
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+          return res.status(400).json({ 
+            error: "A stakeholder with this name or email already exists" 
+          });
+        }
+      }
+      
+      res.status(500).json({ error: "Failed to update stakeholder. Please check your input and try again." });
     }
   });
 
@@ -624,13 +643,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasConvertibles = convertibles.some(convertible => convertible.holderId === id);
 
       if (hasShares || hasEquityAwards || hasConvertibles) {
+        const holdingsDetails = [];
+        if (hasShares) holdingsDetails.push("shares");
+        if (hasEquityAwards) holdingsDetails.push("equity awards");  
+        if (hasConvertibles) holdingsDetails.push("convertible instruments");
+        
         return res.status(409).json({ 
-          error: "Cannot delete stakeholder with holdings",
+          error: `Cannot delete "${stakeholder.name}" because they have active ${holdingsDetails.join(" and ")}. Please remove all holdings first or transfer them to another stakeholder.`,
           code: "HAS_HOLDINGS",
           details: {
             hasShares,
             hasEquityAwards,
-            hasConvertibles
+            hasConvertibles,
+            stakeholderName: stakeholder.name
           }
         });
       }

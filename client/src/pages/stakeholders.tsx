@@ -79,10 +79,11 @@ export default function StakeholdersPage() {
       setShowEditDialog(false);
       setEditingStakeholder(null);
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to update stakeholder";
       toast({
         title: "Error",
-        description: "Failed to update stakeholder",
+        description: errorMessage,
         variant: "error",
       });
     }
@@ -105,10 +106,11 @@ export default function StakeholdersPage() {
       setShowAddDialog(false);
       setNewStakeholder({ name: "", email: "", title: "", type: "individual", address: "" });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to create stakeholder";
       toast({
         title: "Error",
-        description: "Failed to create stakeholder",
+        description: errorMessage,
         variant: "error",
       });
     }
@@ -128,10 +130,11 @@ export default function StakeholdersPage() {
         variant: "success",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to delete stakeholder";
       toast({
         title: "Error",
-        description: "Failed to delete stakeholder",
+        description: errorMessage,
         variant: "error",
       });
     }
@@ -594,6 +597,15 @@ export default function StakeholdersPage() {
                         <SelectItem value="entity">Entity</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-address">Address (Optional)</Label>
+                    <Input
+                      id="edit-address"
+                      value={editingStakeholder.address || ""}
+                      onChange={(e) => setEditingStakeholder({...editingStakeholder, address: e.target.value})}
+                      placeholder="Enter address"
+                    />
                   </div>
                   <div className="flex justify-end space-x-3 pt-4">
                     <Button 
