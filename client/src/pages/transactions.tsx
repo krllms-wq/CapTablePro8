@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { formatNumber, formatDate } from "@/lib/formatters";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
@@ -88,20 +89,16 @@ export default function TransactionsPage() {
 
   if (isLoading) {
     return (
-      <CompanyLayout>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-neutral-200 rounded"></div>
-                ))}
-              </div>
-            </div>
+      <AppShell>
+        <PageHeader title="Transactions" subtitle="Loading transaction history..." />
+        <div className="card p-xl">
+          <div className="animate-pulse space-y-lg">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-muted rounded"></div>
+            ))}
           </div>
-      </CompanyLayout>
+        </div>
+      </AppShell>
     );
   }
 
@@ -190,7 +187,13 @@ export default function TransactionsPage() {
   };
 
   return (
-    <CompanyLayout>
+    <AppShell>
+      <PageHeader
+        title="Transactions"
+        subtitle="View and manage all equity transactions and corporate actions"
+      />
+      
+      <div className="space-y-xl">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
@@ -333,6 +336,7 @@ export default function TransactionsPage() {
       />
 
       {ConfirmationComponent}
-    </CompanyLayout>
+      </div>
+    </AppShell>
   );
 }

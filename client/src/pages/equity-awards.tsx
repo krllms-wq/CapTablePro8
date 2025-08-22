@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { formatNumber, formatCurrency } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 
@@ -46,33 +47,31 @@ export default function EquityAwards() {
 
   if (isLoading) {
     return (
-      <CompanyLayout>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-neutral-200 rounded"></div>
-                ))}
-              </div>
-            </div>
+      <AppShell>
+        <PageHeader title="Equity Awards" subtitle="Loading equity award data..." />
+        <div className="card p-xl">
+          <div className="animate-pulse space-y-lg">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-muted rounded"></div>
+            ))}
           </div>
-      </CompanyLayout>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <CompanyLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
-            <Button onClick={() => setShowGrantDialog(true)} data-testid="button-grant-options">
-              <i className="fas fa-plus mr-2"></i>
-              Grant Options
-            </Button>
-          </div>
+    <AppShell>
+      <PageHeader
+        title="Equity Awards"
+        subtitle="Manage stock options, RSUs, and other equity compensation"
+        primaryAction={{
+          label: "Grant Options",
+          onClick: () => setShowGrantDialog(true)
+        }}
+      />
+      
+      <div className="space-y-xl">
 
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="px-6 py-4 border-b border-neutral-200">
@@ -201,6 +200,6 @@ export default function EquityAwards() {
       />
 
       {ConfirmationComponent}
-    </CompanyLayout>
+    </AppShell>
   );
 }

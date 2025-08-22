@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { Calendar, Filter, Search, User, Building, Briefcase, DollarSign } from "lucide-react";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,16 +139,13 @@ export default function CompanyActivity() {
   };
 
   return (
-    <CompanyLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900">Company Activity</h1>
-              <p className="text-neutral-600 mt-1">{(company as any)?.name || 'Company'} • Activity Feed</p>
-            </div>
-          </div>
-
+    <AppShell>
+      <PageHeader
+        title="Company Activity"
+        subtitle={`${(company as any)?.name || 'Company'} • Activity Feed`}
+      />
+      
+      <div className="space-y-xl">
           {/* Filters */}
           <Card>
             <CardHeader className="pb-4">
@@ -275,7 +273,7 @@ export default function CompanyActivity() {
               )}
             </CardContent>
           </Card>
-        </div>
-    </CompanyLayout>
+      </div>
+    </AppShell>
   );
 }

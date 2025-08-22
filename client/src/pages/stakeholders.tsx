@@ -22,7 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
@@ -245,16 +246,17 @@ export default function StakeholdersPage() {
 
   if (isLoading) {
     return (
-      <CompanyLayout>
-          <div className="space-y-6">
-            <div className="h-8 bg-neutral-200 rounded w-64"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-16 bg-neutral-200 rounded"></div>
-              ))}
-            </div>
+      <AppShell>
+        <PageHeader title="Stakeholders" subtitle="Loading stakeholder data..." />
+        <div className="space-y-xl">
+          <div className="h-8 bg-muted rounded w-64"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-16 bg-muted rounded"></div>
+            ))}
           </div>
-      </CompanyLayout>
+        </div>
+      </AppShell>
     );
   }
 
@@ -272,56 +274,61 @@ export default function StakeholdersPage() {
   }) : [];
 
   return (
-    <CompanyLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders & Security Classes</h1>
-          </div>
+    <AppShell>
+      <PageHeader
+        title="Stakeholders & Security Classes"
+        subtitle="Manage shareholders, investors, employees, and other equity holders"
+        primaryAction={{
+          label: "Add Stakeholder",
+          onClick: () => setShowAddDialog(true)
+        }}
+        secondaryActions={[
+          {
+            label: "Add Security Class",
+            variant: "outline",
+            onClick: () => setShowSecurityClassDialog(true)
+          }
+        ]}
+      />
+      
+      <div className="space-y-xl">
+        <Tabs defaultValue="stakeholders" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
+            <TabsTrigger value="security-classes">Security Classes</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="stakeholders" className="space-y-xl">
 
-          <Tabs defaultValue="stakeholders" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
-              <TabsTrigger value="security-classes">Security Classes</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="stakeholders" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-neutral-800">All Stakeholders</h2>
-                <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Stakeholder
-                </Button>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-neutral-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Title
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Shares
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Ownership
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Value
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-neutral-200">
+            <div className="card">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/20">
+                    <tr>
+                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
+                        Shares
+                      </th>
+                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
+                        Ownership
+                      </th>
+                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
+                        Value
+                      </th>
+                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card divide-y divide-border">
                       {stakeholderData.map((stakeholder: any) => (
                         <tr key={stakeholder.id} className="hover:bg-neutral-50">
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -709,6 +716,6 @@ export default function StakeholdersPage() {
 
           {ConfirmationComponent}
         </div>
-    </CompanyLayout>
+    </AppShell>
   );
 }

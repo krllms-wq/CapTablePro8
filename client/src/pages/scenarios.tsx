@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest } from "@/lib/queryClient";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import { Plus, Trash2, Save } from "lucide-react";
 
 interface Investor {
@@ -231,7 +232,17 @@ export default function ScenariosPage() {
   };
 
   return (
-    <CompanyLayout>
+    <AppShell>
+      <PageHeader
+        title="Scenarios"
+        subtitle="Model funding rounds and corporate actions to analyze their impact"
+        primaryAction={{
+          label: "Save Scenario",
+          onClick: () => console.log("Save scenario")
+        }}
+      />
+      
+      <div className="space-y-xl">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Fundraising Scenarios</h1>
@@ -726,6 +737,7 @@ export default function ScenariosPage() {
             </Card>
           )}
         </div>
-    </CompanyLayout>
+      </div>
+    </AppShell>
   );
 }
