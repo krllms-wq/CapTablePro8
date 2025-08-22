@@ -266,7 +266,7 @@ export default function ScenariosPage() {
                           <td className="p-2">{row.stakeholder || 'Unknown'}</td>
                           <td className="text-right p-2">{parseFloat(row.percentage || "0").toFixed(1)}%</td>
                         </tr>
-                      ))
+                      )) as React.ReactNode
                     ) : (
                       // Show before and after results - combine all stakeholders
                       (() => {

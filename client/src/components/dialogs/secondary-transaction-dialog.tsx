@@ -184,7 +184,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                   <SelectItem key={stakeholder.id} value={stakeholder.id}>
                     {stakeholder.name || "Unknown Stakeholder"}
                   </SelectItem>
-                ))}
+                )) as React.ReactNode}
               </SelectContent>
             </Select>
           </div>
@@ -220,7 +220,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                     <SelectItem key={stakeholder.id} value={stakeholder.id}>
                       {stakeholder.name || "Unknown Stakeholder"}
                     </SelectItem>
-                  ))}
+                  )) as React.ReactNode}
                 </SelectContent>
               </Select>
             </div>
@@ -279,7 +279,7 @@ export function SecondaryTransactionDialog({ open, onOpenChange, companyId }: Se
                   <SelectItem key={secClass.id} value={secClass.id}>
                     {secClass.name || "Unknown Class"}
                   </SelectItem>
-                ))}
+                )) as React.ReactNode}
               </SelectContent>
             </Select>
           </div>

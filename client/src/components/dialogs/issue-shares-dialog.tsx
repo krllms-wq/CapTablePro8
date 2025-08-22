@@ -219,7 +219,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           classId: classId,
           quantity: parseInt(data.quantity.replace(/,/g, '')),
           issueDate: data.issueDate,
-          consideration: data.consideration.replace(/,/g, ''),
+          consideration: (data.consideration || "").replace(/,/g, ''),
           considerationType: "cash",
           certificateNo: data.certificateNo || null,
           sourceTransactionId: `round-${Date.now()}`,
