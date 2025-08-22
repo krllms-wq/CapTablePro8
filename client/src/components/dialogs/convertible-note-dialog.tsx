@@ -135,7 +135,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
       return apiRequest(`/api/companies/${companyId}/convertibles`, {
         method: "POST",
         body: {
-          type: "convertible_note",
+          type: "note",
           holderId,
           principal: parseFloat(data.principal.replace(/,/g, '')),
           framework: "Standard Convertible Note",
