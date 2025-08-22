@@ -150,32 +150,39 @@ export default function TransactionsPage() {
 
   // Combine all transactions
   const allTransactions = [
-    ...(Array.isArray(shareLedger) ? shareLedger : []).map((entry: any) => ({
-      id: entry.id,
-      type: "Share Transaction",
-      description: `${entry.quantity > 0 ? 'Issued' : 'Transferred'} ${Math.abs(entry.quantity)} shares`,
-      stakeholder: stakeholderMap.get(entry.holderId) || "Unknown",
-      securityClass: securityClassMap.get(entry.classId) || "Unknown",
-      date: new Date(entry.issueDate),
-      quantity: Math.abs(entry.quantity),
-      value: entry.consideration || 0,
-      status: "Completed"
-    })),
-    ...(Array.isArray(equityAwards) ? equityAwards : []).map((award: any) => ({
-      id: award.id,
-      type: "Equity Award",
-      description: `Granted ${award.quantityGranted} ${award.type} options`,
-      stakeholder: stakeholderMap.get(award.holderId) || "Unknown",
-      securityClass: "Options",
-      date: new Date(award.grantDate),
-      quantity: award.quantityGranted,
-      value: (award.quantityGranted * parseFloat(award.strikePrice || "0")),
-      status: "Active"
-    })),
+    ...(Array.isArray(shareLedger) ? shareLedger : []).map((entry: any) => {
+      const securityClass = securityClassMap.get(entry.classId) || "Common Stock";
+      const isIssuance = entry.quantity > 0;
+      return {
+        id: entry.id,
+        type: isIssuance ? `${securityClass} Issuance` : `${securityClass} Transfer`,
+        description: `${isIssuance ? 'Issued' : 'Transferred'} ${Math.abs(entry.quantity)} ${securityClass} shares`,
+        stakeholder: stakeholderMap.get(entry.holderId) || "Unknown",
+        securityClass: securityClass,
+        date: new Date(entry.issueDate),
+        quantity: Math.abs(entry.quantity),
+        value: entry.consideration || 0,
+        status: "Completed"
+      };
+    }),
+    ...(Array.isArray(equityAwards) ? equityAwards : []).map((award: any) => {
+      const awardType = award.type?.toUpperCase() || "OPTION";
+      return {
+        id: award.id,
+        type: `${awardType} Grant`,
+        description: `Granted ${award.quantityGranted} ${awardType} options`,
+        stakeholder: stakeholderMap.get(award.holderId) || "Unknown",
+        securityClass: `${awardType} Options`,
+        date: new Date(award.grantDate),
+        quantity: award.quantityGranted,
+        value: (award.quantityGranted * parseFloat(award.strikePrice || "0")),
+        status: "Active"
+      };
+    }),
     ...(Array.isArray(convertibles) ? convertibles : []).map((conv: any) => ({
       id: conv.id,
       type: conv.type === "safe" ? "SAFE Agreement" : "Convertible Note",
-      description: `${conv.type === "safe" ? "SAFE" : "Note"} for $${formatNumber(conv.principal)}`,
+      description: `${conv.type === "safe" ? "SAFE" : "Convertible Note"} for $${formatNumber(conv.principal)}`,
       stakeholder: stakeholderMap.get(conv.holderId) || "Unknown",
       securityClass: conv.framework || "Convertible",
       date: new Date(conv.issueDate),
