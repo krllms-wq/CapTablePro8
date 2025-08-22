@@ -332,7 +332,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading }: CapT
                     {formatNumber(row.shares)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-mono">
-                    {formatCurrency((row as any).investmentAmount || 0)}
+                    {formatCurrency((row as any).investment || 0)}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-900 text-right font-semibold">
                     {formatPercentage(row.ownership)}
@@ -356,7 +356,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading }: CapT
                   {formatNumber(totalShares)}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right font-mono">
-                  {formatCurrency(capTable.reduce((sum, row) => sum + ((row as any).investmentAmount || 0), 0))}
+                  {formatCurrency(capTable.reduce((sum, row) => sum + ((row as any).investment || 0), 0))}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-neutral-900 text-right">
                   100.00%

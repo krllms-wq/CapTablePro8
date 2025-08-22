@@ -135,6 +135,7 @@ export default function Dashboard() {
             shares: row.shares,
             ownership: parseFloat(row.percentage),
             investment: row.investment || 0, // Use actual investment amount
+            investmentAmount: row.investment || 0, // Compatibility field
             value: row.currentValue || 0,
             convertibles: row.convertibles || 0
           })) || []} 
