@@ -34,14 +34,30 @@ import { useToast } from "@/hooks/use-toast";
 import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
+import { parseMoneyLoose } from "@/utils/priceMath";
 
 const safeAgreementSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
-  principal: z.string().min(1, "Investment amount is required"),
+  principal: z.string().min(1, "Investment amount is required").refine(val => {
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid investment amount (accepts $100,000)"),
   framework: z.string().min(1, "Framework is required"),
-  valuationCap: z.string().optional(),
-  discountRate: z.string().optional(),
-  interestRate: z.string().optional(),
+  valuationCap: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid valuation cap (accepts $10,000,000)"),
+  discountRate: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseFloat(val.replace(/[%\s]/g, ''));
+    return !isNaN(parsed) && parsed >= 0 && parsed <= 100;
+  }, "Please enter a valid discount rate (0-100)"),
+  interestRate: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseFloat(val.replace(/[%\s]/g, ''));
+    return !isNaN(parsed) && parsed >= 0 && parsed <= 100;
+  }, "Please enter a valid interest rate (0-100)"),
   issueDate: z.string().min(1, "Issue date is required"),
   maturityDate: z.string().optional(),
 });

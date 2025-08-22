@@ -35,12 +35,20 @@ import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 import { toDateOnlyUTC } from "@shared/utils/dateUtils";
+import { parseMoneyLoose, parseSharesLoose } from "@/utils/priceMath";
 
 const grantOptionsSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
   type: z.string().min(1, "Please select option type"),
-  quantityGranted: z.string().min(1, "Quantity is required"),
-  strikePrice: z.string().optional().or(z.literal('')),
+  quantityGranted: z.string().min(1, "Quantity is required").refine(val => {
+    const parsed = parseMoneyLoose(val); // Using parseMoneyLoose for shares too as it handles commas
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid quantity (accepts commas: 1,000)"),
+  strikePrice: z.string().optional().or(z.literal('')).refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid strike price (accepts $1.00)"),
   grantDate: z.string().min(1, "Grant date is required"),
   vestingStartDate: z.string().min(1, "Vesting start date is required"),
   vestingCliff: z.string().optional(),
@@ -53,7 +61,7 @@ const grantOptionsSchema = z.object({
     return data.strikePrice && data.strikePrice.trim() !== '';
   }
 }, {
-  message: "Strike price is required for stock options",
+  message: "Strike price is required for stock options (accepts $1.00)",
   path: ["strikePrice"],
 });
 

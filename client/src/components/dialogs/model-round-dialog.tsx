@@ -56,11 +56,26 @@ import {
 const modelRoundSchema = z.object({
   name: z.string().min(1, "Round name is required"),
   roundType: z.enum(["priced", "convertible"]),
-  raiseAmount: z.string().min(1, "Raise amount is required"),
-  preMoneyValuation: z.string().optional(),
-  pricePerShare: z.string().optional(),
+  raiseAmount: z.string().min(1, "Raise amount is required").refine(val => {
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid raise amount (accepts $2,000,000)"),
+  preMoneyValuation: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid pre-money valuation (accepts $8,000,000)"),
+  pricePerShare: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid price per share (accepts $4.00)"),
   newSecurityClassId: z.string().optional(),
-  optionPoolIncrease: z.string().optional(),
+  optionPoolIncrease: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseFloat(val.replace(/[%\s]/g, ''));
+    return !isNaN(parsed) && parsed >= 0 && parsed <= 100;
+  }, "Please enter a valid option pool increase (0-100)"),
 });
 
 type ModelRoundFormData = z.infer<typeof modelRoundSchema>;

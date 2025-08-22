@@ -65,12 +65,27 @@ import {
 const issueSharesSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
   classId: z.string().min(1, "Please select a security class"),
-  quantity: z.string().min(1, "Quantity is required"),
-  consideration: z.string().optional(),
+  quantity: z.string().min(1, "Quantity is required").refine(val => {
+    const parsed = parseSharesLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid quantity (accepts commas: 1,000,000)"),
+  consideration: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid amount (accepts $1,000,000)"),
   roundName: z.string().min(1, "Round name is required"),
   issueDate: z.string().min(1, "Issue date is required"),
-  valuation: z.string().optional(),
-  pricePerShare: z.string().optional(),
+  valuation: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid valuation (accepts $1,000,000)"),
+  pricePerShare: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    const parsed = parseMoneyLoose(val);
+    return parsed !== undefined && parsed > 0;
+  }, "Please enter a valid price per share (accepts $1.00)"),
   certificateNo: z.string().optional(),
 });
 
