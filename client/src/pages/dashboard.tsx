@@ -165,10 +165,10 @@ export default function Dashboard() {
           stats={capTableData?.stats ? {
             totalShares: capTableData.stats.totalShares,
             fullyDilutedShares: capTableData.stats.totalShares + capTableData.stats.totalOptions,
-            currentValuation: capTableData.stats.currentValuation || null,
-            fullyDilutedValuation: capTableData.stats.fullyDilutedValuation || null,
+            currentValuation: null,
+            fullyDilutedValuation: null,
             optionPoolAvailable: capTableData.stats.totalOptions,
-            valuationSource: capTableData.stats.valuationSource
+            valuationSource: undefined
           } : undefined} 
           isLoading={capTableLoading} 
         />
@@ -177,12 +177,12 @@ export default function Dashboard() {
         <CapTableMain 
           capTable={capTableData?.capTable?.map(row => ({
             stakeholder: { name: row.stakeholder },
-            securityClass: { name: row.securityType || "Unknown" },
+            securityClass: { name: "Common Stock" },
             shares: row.shares,
             ownership: parseFloat(row.percentage),
-            investment: row.investment || 0, // Use actual investment amount
-            investmentAmount: row.investment || 0, // Compatibility field
-            value: row.currentValue || 0,
+            investment: 0,
+            investmentAmount: 0,
+            value: row.value || 0,
             convertibles: row.convertibles || 0
           })) || []} 
           convertibles={capTableData?.convertibles || []}
@@ -283,6 +283,5 @@ export default function Dashboard() {
       )}
         </div>
       </div>
-    </div>
   );
 }
