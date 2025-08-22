@@ -279,14 +279,14 @@ export default function StakeholdersPage() {
         title="Stakeholders & Security Classes"
         subtitle="Manage shareholders, investors, employees, and other equity holders"
         primaryAction={{
-          label: "Add Stakeholder",
-          onClick: () => setShowAddDialog(true)
+          label: "Add Security Class",
+          onClick: () => setShowSecurityClassDialog(true)
         }}
         secondaryActions={[
           {
-            label: "Add Security Class",
-            variant: "outline",
-            onClick: () => setShowSecurityClassDialog(true)
+            label: "Add Stakeholder",
+            variant: "default",
+            onClick: () => setShowAddDialog(true)
           }
         ]}
       />
