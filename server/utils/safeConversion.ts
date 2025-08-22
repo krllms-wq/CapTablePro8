@@ -26,7 +26,7 @@ export function calculateSAFEConversion(
   roundPreMoneyValuation: number
 ): SAFEConversionCalculation {
   const principal = Number(safe.principal || 0);
-  const discountRate = Number(safe.discountRate || 0) / 100; // Convert percentage to decimal
+  const discountRate = Number(safe.discountRate || 0); // Already in decimal format (0.30 = 30%)
   const valuationCap = Number(safe.valuationCap || 0);
 
   // Calculate discount price (if discount exists)

@@ -94,8 +94,8 @@ export function SAFEConversionDialog({
     },
     onError: (error: any) => {
       toast({
-        title: "Ошибка расчета",
-        description: error.message || "Не удалось рассчитать конвертацию",
+        title: "Calculation Error",
+        description: error.message || "Failed to calculate conversion",
         variant: "destructive",
       });
     },
@@ -114,8 +114,8 @@ export function SAFEConversionDialog({
     },
     onSuccess: () => {
       toast({
-        title: "SAFE конвертирован",
-        description: `${convertible.holderName} получил ${formatNumber(calculation?.sharesIssued || 0)} акций`,
+        title: "SAFE Converted",
+        description: `${convertible.holderName} received ${formatNumber(calculation?.sharesIssued || 0)} shares`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "cap-table"] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "convertibles"] });
@@ -123,8 +123,8 @@ export function SAFEConversionDialog({
     },
     onError: (error: any) => {
       toast({
-        title: "Ошибка конвертации",
-        description: error.message || "Не удалось выполнить конвертацию",
+        title: "Conversion Error",
+        description: error.message || "Failed to execute conversion",
         variant: "destructive",
       });
     },
@@ -237,27 +237,27 @@ export function SAFEConversionDialog({
             disabled={calculateMutation.isPending}
             className="w-full"
           >
-            {calculateMutation.isPending ? "Рассчитываем..." : "Рассчитать конвертацию"}
+            {calculateMutation.isPending ? "Calculating..." : "Calculate Conversion"}
           </Button>
 
           {/* Calculation Results */}
           {calculation && (
             <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-3">Результаты конвертации</h3>
+              <h3 className="font-semibold text-green-800 mb-3">Conversion Results</h3>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-green-700">Цена конвертации:</span>
+                  <span className="text-green-700">Conversion Price:</span>
                   <div className="font-mono font-semibold">${calculation.conversionPrice.toFixed(4)}</div>
                 </div>
                 <div>
-                  <span className="text-green-700">Акций к выпуску:</span>
+                  <span className="text-green-700">Shares to Issue:</span>
                   <div className="font-mono font-semibold">{formatNumber(calculation.sharesIssued)}</div>
                 </div>
               </div>
               
               <div className="mt-3 p-3 bg-white rounded border">
-                <div className="text-xs text-green-700 mb-1">Объяснение:</div>
+                <div className="text-xs text-green-700 mb-1">Explanation:</div>
                 <div className="text-sm">{calculation.details.reasoning}</div>
               </div>
             </div>
@@ -266,14 +266,14 @@ export function SAFEConversionDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Отмена
+            Cancel
           </Button>
           {calculation && (
             <Button 
               onClick={handleConvert}
               disabled={convertMutation.isPending}
             >
-              {convertMutation.isPending ? "Конвертируем..." : "Выполнить конвертацию"}
+              {convertMutation.isPending ? "Converting..." : "Execute Conversion"}
             </Button>
           )}
         </DialogFooter>
