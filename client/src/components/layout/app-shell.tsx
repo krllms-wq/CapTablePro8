@@ -225,21 +225,11 @@ export default function AppShell({ children }: AppShellProps) {
                 })}
               </div>
             </nav>
-            
-            {/* Company info at bottom */}
-            {company && (
-              <div className="absolute bottom-0 left-0 right-0 w-64 p-lg border-t border-border bg-card">
-                <div className="text-sm">
-                  <p className="font-medium text-fg truncate">{company.name}</p>
-                  <p className="text-muted text-xs truncate">{company.description}</p>
-                </div>
-              </div>
-            )}
           </aside>
         )}
 
         {/* Main Content */}
-        <main className={`flex-1 ${companyId ? 'pb-20' : ''}`}>
+        <main className="flex-1">
           <div className="container-app py-xl">
             {children}
           </div>
