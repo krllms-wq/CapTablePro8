@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -301,98 +302,76 @@ export default function StakeholdersPage() {
           <TabsContent value="stakeholders" className="space-y-xl">
 
             <div className="card">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/20">
-                    <tr>
-                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-xl py-md text-left text-xs font-medium text-muted uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
-                        Shares
-                      </th>
-                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
-                        Ownership
-                      </th>
-                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
-                        Value
-                      </th>
-                      <th className="px-xl py-md text-right text-xs font-medium text-muted uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-card divide-y divide-border">
-                      {stakeholderData.map((stakeholder: any) => (
-                        <tr key={stakeholder.id} className="hover:bg-neutral-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-semibold">
-                                  {stakeholder.name.charAt(0)}
-                                </span>
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-sm font-medium text-neutral-900">
-                                  {stakeholder.name}
-                                </div>
-                                <div className="text-sm text-neutral-500">
-                                  {stakeholder.email}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
-                            {stakeholder.title || "—"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              stakeholder.type === "individual" 
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}>
-                              {stakeholder.type === "individual" ? "Individual" : "Entity"}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Shares</TableHead>
+                    <TableHead className="text-right">Ownership</TableHead>
+                    <TableHead className="text-right">Value</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stakeholderData.map((stakeholder: any) => (
+                    <TableRow key={stakeholder.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-white text-sm font-semibold">
+                              {stakeholder.name.charAt(0)}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                            {formatNumber(stakeholder.shares)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                            {stakeholder.ownership.toFixed(2)}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 text-right">
-                            ${formatNumber(stakeholder.value)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <button 
-                                onClick={() => handleEditStakeholder(stakeholder)}
-                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                title="Edit stakeholder"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteStakeholder(stakeholder)}
-                                className="text-red-600 hover:text-red-900 p-1"
-                                title="Delete stakeholder"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-foreground">
+                              {stakeholder.name}
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                            <div className="text-sm text-muted-foreground">
+                              {stakeholder.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{stakeholder.title || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={stakeholder.type === "individual" ? "default" : "secondary"}>
+                          {stakeholder.type === "individual" ? "Individual" : "Entity"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(stakeholder.shares)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {stakeholder.ownership.toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${formatNumber(stakeholder.value)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            onClick={() => handleEditStakeholder(stakeholder)}
+                            className="text-primary hover:text-primary/80 p-1"
+                            title="Edit stakeholder"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteStakeholder(stakeholder)}
+                            className="text-destructive hover:text-destructive/80 p-1"
+                            title="Delete stakeholder"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             </TabsContent>
 
             <TabsContent value="security-classes" className="space-y-6">
@@ -400,83 +379,65 @@ export default function StakeholdersPage() {
                 <h2 className="text-xl font-semibold text-neutral-800">Security Classes</h2>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-neutral-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Liquidation Preference
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Participating
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Voting Rights
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-neutral-200">
-                      {Array.isArray(securityClasses) && securityClasses.map((securityClass: any) => (
-                        <tr key={securityClass.id} className="hover:bg-neutral-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-neutral-900">
-                              {securityClass.name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-neutral-900">
-                              {securityClass.liquidationPreferenceMultiple}x
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={securityClass.participating ? "default" : "secondary"}>
-                              {securityClass.participating ? "Yes" : "No"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-neutral-900">
-                              {securityClass.votingRights}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <button 
-                                onClick={() => {
-                                  setEditingSecurityClass(securityClass);
-                                  setNewSecurityClass({
-                                    name: securityClass.name,
-                                    liquidationPreferenceMultiple: securityClass.liquidationPreferenceMultiple.toString(),
-                                    participating: securityClass.participating,
-                                    votingRights: securityClass.votingRights.toString()
-                                  });
-                                  setShowSecurityClassDialog(true);
-                                }}
-                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                title="Edit security class"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteSecurityClass(securityClass)}
-                                className="text-red-600 hover:text-red-900 p-1"
-                                title="Delete security class"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Liquidation Preference</TableHead>
+                      <TableHead>Participating</TableHead>
+                      <TableHead>Voting Rights</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.isArray(securityClasses) && securityClasses.map((securityClass: any) => (
+                      <TableRow key={securityClass.id}>
+                        <TableCell className="font-medium">
+                          {securityClass.name}
+                        </TableCell>
+                        <TableCell>
+                          {securityClass.liquidationPreferenceMultiple}x
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={securityClass.participating ? "default" : "secondary"}>
+                            {securityClass.participating ? "Yes" : "No"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {securityClass.votingRights}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <button 
+                              onClick={() => {
+                                setEditingSecurityClass(securityClass);
+                                setNewSecurityClass({
+                                  name: securityClass.name,
+                                  liquidationPreferenceMultiple: securityClass.liquidationPreferenceMultiple.toString(),
+                                  participating: securityClass.participating,
+                                  votingRights: securityClass.votingRights.toString()
+                                });
+                                setShowSecurityClassDialog(true);
+                              }}
+                              className="text-primary hover:text-primary/80 p-1"
+                              title="Edit security class"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteSecurityClass(securityClass)}
+                              className="text-destructive hover:text-destructive/80 p-1"
+                              title="Delete security class"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </TabsContent>
           </Tabs>
