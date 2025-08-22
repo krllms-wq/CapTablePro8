@@ -30,8 +30,12 @@ export function HelpBubble({ term, definition, example, size = "sm", className =
           </button>
         </TooltipTrigger>
         <TooltipContent 
-          className="max-w-sm p-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"
+          className="max-w-sm p-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[9999]"
           sideOffset={5}
+          side="top"
+          align="center"
+          avoidCollisions={true}
+          collisionPadding={8}
         >
           <div className="space-y-2">
             <div className="font-semibold text-gray-900 dark:text-gray-100">
