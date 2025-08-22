@@ -2267,5 +2267,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Funding round creation endpoint (orchestrator approach)
+  app.post("/api/companies/:companyId/funding-rounds", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId } = req.params;
+      const { 
+        name,
+        closeDate,
+        preMoneyValuation,
+        raiseAmount,
+        roundType = 'priced',
+        investors = [],
+        optionPoolIncrease,
+        optionPoolTiming = 'pre-money',
+        antiDilutionProvisions = 'broad-based',
+        payToPlay = false,
+        newSecurityClassName
+      } = req.body;
+
+      console.log('Creating funding round:', { name, raiseAmount, investors: investors.length });
+
+      // Validate required fields
+      if (!name || !closeDate || !preMoneyValuation || !raiseAmount || !investors || investors.length === 0) {
+        return res.status(400).json({ 
+          error: "Missing required fields: name, closeDate, preMoneyValuation, raiseAmount, and at least one investor" 
+        });
+      }
+
+      // Validate investors structure
+      for (const investor of investors) {
+        if (!investor.stakeholderId || !investor.investment) {
+          return res.status(400).json({ 
+            error: "Each investor must have stakeholderId and investment amount" 
+          });
+        }
+      }
+
+      // Calculate total investment and validate against raise amount
+      const totalInvestment = investors.reduce((sum, inv) => sum + Number(inv.investment), 0);
+      if (Math.abs(totalInvestment - Number(raiseAmount)) > 0.01) {
+        return res.status(400).json({ 
+          error: `Total investor commitments (${totalInvestment}) must equal raise amount (${raiseAmount})` 
+        });
+      }
+
+      // Get current share count for pricing calculations
+      const shareLedger = await storage.getShareLedgerEntries(companyId);
+      const currentShares = shareLedger.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+      
+      // Calculate price per share based on pre-money valuation
+      const pricePerShare = currentShares > 0 ? Number(preMoneyValuation) / currentShares : 1.0;
+      console.log(`Calculated price per share: ${pricePerShare} (${preMoneyValuation} / ${currentShares})`);
+
+      // Create or find preferred stock security class for the round
+      let newSecurityClassId = null;
+      if (roundType === 'priced' && newSecurityClassName) {
+        const existingClasses = await storage.getSecurityClasses(companyId);
+        let preferredClass = existingClasses.find(sc => sc.name === newSecurityClassName);
+        
+        if (!preferredClass) {
+          preferredClass = await storage.createSecurityClass({
+            companyId,
+            name: newSecurityClassName,
+            type: 'preferred',
+            description: `Preferred shares issued in ${name}`,
+            votingRights: true,
+            liquidationPreference: 1.0,
+            dividendRate: null,
+            participationRights: false,
+            antidilutionProtection: antiDilutionProvisions !== 'none'
+          });
+          console.log(`Created new security class: ${preferredClass.name}`);
+        }
+        
+        newSecurityClassId = preferredClass.id;
+      } else {
+        // Use common stock for bridge/other rounds
+        const commonClass = (await storage.getSecurityClasses(companyId)).find(sc => sc.type === 'common');
+        newSecurityClassId = commonClass?.id || null;
+      }
+
+      // Create the funding round record
+      const roundData = {
+        companyId,
+        name,
+        closeDate: new Date(closeDate + 'T00:00:00.000Z'),
+        preMoneyValuation: sanitizeDecimal(preMoneyValuation),
+        raiseAmount: sanitizeDecimal(raiseAmount),
+        pricePerShare: sanitizeDecimal(pricePerShare.toString()),
+        newSecurityClassId,
+        roundType,
+        optionPoolIncrease: optionPoolIncrease ? sanitizeDecimal(optionPoolIncrease.toString()) : null,
+        optionPoolTiming,
+        antiDilutionProvisions,
+        payToPlay
+      };
+
+      const validated = insertRoundSchema.parse(roundData);
+      const round = await storage.createRound(validated);
+      console.log(`Created funding round: ${round.id}`);
+
+      // Create individual share ledger entries for each investor
+      const createdEntries = [];
+      for (const investor of investors) {
+        const investmentAmount = Number(investor.investment);
+        const sharesIssued = Math.round(investmentAmount / pricePerShare);
+        
+        console.log(`Processing investor ${investor.stakeholderId}: $${investmentAmount} = ${sharesIssued} shares`);
+
+        // Create share ledger entry
+        const shareEntry = await storage.createShareLedgerEntry({
+          companyId,
+          holderId: investor.stakeholderId,
+          classId: newSecurityClassId!,
+          quantity: sharesIssued,
+          pricePerShare: sanitizeDecimal(pricePerShare.toString()),
+          consideration: sanitizeDecimal(investmentAmount.toString()),
+          considerationType: 'cash',
+          issueDate: new Date(closeDate + 'T00:00:00.000Z'),
+          certificateNo: `${name}-${investor.stakeholderId.slice(-6)}`,
+          roundId: round.id
+        });
+
+        createdEntries.push(shareEntry);
+
+        // Get stakeholder info for logging
+        const stakeholder = await storage.getStakeholder(investor.stakeholderId);
+        
+        // Log the share issuance
+        await logTransactionEvent({
+          companyId,
+          actorId: req.user!.id,
+          event: "transaction.shares_issued",
+          transactionId: shareEntry.id,
+          stakeholderName: stakeholder?.name,
+          details: {
+            quantity: sharesIssued,
+            securityClassName: newSecurityClassName || 'Common Stock',
+            consideration: investmentAmount,
+            considerationType: 'cash',
+            certificateNo: shareEntry.certificateNo,
+            issueDate: shareEntry.issueDate,
+            stakeholderType: stakeholder?.type,
+            roundName: name,
+            roundId: round.id,
+            pricePerShare: pricePerShare
+          }
+        });
+      }
+
+      // Log the funding round creation
+      await logTransactionEvent({
+        companyId,
+        actorId: req.user!.id,
+        event: "transaction.shares_issued",
+        transactionId: round.id,
+        details: {
+          eventType: 'funding_round_completed',
+          roundName: name,
+          roundType,
+          raiseAmount: Number(raiseAmount),
+          preMoneyValuation: Number(preMoneyValuation),
+          postMoneyValuation: Number(preMoneyValuation) + Number(raiseAmount),
+          pricePerShare,
+          investorCount: investors.length,
+          totalShares: createdEntries.reduce((sum, entry) => sum + Number(entry.quantity), 0),
+          newSecurityClass: newSecurityClassName
+        }
+      });
+
+      console.log(`Funding round completed: ${createdEntries.length} transactions created`);
+
+      res.status(201).json({
+        round,
+        transactions: createdEntries,
+        summary: {
+          totalInvestment: totalInvestment,
+          totalShares: createdEntries.reduce((sum, entry) => sum + Number(entry.quantity), 0),
+          pricePerShare: pricePerShare,
+          investorCount: investors.length
+        }
+      });
+
+    } catch (error) {
+      console.error("Error creating funding round:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      res.status(500).json({ error: "Failed to create funding round" });
+    }
+  });
+
   return createServer(app);
 }

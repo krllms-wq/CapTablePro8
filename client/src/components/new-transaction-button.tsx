@@ -16,6 +16,11 @@ interface NewTransactionButtonProps {
 export default function NewTransactionButton({ onTransactionSelect, className = "" }: NewTransactionButtonProps) {
   const transactionTypes = [
     {
+      id: "funding-round",
+      name: "Funding Round",
+      description: "Manage complete funding round with multiple investors",
+    },
+    {
       id: "shares",
       name: "Issue Shares",
       description: "Issue common or preferred shares",

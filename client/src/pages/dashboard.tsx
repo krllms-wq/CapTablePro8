@@ -15,6 +15,7 @@ import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog"
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
 import { NoteConversionDialog } from "@/components/dialogs/note-conversion-dialog";
+import FundingRoundDialog from "@/components/dialogs/funding-round-dialog";
 
 import type { Company } from "@shared/schema";
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [showSecondaryTransaction, setShowSecondaryTransaction] = useState(false);
   const [showSafeConversion, setShowSafeConversion] = useState(false);
   const [showNoteConversion, setShowNoteConversion] = useState(false);
+  const [showFundingRound, setShowFundingRound] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
   const { data: company, isLoading: companyLoading, error: companyError } = useQuery<Company>({
     queryKey: ["/api/companies", companyId],
@@ -107,6 +109,7 @@ export default function Dashboard() {
             <div className="flex space-x-3">
               <NewTransactionButton 
                 onTransactionSelect={(type) => {
+                  if (type === "funding-round") setShowFundingRound(true);
                   if (type === "shares") setShowIssueShares(true);
                   if (type === "options") setShowGrantOptions(true);
                   if (type === "safe") setShowSafeAgreement(true);
@@ -200,6 +203,12 @@ export default function Dashboard() {
       <SecondaryTransactionDialog
         open={showSecondaryTransaction}
         onOpenChange={setShowSecondaryTransaction}
+        companyId={companyId!}
+      />
+
+      <FundingRoundDialog
+        open={showFundingRound}
+        onOpenChange={setShowFundingRound}
         companyId={companyId!}
       />
 
