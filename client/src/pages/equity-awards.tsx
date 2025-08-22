@@ -6,12 +6,14 @@ import { formatNumber, formatCurrency } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/layout/navigation";
+import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 
 export default function EquityAwards() {
   const { companyId } = useParams();
   const { toast } = useToast();
   const [showGrantDialog, setShowGrantDialog] = useState(false);
+  const { confirm, ConfirmationComponent } = useConfirmation();
 
   const { data: equityAwards, isLoading } = useQuery({
     queryKey: ["/api/companies", companyId, "equity-awards"],
@@ -169,9 +171,13 @@ export default function EquityAwards() {
                             className="text-red-600 hover:text-red-900"
                             data-testid={`button-cancel-${award.id}`}
                             onClick={() => {
-                              if (confirm("Are you sure you want to cancel this equity award?")) {
-                                cancelAwardMutation.mutate(award.id);
-                              }
+                              confirm({
+                                title: "Cancel Equity Award",
+                                description: "Are you sure you want to cancel this equity award? This action cannot be undone.",
+                                confirmText: "Cancel Award",
+                                variant: "destructive",
+                                onConfirm: () => cancelAwardMutation.mutate(award.id)
+                              });
                             }}
                             disabled={cancelAwardMutation.isPending}
                           >
@@ -199,6 +205,8 @@ export default function EquityAwards() {
         onOpenChange={setShowGrantDialog}
         companyId={companyId!}
       />
+
+      {ConfirmationComponent}
     </div>
   );
 }

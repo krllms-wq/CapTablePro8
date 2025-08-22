@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/layout/navigation";
+import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
 export default function StakeholdersPage() {
@@ -33,6 +34,7 @@ export default function StakeholdersPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSecurityClassDialog, setShowSecurityClassDialog] = useState(false);
   const [editingSecurityClass, setEditingSecurityClass] = useState<any>(null);
+  const { confirm, ConfirmationComponent } = useConfirmation();
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
     email: "",
@@ -217,9 +219,13 @@ export default function StakeholdersPage() {
   });
 
   const handleDeleteSecurityClass = async (securityClass: any) => {
-    if (window.confirm(`Are you sure you want to delete the security class "${securityClass.name}"? This action cannot be undone.`)) {
-      deleteSecurityClassMutation.mutate(securityClass.id);
-    }
+    confirm({
+      title: "Delete Security Class",
+      description: `Are you sure you want to delete the security class "${securityClass.name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: () => deleteSecurityClassMutation.mutate(securityClass.id)
+    });
   };
 
   const handleEditStakeholder = (stakeholder: any) => {
@@ -228,9 +234,13 @@ export default function StakeholdersPage() {
   };
 
   const handleDeleteStakeholder = async (stakeholder: any) => {
-    if (window.confirm(`Are you sure you want to delete stakeholder "${stakeholder.name}"? This action cannot be undone.`)) {
-      deleteStakeholderMutation.mutate(stakeholder.id);
-    }
+    confirm({
+      title: "Delete Stakeholder",
+      description: `Are you sure you want to delete stakeholder "${stakeholder.name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: () => deleteStakeholderMutation.mutate(stakeholder.id)
+    });
   };
 
   if (isLoading) {
@@ -701,6 +711,8 @@ export default function StakeholdersPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {ConfirmationComponent}
         </div>
       </div>
     </div>

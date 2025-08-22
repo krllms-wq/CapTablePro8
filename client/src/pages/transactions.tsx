@@ -15,12 +15,14 @@ import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
 import ConvertibleNoteDialog from "@/components/dialogs/convertible-note-dialog";
 import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-transaction-dialog";
 import { Plus, FileText, TrendingUp, ArrowRightLeft, DollarSign, Shield } from "lucide-react";
+import { useConfirmation } from "@/components/ui/confirmation-dialog";
 
 export default function TransactionsPage() {
   const { companyId } = useParams();
   const [selectedTransactionType, setSelectedTransactionType] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { confirm, ConfirmationComponent } = useConfirmation();
 
   // Rollback transaction mutation
   const rollbackMutation = useMutation({
@@ -45,9 +47,13 @@ export default function TransactionsPage() {
 
   const handleRollback = (transactionId: string) => {
     console.log('Attempting rollback for transaction:', transactionId);
-    if (confirm('Are you sure you want to rollback this transaction? This action cannot be undone.')) {
-      rollbackMutation.mutate(transactionId);
-    }
+    confirm({
+      title: "Rollback Transaction",
+      description: "Are you sure you want to rollback this transaction? This action cannot be undone.",
+      confirmText: "Rollback",
+      variant: "destructive",
+      onConfirm: () => rollbackMutation.mutate(transactionId)
+    });
   };
 
   const { data: shareLedger, isLoading: ledgerLoading } = useQuery({
@@ -331,6 +337,8 @@ export default function TransactionsPage() {
         onOpenChange={() => setSelectedTransactionType(null)}
         companyId={companyId || ""}
       />
+
+      {ConfirmationComponent}
     </div>
   );
 }
