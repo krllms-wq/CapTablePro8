@@ -119,9 +119,10 @@ export default function Dashboard() {
           stats={capTableData?.stats ? {
             totalShares: capTableData.stats.totalShares,
             fullyDilutedShares: capTableData.stats.totalShares + capTableData.stats.totalOptions,
-            currentValuation: 0, // Default valuation - can be enhanced later
-            fullyDilutedValuation: 0, // Default fully diluted valuation - can be enhanced later
-            optionPoolAvailable: capTableData.stats.totalOptions
+            currentValuation: capTableData.stats.currentValuation || null,
+            fullyDilutedValuation: capTableData.stats.fullyDilutedValuation || null,
+            optionPoolAvailable: capTableData.stats.totalOptions,
+            valuationSource: capTableData.stats.valuationSource
           } : undefined} 
           isLoading={capTableLoading} 
         />
@@ -133,7 +134,7 @@ export default function Dashboard() {
             securityClass: { name: "Common Stock" }, // Default security class
             shares: row.shares,
             ownership: parseFloat(row.percentage),
-            value: row.value,
+            value: row.currentValue || 0,
             convertibles: row.convertibles || 0
           })) || []} 
           convertibles={capTableData?.convertibles || []}
