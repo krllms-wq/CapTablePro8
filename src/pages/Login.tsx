@@ -5,43 +5,56 @@ import { supabase } from '../lib/supabase';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const log = (label: string, data: any) => {
+    console.log(`[Login] ${label}:`, data);
+  };
 
   const magicLink = async () => {
     setErr(null); setMsg(null); setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
+    log('magicLink.start', { email });
+    const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: 'https://captablepro8.pages.dev' // редирект назад на сайт
-      }
+        emailRedirectTo: 'https://captablepro8.pages.dev',
+      },
     });
     setLoading(false);
+    log('magicLink.result', { data, error });
     if (error) setErr(error.message);
-    else { setSent(true); setMsg('Письмо отправлено. Проверь почту (включая Spam/Promotions).'); }
+    else { setSent(true); setMsg('Письмо отправлено. Проверь почту (Spam/Promotions).'); }
   };
 
   const signUpWithPassword = async () => {
     setErr(null); setMsg(null); setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password: pwd });
+    log('signUp.start', { email });
+    const { data, error } = await supabase.auth.signUp({ email, password: pwd });
     setLoading(false);
+    log('signUp.result', { data, error });
     if (error) setErr(error.message);
     else setMsg('Аккаунт создан. Теперь нажми «Войти паролем».');
   };
 
   const signInWithPassword = async () => {
     setErr(null); setMsg(null); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+    log('signIn.start', { email });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd });
     setLoading(false);
+    log('signIn.result', { data, error });
     if (error) setErr(error.message);
-    else window.location.href = '/'; // после входа на главную/дешборд
+    else {
+      setMsg('Успех! Перенаправляем…');
+      window.location.href = '/';
+    }
   };
 
   return (
-    // ВАЖНО: запрещаем submit формы, чтобы не было 405 от Pages
+    // Важно: форма не отправляет submit (иначе Cloudflare Pages даёт 405)
     <form onSubmit={(e) => e.preventDefault()} style={{maxWidth: 420, margin: '48px auto', fontFamily: 'system-ui, sans-serif'}}>
       <h1 style={{marginBottom: 16}}>Вход</h1>
 
@@ -54,9 +67,9 @@ export default function Login() {
         style={{width:'100%', padding:12, margin:'6px 0 12px', border:'1px solid #ccc', borderRadius:8}}
       />
 
-      {/* Кнопка magic-link */}
+      {/* Magic link */}
       <button
-        type="button"               // ← чтобы не было submit
+        type="button"
         onClick={magicLink}
         disabled={!email || loading}
         style={{padding:12, width:'100%', borderRadius:8}}
@@ -68,26 +81,27 @@ export default function Login() {
 
       <hr style={{margin:'24px 0'}}/>
 
-      {/* Парольный вход (временный/тестовый) */}
+      {/* Парольный поток (для теста без почты) */}
       <label>Пароль</label>
       <input
         type="password"
         value={pwd}
         onChange={e => setPwd(e.target.value)}
-        placeholder="Придумай пароль"
+        placeholder="Пароль"
         style={{width:'100%', padding:12, margin:'6px 0 12px', border:'1px solid #ccc', borderRadius:8}}
       />
+
       <div style={{display:'grid', gap:8}}>
         <button
-          type="button"             // ← чтобы не было submit
+          type="button"
           onClick={signUpWithPassword}
           disabled={!email || !pwd || loading}
           style={{padding:12, borderRadius:8}}
         >
-          Зарегистрироваться (создать аккаунт)
+          Зарегистрироваться (пароль)
         </button>
         <button
-          type="button"             // ← чтобы не было submit
+          type="button"
           onClick={signInWithPassword}
           disabled={!email || !pwd || loading}
           style={{padding:12, borderRadius:8}}
