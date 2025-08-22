@@ -1443,14 +1443,26 @@ export class DatabaseStorage implements IStorage {
         return { success: false, error: "Conversion not found" };
       }
 
-      if (conversion.status !== 'active') {
+      if (conversion.status === 'rolled_back') {
         return { success: false, error: "Conversion has already been rolled back" };
       }
 
-      // First, delete the conversion record to remove the foreign key constraint
+      // Get the original convertible instrument to restore it
+      const convertible = await this.getConvertibleInstrument(conversion.convertibleId);
+      if (convertible) {
+        // Restore the convertible to unconverted state
+        await this.updateConvertibleInstrument(conversion.convertibleId, {
+          converted: false,
+          convertedAt: null,
+          convertedShares: null,
+          conversionPrice: null
+        });
+      }
+
+      // Delete the conversion record to remove the foreign key constraint
       await db.delete(convertibleConversions).where(eq(convertibleConversions.id, conversionId));
 
-      // Then remove the associated share ledger entry if it exists
+      // Remove the associated share ledger entry if it exists
       if (conversion.shareEntryId) {
         await db.delete(shareLedgerEntries).where(eq(shareLedgerEntries.id, conversion.shareEntryId));
       }
