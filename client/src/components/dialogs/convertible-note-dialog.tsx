@@ -35,6 +35,7 @@ import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 import { parseMoneyLoose } from "@/utils/priceMath";
+import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 
 const convertibleNoteSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
@@ -139,10 +140,10 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
           principal: parseFloat(data.principal.replace(/,/g, '')),
           framework: "Standard Convertible Note",
           interestRate: parseFloat(data.interestRate.replace(/,/g, '')),
-          maturityDate: data.maturityDate,
+          maturityDate: toDateOnlyUTC(data.maturityDate),
           discountRate: data.discountRate ? parseFloat(data.discountRate.replace(/,/g, '')) : null,
           valuationCap: data.valuationCap ? parseFloat(data.valuationCap.replace(/,/g, '')) : null,
-          issueDate: data.issueDate,
+          issueDate: toDateOnlyUTC(data.issueDate),
         }
       });
     },

@@ -40,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, AlertTriangle } from "lucide-react";
 import type { Stakeholder, SecurityClass } from "@shared/schema";
 import DerivedPill from "@/components/DerivedPill";
+import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 import AdditionalSettings from "@/components/AdditionalSettings";
 import { useAdvancedOpen } from "@/components/form/useAdvancedOpen";
 import { 
@@ -245,7 +246,7 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           holderId,
           classId: classId,
           quantity: parseInt(data.quantity.replace(/,/g, '')),
-          issueDate: data.issueDate,
+          issueDate: toDateOnlyUTC(data.issueDate),
           consideration: (data.consideration || "").replace(/,/g, ''),
           considerationType: "cash",
           certificateNo: data.certificateNo || null,

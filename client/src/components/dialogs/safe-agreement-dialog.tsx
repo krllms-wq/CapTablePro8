@@ -35,6 +35,7 @@ import { HelpBubble } from "@/components/ui/help-bubble";
 import { Plus } from "lucide-react";
 import type { Stakeholder } from "@shared/schema";
 import { parseMoneyLoose } from "@/utils/priceMath";
+import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 
 const safeAgreementSchema = z.object({
   holderId: z.string().min(1, "Please select a stakeholder"),
@@ -155,8 +156,8 @@ export default function SafeAgreementDialog({ open, onOpenChange, companyId }: S
           valuationCap: data.valuationCap ? data.valuationCap.replace(/,/g, '') : null,
           discountRate: data.discountRate ? data.discountRate.replace(/,/g, '') : null,
           interestRate: data.interestRate ? parseFloat(data.interestRate.replace(/,/g, '')) : null,
-          issueDate: data.issueDate,
-          maturityDate: data.maturityDate?.trim() || null,
+          issueDate: toDateOnlyUTC(data.issueDate),
+          maturityDate: data.maturityDate?.trim() ? toDateOnlyUTC(data.maturityDate) : null,
         }
       });
     },
