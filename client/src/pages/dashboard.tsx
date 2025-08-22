@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { clientDebugger } from "@/utils/debug";
-import CompanyLayout from "@/components/layout/company-layout";
+import AppShell from "@/components/layout/app-shell";
+import PageHeader from "@/components/layout/page-header";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
@@ -17,6 +18,7 @@ import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-trans
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
 import { NoteConversionDialog } from "@/components/dialogs/note-conversion-dialog";
 import FundingRoundDialog from "@/components/dialogs/funding-round-dialog";
+import { Download } from "lucide-react";
 
 import type { Company } from "@shared/schema";
 
@@ -66,9 +68,26 @@ export default function Dashboard() {
   });
 
   return (
-    <CompanyLayout>
-      <div className="flex justify-end mb-6">
-        <div className="flex space-x-3">
+    <AppShell>
+      <PageHeader
+        title="Cap Table Overview"
+        subtitle="Track ownership, manage equity, and analyze your company's capital structure"
+        primaryAction={{
+          label: "New Transaction",
+          onClick: () => setShowFundingRound(true) // Default to funding round for demo
+        }}
+        secondaryActions={[
+          {
+            label: "Export",
+            variant: "outline",
+            onClick: () => console.log("Export clicked")
+          }
+        ]}
+      />
+      
+      {/* Add transaction selection buttons */}
+      <div className="mb-xl">
+        <div className="flex flex-wrap gap-md">
           <NewTransactionButton 
             onTransactionSelect={(type) => {
               if (type === "funding-round") setShowFundingRound(true);
@@ -79,9 +98,6 @@ export default function Dashboard() {
               if (type === "secondary") setShowSecondaryTransaction(true);
             }}
           />
-          <Button variant="outline" className="flex items-center gap-2">
-            <i className="fas fa-download"></i>Export
-          </Button>
         </div>
       </div>
 
@@ -204,6 +220,6 @@ export default function Dashboard() {
           }}
         />
       )}
-    </CompanyLayout>
+    </AppShell>
   );
 }

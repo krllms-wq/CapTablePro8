@@ -4,6 +4,13 @@ export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "24px",
+      screens: {
+        "2xl": "1536px", // max-w-screen-2xl
+      },
+    },
     extend: {
       borderRadius: {
         lg: "var(--radius)",
@@ -11,41 +18,49 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Base design system colors
+        bg: "rgb(var(--bg))",
+        fg: "rgb(var(--fg))",
+        muted: "rgb(var(--muted))",
+        border: "rgb(var(--border))",
+        
+        // Primary palette
+        primary: {
+          DEFAULT: "rgb(var(--primary))",
+          foreground: "rgb(var(--primary-foreground))",
+        },
+        
+        // Semantic colors
+        success: "rgb(var(--success))",
+        warning: "rgb(var(--warning))",
+        danger: "rgb(var(--danger))",
+        info: "rgb(var(--info))",
+        
+        // Card system
+        card: {
+          DEFAULT: "rgb(var(--card))",
+          foreground: "rgb(var(--card-foreground))",
+        },
+        
+        // Legacy support (existing components)
         background: "var(--background)",
         foreground: "var(--foreground)",
-        card: {
-          DEFAULT: "var(--card)",
-          foreground: "var(--card-foreground)",
-        },
         popover: {
           DEFAULT: "var(--popover)",
           foreground: "var(--popover-foreground)",
         },
-        primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
-          dark: "var(--primary-dark)",
-          light: "var(--primary-light)",
-        },
         secondary: {
           DEFAULT: "var(--secondary)",
           foreground: "var(--secondary-foreground)",
-          light: "var(--secondary-light)",
-        },
-        muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
         },
         accent: {
           DEFAULT: "var(--accent)",
           foreground: "var(--accent-foreground)",
-          light: "var(--accent-light)",
         },
         destructive: {
           DEFAULT: "var(--destructive)",
           foreground: "var(--destructive-foreground)",
         },
-        border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
         chart: {
@@ -60,28 +75,41 @@ export default {
           foreground: "var(--sidebar-foreground)",
           primary: "var(--sidebar-primary)",
           "primary-foreground": "var(--sidebar-primary-foreground)",
-          accent: "var(--sidebar-accent)",
-          "accent-foreground": "var(--sidebar-accent-foreground)",
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        neutral: {
-          50: "var(--neutral-50)",
-          100: "var(--neutral-100)",
-          200: "var(--neutral-200)",
-          300: "var(--neutral-300)",
-          400: "var(--neutral-400)",
-          500: "var(--neutral-500)",
-          600: "var(--neutral-600)",
-          700: "var(--neutral-700)",
-          800: "var(--neutral-800)",
-          900: "var(--neutral-900)",
-        },
+      },
+      spacing: {
+        "xs": "4px",
+        "sm": "8px",
+        "md": "12px",
+        "lg": "16px",
+        "xl": "24px",
+        "2xl": "32px",
+      },
+      fontSize: {
+        "body": ["14px", "1.5"],
+        "body-lg": ["16px", "1.5"],
+        "h3": ["20px", "28px"],
+        "h2": ["24px", "30px"],
+        "h1": ["30px", "36px"],
+      },
+      boxShadow: {
+        card: "var(--shadow)",
+        DEFAULT: "var(--shadow)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+      },
+      gap: {
+        "xs": "4px",
+        "sm": "8px", 
+        "md": "12px",
+        "lg": "16px",
+        "xl": "24px",
+        "2xl": "32px",
       },
       keyframes: {
         "accordion-down": {

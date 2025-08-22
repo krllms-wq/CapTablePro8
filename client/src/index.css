@@ -4,105 +4,107 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(210 25% 7.8431%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(207 90% 54%);
-  --primary-foreground: hsl(0 0% 100%);
-  --primary-dark: hsl(212 83% 44%);
-  --primary-light: hsl(207 79% 61%);
-  --secondary: hsl(122 39% 42%);
-  --secondary-foreground: hsl(0 0% 100%);
-  --secondary-light: hsl(122 39% 49%);
-  --muted: hsl(210 40% 98%);
-  --muted-foreground: hsl(215 13.8% 34.1%);
-  --accent: hsl(36 100% 48%);
-  --accent-foreground: hsl(0 0% 100%);
-  --accent-light: hsl(36 100% 56%);
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(207 90% 54%);
-  --chart-1: hsl(207 90% 54%);
-  --chart-2: hsl(122 39% 42%);
-  --chart-3: hsl(36 100% 48%);
-  --chart-4: hsl(262 83% 58%);
-  --chart-5: hsl(346 77% 49%);
-  --sidebar: hsl(0 0% 100%);
-  --sidebar-foreground: hsl(210 25% 7.8431%);
-  --sidebar-primary: hsl(207 90% 54%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(207 79% 61%);
-  --sidebar-accent-foreground: hsl(207 90% 54%);
-  --sidebar-border: hsl(214.3 31.8% 91.4%);
-  --sidebar-ring: hsl(207 90% 54%);
-  --neutral-50: hsl(0 0% 98%);
-  --neutral-100: hsl(240 5% 96%);
-  --neutral-200: hsl(240 6% 93%);
-  --neutral-300: hsl(240 5% 88%);
-  --neutral-400: hsl(240 4% 74%);
-  --neutral-500: hsl(240 4% 62%);
-  --neutral-600: hsl(240 5% 46%);
-  --neutral-700: hsl(240 5% 38%);
-  --neutral-800: hsl(240 6% 26%);
-  --neutral-900: hsl(240 6% 20%);
+  /* Base colors */
+  --bg: 255 255 255;
+  --fg: 17 24 39;
+  --muted: 107 114 128;
+  --border: 229 231 235;
+
+  /* Primary palette */
+  --primary: 37 99 235;    /* blue-600 */
+  --primary-foreground: 255 255 255;
+
+  /* Semantic colors */
+  --success: 16 185 129;   /* emerald-500 */
+  --warning: 245 158 11;   /* amber-500 */
+  --danger: 239 68 68;     /* red-500 */
+  --info: 59 130 246;      /* blue-500 */
+
+  /* Card backgrounds */
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+
+  /* Legacy mapping for existing components */
+  --background: rgb(var(--bg));
+  --foreground: rgb(var(--fg));
+  --destructive: rgb(var(--danger));
+  --destructive-foreground: rgb(var(--primary-foreground));
+  --secondary: rgb(var(--muted));
+  --secondary-foreground: rgb(var(--primary-foreground));
+  --accent: rgb(var(--warning));
+  --accent-foreground: rgb(var(--primary-foreground));
+  --popover: rgb(var(--card));
+  --popover-foreground: rgb(var(--card-foreground));
+  --input: rgb(var(--border));
+  --muted-bg: rgb(var(--muted));
+  --muted-foreground: rgb(var(--muted));
+
+  --ring: rgb(var(--info));
+  --radius: 14px;          /* large rounded corners */
+  --shadow: 0 8px 24px rgba(0,0,0,.06);
+
+  /* Chart colors */
+  --chart-1: rgb(var(--primary));
+  --chart-2: rgb(var(--success));
+  --chart-3: rgb(var(--warning));
+  --chart-4: rgb(var(--info));
+  --chart-5: rgb(var(--danger));
+
+  /* Sidebar */
+  --sidebar: rgb(var(--card));
+  --sidebar-foreground: rgb(var(--card-foreground));
+  --sidebar-primary: rgb(var(--primary));
+  --sidebar-primary-foreground: rgb(var(--primary-foreground));
+  --sidebar-border: rgb(var(--border));
+  --sidebar-ring: rgb(var(--primary));
+
+  /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
-  --radius: 0.75rem;
 }
 
 .dark {
-  --background: hsl(240 6% 20%);
-  --foreground: hsl(0 0% 98%);
-  --card: hsl(240 6% 26%);
-  --card-foreground: hsl(0 0% 95%);
-  --popover: hsl(240 6% 20%);
-  --popover-foreground: hsl(0 0% 98%);
-  --primary: hsl(207 90% 54%);
-  --primary-foreground: hsl(0 0% 100%);
-  --primary-dark: hsl(212 83% 44%);
-  --primary-light: hsl(207 79% 61%);
-  --secondary: hsl(122 39% 42%);
-  --secondary-foreground: hsl(0 0% 100%);
-  --secondary-light: hsl(122 39% 49%);
-  --muted: hsl(240 6% 26%);
-  --muted-foreground: hsl(240 5% 64.9%);
-  --accent: hsl(36 100% 48%);
-  --accent-foreground: hsl(0 0% 100%);
-  --accent-light: hsl(36 100% 56%);
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 6% 26%);
-  --input: hsl(240 6% 26%);
-  --ring: hsl(207 90% 54%);
-  --chart-1: hsl(207 90% 54%);
-  --chart-2: hsl(122 39% 42%);
-  --chart-3: hsl(36 100% 48%);
-  --chart-4: hsl(262 83% 58%);
-  --chart-5: hsl(346 77% 49%);
-  --sidebar: hsl(240 6% 26%);
-  --sidebar-foreground: hsl(0 0% 95%);
-  --sidebar-primary: hsl(207 90% 54%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 6% 26%);
-  --sidebar-accent-foreground: hsl(207 90% 54%);
-  --sidebar-border: hsl(240 6% 26%);
-  --sidebar-ring: hsl(207 90% 54%);
-  --neutral-50: hsl(240 6% 26%);
-  --neutral-100: hsl(240 6% 20%);
-  --neutral-200: hsl(240 6% 26%);
-  --neutral-300: hsl(240 5% 34%);
-  --neutral-400: hsl(240 4% 46%);
-  --neutral-500: hsl(240 4% 62%);
-  --neutral-600: hsl(240 5% 74%);
-  --neutral-700: hsl(240 5% 88%);
-  --neutral-800: hsl(240 6% 93%);
-  --neutral-900: hsl(240 6% 98%);
+  /* Base colors - dark theme */
+  --bg: 17 24 39;
+  --fg: 243 244 246;
+  --muted: 156 163 175;
+  --border: 55 65 81;
+
+  /* Card backgrounds - dark theme */
+  --card: 31 41 55;
+  --card-foreground: 243 244 246;
+  
+  /* Legacy mapping for existing components */
+  --background: rgb(var(--bg));
+  --foreground: rgb(var(--fg));
+  --input: rgb(var(--border));
+  --ring: 147 197 253;
+  --muted-bg: rgb(var(--muted));
+  --muted-foreground: rgb(var(--muted));
+  --popover: rgb(var(--card));
+  --popover-foreground: rgb(var(--card-foreground));
+  --secondary: rgb(var(--muted));
+  --secondary-foreground: rgb(var(--primary-foreground));
+  --accent: rgb(var(--warning));
+  --accent-foreground: rgb(var(--primary-foreground));
+  --destructive: rgb(var(--danger));
+  --destructive-foreground: rgb(var(--primary-foreground));
+
+  /* Chart colors remain same */
+  --chart-1: rgb(var(--primary));
+  --chart-2: rgb(var(--success));
+  --chart-3: rgb(var(--warning));
+  --chart-4: rgb(var(--info));
+  --chart-5: rgb(var(--danger));
+
+  /* Sidebar - dark theme */
+  --sidebar: rgb(var(--card));
+  --sidebar-foreground: rgb(var(--card-foreground));
+  --sidebar-primary: rgb(var(--primary));
+  --sidebar-primary-foreground: rgb(var(--primary-foreground));
+  --sidebar-border: rgb(var(--border));
+  --sidebar-ring: rgb(var(--primary));
 }
 
 @layer base {
@@ -114,11 +116,48 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  /* Typography scale */
+  h1 {
     font-family: var(--font-sans);
     font-weight: 600;
+    font-size: 30px;
+    line-height: 36px;
+  }
+
+  h2 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+  }
+
+  /* Card and panel defaults */
+  .card {
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .panel {
+    padding: 20px 24px;
+    gap: 16px;
+    border-radius: var(--radius);
   }
 }
 
@@ -126,4 +165,46 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+
+  /* Typography utilities */
+  .text-body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .text-body-lg {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Spacing utilities */
+  .space-xs { gap: 4px; }
+  .space-sm { gap: 8px; }
+  .space-md { gap: 12px; }
+  .space-lg { gap: 16px; }
+  .space-xl { gap: 24px; }
+  .space-2xl { gap: 32px; }
+
+  /* Layout grid */
+  .container-app {
+    max-width: 1536px; /* max-w-screen-2xl */
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Semantic color utilities */
+  .text-success { color: rgb(var(--success)); }
+  .text-warning { color: rgb(var(--warning)); }
+  .text-danger { color: rgb(var(--danger)); }
+  .text-info { color: rgb(var(--info)); }
+  
+  .bg-success { background-color: rgb(var(--success)); }
+  .bg-warning { background-color: rgb(var(--warning)); }
+  .bg-danger { background-color: rgb(var(--danger)); }
+  .bg-info { background-color: rgb(var(--info)); }
+  
+  .border-success { border-color: rgb(var(--success)); }
+  .border-warning { border-color: rgb(var(--warning)); }
+  .border-danger { border-color: rgb(var(--danger)); }
+  .border-info { border-color: rgb(var(--info)); }
 }
