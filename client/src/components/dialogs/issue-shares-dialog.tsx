@@ -692,34 +692,6 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 </div>
               )}
 
-              {/* Quantity */}
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      Quantity *
-                      <HelpBubble 
-                        term="Share Quantity" 
-                        definition="The number of shares being issued to the stakeholder. This directly affects ownership percentage and dilution of existing shareholders."
-                        example="Issuing 100,000 shares out of 1,000,000 total gives the holder 10% ownership"
-                      />
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="" 
-                        {...field}
-                        onBlur={createSharesBlurHandler(field)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Consideration and Valuation Inputs */}
               <div className="grid grid-cols-2 gap-4">
                 {/* Consideration */}
