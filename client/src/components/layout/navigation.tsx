@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Settings, Menu, X } from "lucide-react";
+import { LogOut, User, Settings, Menu, X, HelpCircle } from "lucide-react";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -158,6 +158,12 @@ export default function Navigation() {
                 <Link href="/profile" className="flex items-center">
                   <User className="mr-2 h-4 w-4" />
                   Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/help" className="flex items-center">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Help & Documentation
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

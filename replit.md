@@ -48,6 +48,7 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Dual-Mode Cap Table Implementation**: Supports Current and Historical views of the cap table.
 - **Funding Round Modeling Overhaul**: Full-page experience for modeling funding rounds with multiple investor support, real-time calculations, and side-by-side cap table comparison.
 - **Scenario Management System**: Allows saving and loading of scenarios with full CRUD operations.
+- **Comprehensive Help & Documentation System**: Interactive help page with collapsible sections covering all application logic including cap table calculations, SAFE conversions, equity awards, convertible notes, corporate actions, and data integrity rules.
 
 ## External Dependencies
 
@@ -115,6 +116,15 @@ The schema supports complex cap table structures with entities for Companies, Se
 - **Responsive Design**: Navigation automatically switches between desktop horizontal menu and mobile slide-out menu at md breakpoint (768px)
 - **Cap Table Display**: Fixed stakeholder ownership calculations to properly show convertibles separately from current ownership
 - **Enhanced Form Validation**: Improved numeric field validation and formatting across all dialogs
+
+### Help & Documentation System Implementation - COMPLETED ✅
+- **Comprehensive Help Page**: Created `/help` route with detailed documentation of all application logic and calculations
+- **Interactive Sections**: Six expandable sections covering cap table math, SAFE conversions, equity awards, convertible notes, corporate actions, and data integrity
+- **Mathematical Examples**: Detailed examples showing pre-money vs post-money SAFE calculations with actual numbers
+- **Living Documentation**: Designed to be updated as application logic changes, providing current implementation details
+- **Accessible Navigation**: Added to user dropdown menu, accessible from any page in the application
+- **Visual Learning**: Color-coded sections with examples, formulas, and real-world scenarios
+- **Auto-Updated**: Documentation reflects current implementation and business logic
 
 ## Recent Bug Fixes & Enhancements - Aug 19, 2025 ✅
 

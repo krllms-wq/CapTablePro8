@@ -25,6 +25,7 @@ import Error500 from "@/pages/error-500";
 import UXShowcase from "@/pages/ux-showcase";
 import CompanyActivity from "@/pages/company-activity";
 import CompanySettings from "@/pages/company-settings";
+import Help from "@/pages/help";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -64,6 +65,7 @@ function Router() {
           <Route path="/companies/:companyId/settings" component={CompanySettings} />
           <Route path="/setup" component={CompanySetup} />
           <Route path="/profile" component={Profile} />
+          <Route path="/help" component={Help} />
           <Route path="/ux-showcase" component={UXShowcase} />
           <Route path="/error-500" component={Error500} />
           <Route component={Error404} />
