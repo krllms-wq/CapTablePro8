@@ -116,6 +116,7 @@ export default function Dashboard() {
 
         {/* Main Cap Table */}
         <CapTableMain 
+          companyId={companyId}
           capTable={capTableData?.capTable?.map(row => ({
             stakeholder: { name: row.stakeholder },
             securityClass: { name: "Common Stock" },

@@ -1193,6 +1193,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Historical cap table endpoint - returns cap table states at key milestone dates
+  app.get("/api/companies/:companyId/cap-table/historical", async (req, res) => {
+    try {
+      const { companyId } = req.params;
+      
+      // Fetch all data needed for historical calculations
+      const [stakeholders, securityClasses, shareLedger, equityAwards, convertibles, optionPlans] = await Promise.all([
+        storage.getStakeholders(companyId),
+        storage.getSecurityClasses(companyId),
+        storage.getShareLedgerEntries(companyId),
+        storage.getEquityAwards(companyId),
+        storage.getConvertibleInstruments(companyId),
+        storage.getOptionPlans ? storage.getOptionPlans(companyId) : Promise.resolve([])
+      ]);
+
+      // Create stakeholder map for computeCapTable
+      const stakeholderMap = new Map(stakeholders.map(s => [s.id, { name: s.name }]));
+
+      // Identify milestone dates from all transaction types
+      const milestoneSet = new Set<string>();
+      
+      // Add share issuance dates
+      shareLedger.forEach(entry => {
+        if (entry.issueDate) {
+          milestoneSet.add(entry.issueDate.toISOString().split('T')[0]);
+        }
+      });
+      
+      // Add equity award grant dates
+      equityAwards.forEach(award => {
+        if (award.grantDate) {
+          milestoneSet.add(award.grantDate.toISOString().split('T')[0]);
+        }
+      });
+      
+      // Add convertible instrument issue dates
+      convertibles.forEach(convertible => {
+        if (convertible.issueDate) {
+          milestoneSet.add(convertible.issueDate.toISOString().split('T')[0]);
+        }
+      });
+
+      // Sort milestone dates chronologically and limit to last 12 months or max 10 points
+      const sortedMilestones = Array.from(milestoneSet)
+        .map(dateStr => new Date(dateStr))
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      // Use existing computeCapTable function to calculate historical states
+      const { computeCapTable } = await import("./domain/captable/compute");
+      
+      const historicalData = sortedMilestones.map(asOfDate => {
+        const result = computeCapTable(
+          shareLedger,
+          equityAwards, 
+          convertibles,
+          securityClasses,
+          optionPlans || [],
+          stakeholderMap,
+          asOfDate,
+          'FullyDiluted'
+        );
+        
+        return {
+          date: asOfDate.toISOString().split('T')[0],
+          displayDate: asOfDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+          entries: result.entries.map(entry => ({
+            stakeholderId: entry.stakeholderId,
+            stakeholder: entry.stakeholder,
+            shares: entry.shares,
+            ownership: entry.ownership,
+            securityClass: entry.securityClass
+          })),
+          totalShares: result.totalShares,
+          fullyDilutedShares: result.fullyDilutedShares
+        };
+      });
+
+      // Also include current state as the final point
+      const currentResult = computeCapTable(
+        shareLedger,
+        equityAwards,
+        convertibles, 
+        securityClasses,
+        optionPlans || [],
+        stakeholderMap,
+        new Date(),
+        'FullyDiluted'
+      );
+
+      historicalData.push({
+        date: new Date().toISOString().split('T')[0],
+        displayDate: 'Current',
+        entries: currentResult.entries.map(entry => ({
+          stakeholderId: entry.stakeholderId,
+          stakeholder: entry.stakeholder,
+          shares: entry.shares,
+          ownership: entry.ownership,
+          securityClass: entry.securityClass
+        })),
+        totalShares: currentResult.totalShares,
+        fullyDilutedShares: currentResult.fullyDilutedShares
+      });
+
+      res.json({
+        milestones: historicalData,
+        stakeholders: stakeholders.map(s => ({ id: s.id, name: s.name, type: s.type }))
+      });
+
+    } catch (error) {
+      console.error("Error calculating historical cap table:", error);
+      res.status(500).json({ error: "Failed to calculate historical cap table" });
+    }
+  });
+
   // Legacy audit log route (for backwards compatibility)
   app.get("/api/companies/:companyId/audit-logs", requireAuth, async (req, res) => {
     try {

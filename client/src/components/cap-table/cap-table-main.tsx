@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatNumber, formatCurrency, formatPercentage } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +20,7 @@ interface CapTableRow {
 }
 
 interface CapTableMainProps {
+  companyId?: string;
   capTable?: CapTableRow[];
   convertibles?: Array<{ 
     id: string; 
@@ -40,100 +41,159 @@ interface CapTableMainProps {
 }
 
 // Historical Cap Table Component  
-function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
-  // Extract actual transaction dates from the cap table data
-  const transactionDates = capTable
-    .filter(row => row.issueDate) // Only rows with issue dates
-    .map(row => new Date(row.issueDate!))
-    .sort((a, b) => a.getTime() - b.getTime())
-    .map(date => date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }));
-  
-  // Remove duplicates and keep only unique months
-  const uniqueDates = Array.from(new Set(transactionDates));
-  
-  // If no transactions, show current month only
-  const historicalDates = uniqueDates.length > 0 
-    ? uniqueDates 
-    : [new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' })];
-  
-  // Group stakeholders for historical view based on actual transactions
-  const stakeholderHistory = capTable.reduce((acc, row) => {
-    if (!acc[row.stakeholder.name]) {
-      acc[row.stakeholder.name] = {
-        stakeholder: row.stakeholder,
-        history: {}
-      };
-    }
-    
-    // Calculate ownership for each actual transaction date
-    historicalDates.forEach((date) => {
-      // For now, show current ownership for all dates (can be enhanced with actual historical calculation)
-      acc[row.stakeholder.name].history[date] = row.ownership;
-    });
-    
-    return acc;
-  }, {} as any);
+function HistoricalCapTable({ companyId }: { companyId: string }) {
+  const [historicalData, setHistoricalData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const stakeholders = Object.values(stakeholderHistory) as any[];
+  useEffect(() => {
+    const fetchHistoricalData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/companies/${companyId}/cap-table/historical`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch historical data');
+        }
+        const data = await response.json();
+        setHistoricalData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error('Error fetching historical cap table:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHistoricalData();
+  }, [companyId]);
+
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-slate-200 rounded w-1/3 mx-auto"></div>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-12 bg-slate-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <div className="text-red-600 mb-4">
+          <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
+          <p className="text-sm">Failed to load historical data: {error}</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => window.location.reload()}
+        >
+          <i className="fas fa-refresh mr-2"></i>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!historicalData?.milestones?.length) {
+    return (
+      <div className="p-8 text-center text-slate-600">
+        <i className="fas fa-chart-line text-3xl mb-4 text-slate-400"></i>
+        <p>No historical data available</p>
+        <p className="text-sm text-slate-500 mt-2">Historical view will populate as transactions are recorded</p>
+      </div>
+    );
+  }
+
+  // Get all unique stakeholders from all milestones
+  const allStakeholders = new Map<string, { name: string; type?: string }>();
+  historicalData.milestones.forEach((milestone: any) => {
+    milestone.entries.forEach((entry: any) => {
+      if (!allStakeholders.has(entry.stakeholderId)) {
+        allStakeholders.set(entry.stakeholderId, { 
+          name: entry.stakeholder,
+          type: historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId)?.type 
+        });
+      }
+    });
+  });
+
+  const stakeholders = Array.from(allStakeholders.entries()).map(([id, data]) => ({ id, ...data }));
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
-        <thead className="bg-neutral-50">
+        <thead className="bg-slate-50/80">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider sticky left-0 bg-neutral-50 z-10 border-r border-neutral-200">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
               Stakeholder
             </th>
-            {historicalDates.map(date => (
-              <th key={date} className="px-4 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider min-w-[120px]">
-                {date}
+            {historicalData.milestones.map((milestone: any) => (
+              <th key={milestone.date} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">
+                {milestone.displayDate}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200">
-          {stakeholders.map((stakeholder: any, index: number) => (
-            <tr key={index} className="hover:bg-neutral-50 transition-colors">
-              <td className="px-6 py-4 sticky left-0 bg-white z-10 border-r border-neutral-200">
+        <tbody className="divide-y divide-slate-200">
+          {stakeholders.map((stakeholder: any) => (
+            <tr key={stakeholder.id} className="hover:bg-slate-50/50 transition-colors">
+              <td className="px-6 py-4 sticky left-0 bg-white z-10 border-r border-slate-200">
                 <div className="flex items-center">
-                  <div className={`w-8 h-8 ${stakeholder.stakeholder.type === "entity" ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"} rounded-full flex items-center justify-center mr-3`}>
-                    {stakeholder.stakeholder.type === "entity" ? (
+                  <div className={`w-8 h-8 ${
+                    stakeholder.type === "entity" 
+                      ? "bg-purple-100 text-purple-600" 
+                      : "bg-blue-100 text-blue-600"
+                  } rounded-full flex items-center justify-center mr-3`}>
+                    {stakeholder.type === "entity" ? (
                       <i className="fas fa-building text-sm"></i>
                     ) : (
                       <span className="text-sm font-semibold">
-                        {stakeholder.stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2)}
+                        {stakeholder.name.split(" ").map((word: string) => word[0]).join("").toUpperCase().slice(0, 2)}
                       </span>
                     )}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-neutral-900">{stakeholder.stakeholder.name}</div>
-                    {stakeholder.stakeholder.title && (
-                      <div className="text-sm text-neutral-500">{stakeholder.stakeholder.title}</div>
-                    )}
+                    <div className="text-sm font-medium text-slate-900">{stakeholder.name}</div>
                   </div>
                 </div>
               </td>
-              {historicalDates.map(date => (
-                <td key={date} className="px-4 py-4 text-center">
-                  <div className="text-sm font-semibold text-neutral-900">
-                    {formatPercentage(stakeholder.history[date] || 0)}
-                  </div>
-                  <div className="text-xs text-neutral-500">
-                    {((stakeholder.history[date] || 0) * 1000000).toLocaleString()} shares
-                  </div>
-                </td>
-              ))}
+              {historicalData.milestones.map((milestone: any) => {
+                const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
+                const ownership = entry ? entry.ownership : 0;
+                const shares = entry ? entry.shares : 0;
+                
+                return (
+                  <td key={milestone.date} className="px-4 py-4 text-center">
+                    <div className="text-sm font-semibold text-slate-900">
+                      {(ownership * 100).toFixed(2)}%
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {shares.toLocaleString()} shares
+                    </div>
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
-        <tfoot className="bg-neutral-50 border-t-2 border-neutral-300">
+        <tfoot className="bg-slate-50/80 border-t-2 border-slate-300">
           <tr>
-            <td className="px-6 py-4 text-sm font-semibold text-neutral-900 sticky left-0 bg-neutral-50 z-10 border-r border-neutral-200">
+            <td className="px-6 py-4 text-sm font-semibold text-slate-900 sticky left-0 bg-slate-50/80 z-10 border-r border-slate-200">
               Total
             </td>
-            {historicalDates.map(date => (
-              <td key={date} className="px-4 py-4 text-center">
-                <div className="text-sm font-semibold text-neutral-900">100.00%</div>
+            {historicalData.milestones.map((milestone: any) => (
+              <td key={milestone.date} className="px-4 py-4 text-center">
+                <div className="text-sm font-semibold text-slate-900">100.00%</div>
+                <div className="text-xs text-slate-500">
+                  {milestone.fullyDilutedShares?.toLocaleString() || milestone.totalShares?.toLocaleString()} shares
+                </div>
               </td>
             ))}
           </tr>
@@ -143,7 +203,7 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
   );
 }
 
-export default function CapTableMain({ capTable, convertibles, isLoading, onConvertSafe, onConvertNote }: CapTableMainProps) {
+export default function CapTableMain({ companyId, capTable, convertibles, isLoading, onConvertSafe, onConvertNote }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
   const [mode, setMode] = useState<"current" | "historical">("current");
   const [convertibleFilter, setConvertibleFilter] = useState<"active" | "all">("active");
@@ -377,7 +437,7 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
           </table>
         </div>
       ) : (
-        <HistoricalCapTable capTable={capTable} />
+        <HistoricalCapTable companyId={companyId || ''} />
       )}
 
       {/* Convertible Instruments Section */}
