@@ -21,6 +21,7 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
@@ -32,6 +33,24 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
+
+      // Log slow requests
+      if (duration > 1000) {
+        logger.slowQuery(`${req.method} ${path}`, duration);
+      }
+
+      // Log errors
+      if (res.statusCode >= 400) {
+        logger.error(`HTTP Error: ${req.method} ${path}`, new Error(`${res.statusCode} response`), {
+          severity: res.statusCode >= 500 ? 'high' : 'medium',
+          data: { method: req.method, path, statusCode: res.statusCode, duration }
+        });
+      }
+    }
+
+    // Memory monitoring every 100 requests
+    if (Math.random() < 0.01) {
+      logger.memoryWarning();
     }
   });
 

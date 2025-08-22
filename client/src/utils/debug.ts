@@ -10,6 +10,9 @@ export interface ComponentDebugInfo {
 class ClientDebugger {
   private static instance: ClientDebugger;
   private renderCounts = new Map<string, number>();
+  private lastHookOrders = new Map<string, string[]>();
+  private performanceMarks = new Map<string, number>();
+  private errorCounts = new Map<string, number>();
   
   static getInstance(): ClientDebugger {
     if (!this.instance) {
@@ -30,13 +33,21 @@ class ClientDebugger {
       props
     };
 
+    // Detect excessive re-renders
+    if (count > 10) {
+      console.warn(`⚠️ [EXCESSIVE RENDERS] ${componentName} has rendered ${count} times!`);
+      this.logPerformanceWarning(componentName, 'excessive_renders', { renderCount: count });
+    }
+
     // Only log if we're in development
     if (import.meta.env.DEV) {
-      console.group(`🔄 [RENDER] ${componentName} (#${count})`);
+      const emoji = count > 10 ? '🔥' : count > 5 ? '⚡' : '🔄';
+      console.group(`${emoji} [RENDER] ${componentName} (#${count})`);
       console.log('Timestamp:', debugInfo.timestamp);
       
       if (hooks && hooks.length > 0) {
         console.log('Hooks order:', hooks);
+        this.validateHooksOrder(componentName, hooks);
       }
       
       if (props && Object.keys(props).length > 0) {
@@ -45,6 +56,23 @@ class ClientDebugger {
       
       console.groupEnd();
     }
+  }
+
+  private validateHooksOrder(componentName: string, currentHooks: string[]): void {
+    const lastHooks = this.lastHookOrders.get(componentName);
+    
+    if (lastHooks && lastHooks.length !== currentHooks.length) {
+      console.error(`❌ [HOOKS ORDER] ${componentName} - Hook count changed!`, {
+        previous: lastHooks,
+        current: currentHooks
+      });
+      
+      this.logHookError(componentName, 'hooks_order_violation', 
+        new Error(`Hook count changed from ${lastHooks.length} to ${currentHooks.length}`)
+      );
+    }
+    
+    this.lastHookOrders.set(componentName, currentHooks);
   }
 
   logHookError(componentName: string, hookName: string, error: any): void {
@@ -91,6 +119,81 @@ class ClientDebugger {
 
   getRenderCount(componentName: string): number {
     return this.renderCounts.get(componentName) || 0;
+  }
+
+  logPerformanceWarning(component: string, issue: string, data?: any): void {
+    if (import.meta.env.DEV) {
+      console.warn(`⚠️ [PERFORMANCE] ${component} - ${issue}`, data);
+    }
+    
+    // Send to server
+    this.sendToServer('/api/debug/performance-warning', {
+      component,
+      issue,
+      data,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  startPerformanceMark(label: string): void {
+    this.performanceMarks.set(label, performance.now());
+  }
+
+  endPerformanceMark(label: string, threshold: number = 16): void {
+    const startTime = this.performanceMarks.get(label);
+    if (startTime) {
+      const duration = performance.now() - startTime;
+      if (duration > threshold) {
+        console.warn(`⚠️ [SLOW OPERATION] ${label}: ${duration.toFixed(2)}ms`);
+        this.logPerformanceWarning('Performance', 'slow_operation', { label, duration });
+      }
+      this.performanceMarks.delete(label);
+    }
+  }
+
+  logReactError(error: Error, errorInfo?: any): void {
+    const errorKey = `${error.name}:${error.message}`;
+    const count = (this.errorCounts.get(errorKey) || 0) + 1;
+    this.errorCounts.set(errorKey, count);
+
+    console.group('❌ [REACT ERROR]');
+    console.error('Error:', error);
+    if (errorInfo?.componentStack) {
+      console.error('Component Stack:', errorInfo.componentStack);
+    }
+    console.error('Error count:', count);
+    console.groupEnd();
+
+    this.sendToServer('/api/debug/react-error', {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      },
+      errorInfo,
+      count,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  private sendToServer(endpoint: string, data: any): void {
+    if (typeof fetch !== 'undefined') {
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(() => {
+        // Ignore network errors when logging debug info
+      });
+    }
+  }
+
+  getDiagnostics(): any {
+    return {
+      renderCounts: Object.fromEntries(this.renderCounts),
+      errorCounts: Object.fromEntries(this.errorCounts),
+      activePerformanceMarks: Array.from(this.performanceMarks.keys())
+    };
   }
 }
 

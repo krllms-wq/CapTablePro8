@@ -2465,17 +2465,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/debug/hook-error", async (req, res) => {
     try {
       const debugInfo = req.body;
-      console.error("Client Hook Error:", {
-        component: debugInfo.component,
-        hook: debugInfo.error?.hook,
-        message: debugInfo.error?.message,
-        renderCount: debugInfo.renderCount,
-        timestamp: debugInfo.timestamp
+      logger.reactError(debugInfo.component, debugInfo.error, debugInfo.error?.hook);
+      res.status(200).json({ received: true });
+    } catch (error) {
+      logger.error("Failed to log client hook error", error);
+      res.status(500).json({ error: "Failed to log debug info" });
+    }
+  });
+
+  app.post("/api/debug/performance-warning", async (req, res) => {
+    try {
+      const { component, issue, data, timestamp } = req.body;
+      logger.debug(`Client Performance Warning: ${component} - ${issue}`, {
+        component,
+        action: 'performance_warning',
+        severity: 'medium',
+        data
       });
       res.status(200).json({ received: true });
     } catch (error) {
-      console.error("Failed to log client hook error:", error);
-      res.status(500).json({ error: "Failed to log debug info" });
+      logger.error("Failed to log performance warning", error);
+      res.status(500).json({ error: "Failed to log performance warning" });
+    }
+  });
+
+  app.post("/api/debug/react-error", async (req, res) => {
+    try {
+      const { error, errorInfo, count, timestamp } = req.body;
+      logger.criticalError(`React Error: ${error.message}`, {
+        component: 'React',
+        severity: 'critical',
+        data: { error, errorInfo, count }
+      });
+      res.status(200).json({ received: true });
+    } catch (error) {
+      logger.error("Failed to log React error", error);
+      res.status(500).json({ error: "Failed to log React error" });
+    }
+  });
+
+  app.get("/api/debug/diagnostics", async (req, res) => {
+    try {
+      const diagnostics = logger.getDiagnostics();
+      res.json(diagnostics);
+    } catch (error) {
+      logger.error("Failed to get diagnostics", error);
+      res.status(500).json({ error: "Failed to get diagnostics" });
     }
   });
 
