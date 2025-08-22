@@ -170,27 +170,6 @@ export default function Dashboard() {
           <RecentActivity companyId={companyId!} />
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="flex flex-wrap gap-3">
-            <NewTransactionButton 
-              onTransactionSelect={(type) => {
-                if (type === "shares") setShowIssueShares(true);
-                if (type === "options") setShowGrantOptions(true);
-                if (type === "safe") setShowSafeAgreement(true);
-                if (type === "convertible") setShowConvertibleNote(true);
-                if (type === "secondary") setShowSecondaryTransaction(true);
-              }}
-            />
-            <Button variant="outline">
-              Add Stakeholder
-            </Button>
-            <Button variant="outline">
-              View Activity
-            </Button>
-          </div>
-        </div>
       </div>
 
       {/* Transaction Dialogs */}
