@@ -18,6 +18,7 @@ import { SecondaryTransactionDialog } from "@/components/dialogs/secondary-trans
 import { SAFEConversionDialog } from "@/components/dialogs/safe-conversion-dialog";
 import { NoteConversionDialog } from "@/components/dialogs/note-conversion-dialog";
 import FundingRoundDialog from "@/components/dialogs/funding-round-dialog";
+import CashContributionDialog from "@/components/dialogs/cash-contribution-dialog";
 import { Download } from "lucide-react";
 
 import type { Company } from "@shared/schema";
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [showSafeConversion, setShowSafeConversion] = useState(false);
   const [showNoteConversion, setShowNoteConversion] = useState(false);
   const [showFundingRound, setShowFundingRound] = useState(false);
+  const [showCashContribution, setShowCashContribution] = useState(false);
   const [selectedConvertible, setSelectedConvertible] = useState<any>(null);
   
   // Query hooks
@@ -72,22 +74,7 @@ export default function Dashboard() {
       <PageHeader
         title="Cap Table Overview"
         subtitle="Track ownership, manage equity, and analyze your company's capital structure"
-        primaryAction={{
-          label: "New Transaction",
-          onClick: () => setShowFundingRound(true) // Default to funding round for demo
-        }}
-        secondaryActions={[
-          {
-            label: "Export",
-            variant: "outline",
-            onClick: () => console.log("Export clicked")
-          }
-        ]}
-      />
-      
-      {/* Add transaction selection buttons */}
-      <div className="mb-xl">
-        <div className="flex flex-wrap gap-md">
+        customActions={
           <NewTransactionButton 
             onTransactionSelect={(type) => {
               if (type === "funding-round") setShowFundingRound(true);
@@ -96,10 +83,12 @@ export default function Dashboard() {
               if (type === "safe") setShowSafeAgreement(true);
               if (type === "convertible") setShowConvertibleNote(true);
               if (type === "secondary") setShowSecondaryTransaction(true);
+              if (type === "cash-contribution") setShowCashContribution(true);
             }}
           />
-        </div>
-      </div>
+        }
+      />
+      
 
         {/* Stats */}
         <CapTableStats 
@@ -185,6 +174,12 @@ export default function Dashboard() {
       <FundingRoundDialog
         open={showFundingRound}
         onOpenChange={setShowFundingRound}
+        companyId={companyId!}
+      />
+
+      <CashContributionDialog
+        open={showCashContribution}
+        onOpenChange={setShowCashContribution}
         companyId={companyId!}
       />
 

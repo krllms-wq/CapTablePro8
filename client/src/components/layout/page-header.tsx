@@ -30,6 +30,7 @@ interface PageHeaderProps {
     variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
     disabled?: boolean;
   }>;
+  customActions?: React.ReactNode;
 }
 
 export default function PageHeader({
@@ -39,6 +40,7 @@ export default function PageHeader({
   tabs,
   primaryAction,
   secondaryActions = [],
+  customActions,
 }: PageHeaderProps) {
   return (
     <div className="bg-card rounded-lg border border-border p-xl mb-xl">
@@ -73,7 +75,7 @@ export default function PageHeader({
         </div>
 
         {/* Actions */}
-        {(primaryAction || secondaryActions.length > 0) && (
+        {(primaryAction || secondaryActions.length > 0 || customActions) && (
           <div className="flex items-center gap-md">
             {secondaryActions.map((action, index) => (
               <Button
@@ -85,6 +87,8 @@ export default function PageHeader({
                 {action.label}
               </Button>
             ))}
+            
+            {customActions}
             
             {primaryAction && (
               <Button

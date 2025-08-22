@@ -45,6 +45,11 @@ export default function NewTransactionButton({ onTransactionSelect, className = 
       name: "Secondary Transfer",
       description: "Transfer existing shares between parties",
     },
+    {
+      id: "cash-contribution",
+      name: "Cash Contribution",
+      description: "Record cash contribution from stakeholders",
+    },
   ];
 
   return (
