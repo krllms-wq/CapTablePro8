@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "wouter";
-import Navigation from "@/components/layout/navigation";
+import { AppShell } from "@/components/layout/AppShell";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
@@ -93,10 +93,8 @@ export default function Dashboard() {
 
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <AppShell>
+      <div className="max-w-7xl mx-auto px-6 py-6 bg-neutral-50 min-h-screen">
 
         
         {/* Company Header */}
@@ -245,6 +243,6 @@ export default function Dashboard() {
           }}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
