@@ -1311,6 +1311,10 @@ export class DatabaseStorage implements IStorage {
     return instrument;
   }
 
+  async deleteConvertibleInstrument(id: string): Promise<void> {
+    await db.delete(convertibleInstruments).where(eq(convertibleInstruments.id, id));
+  }
+
   // Rounds
   async createRound(insertRound: InsertRound): Promise<Round> {
     const [round] = await db.insert(rounds).values(insertRound).returning();
