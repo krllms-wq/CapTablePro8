@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest } from "@/lib/queryClient";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import { Plus, Trash2, Save } from "lucide-react";
 
 interface Investor {
@@ -231,9 +231,7 @@ export default function ScenariosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <CompanyLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Fundraising Scenarios</h1>
@@ -728,7 +726,6 @@ export default function ScenariosPage() {
             </Card>
           )}
         </div>
-      </div>
-    </div>
+    </CompanyLayout>
   );
 }

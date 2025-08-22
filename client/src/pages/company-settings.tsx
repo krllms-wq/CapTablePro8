@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Building, Save, X, CalendarDays, MapPin, FileText, Trash2, AlertTriangle } from "lucide-react";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,7 +116,6 @@ export default function CompanySettings() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-50">
-        <Navigation />
         <div className="max-w-4xl mx-auto px-6 py-6">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -141,7 +140,6 @@ export default function CompanySettings() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Navigation />
       
       <div className="max-w-4xl mx-auto px-6 py-6">
         <div className="space-y-6">

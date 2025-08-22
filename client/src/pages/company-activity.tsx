@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { Calendar, Filter, Search, User, Building, Briefcase, DollarSign } from "lucide-react";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,10 +138,7 @@ export default function CompanyActivity() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <CompanyLayout>
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -279,7 +276,6 @@ export default function CompanyActivity() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+    </CompanyLayout>
   );
 }

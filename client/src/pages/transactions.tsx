@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { formatNumber, formatDate } from "@/lib/formatters";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import IssueSharesDialog from "@/components/dialogs/issue-shares-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 import SafeAgreementDialog from "@/components/dialogs/safe-agreement-dialog";
@@ -88,9 +88,7 @@ export default function TransactionsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <CompanyLayout>
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
@@ -103,8 +101,7 @@ export default function TransactionsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+      </CompanyLayout>
     );
   }
 
@@ -193,9 +190,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <CompanyLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Transactions</h1>
@@ -305,7 +300,6 @@ export default function TransactionsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* Transaction Dialogs */}
       <IssueSharesDialog

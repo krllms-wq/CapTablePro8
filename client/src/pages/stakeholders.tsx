@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
@@ -245,9 +245,7 @@ export default function StakeholdersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <CompanyLayout>
           <div className="space-y-6">
             <div className="h-8 bg-neutral-200 rounded w-64"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -256,8 +254,7 @@ export default function StakeholdersPage() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
+      </CompanyLayout>
     );
   }
 
@@ -275,9 +272,7 @@ export default function StakeholdersPage() {
   }) : [];
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <CompanyLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders & Security Classes</h1>
@@ -713,8 +708,6 @@ export default function StakeholdersPage() {
           </Dialog>
 
           {ConfirmationComponent}
-        </div>
-      </div>
-    </div>
+    </CompanyLayout>
   );
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatNumber, formatCurrency } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import Navigation from "@/components/layout/navigation";
+import CompanyLayout from "@/components/layout/company-layout";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import GrantOptionsDialog from "@/components/dialogs/grant-options-dialog";
 
@@ -46,9 +46,7 @@ export default function EquityAwards() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <CompanyLayout>
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
@@ -61,15 +59,12 @@ export default function EquityAwards() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+      </CompanyLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <CompanyLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-neutral-900">Equity Awards</h1>
@@ -197,7 +192,6 @@ export default function EquityAwards() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Grant Options Dialog */}
       <GrantOptionsDialog
@@ -207,6 +201,6 @@ export default function EquityAwards() {
       />
 
       {ConfirmationComponent}
-    </div>
+    </CompanyLayout>
   );
 }
