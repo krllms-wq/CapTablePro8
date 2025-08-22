@@ -82,13 +82,13 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
     resolver: zodResolver(grantOptionsSchema),
     defaultValues: {
       holderId: "",
-      type: "stock_option",
+      type: "",
       quantityGranted: "",
       strikePrice: "",
-      grantDate: new Date().toISOString().split('T')[0],
-      vestingStartDate: new Date().toISOString().split('T')[0],
-      vestingCliff: "12",
-      vestingPeriod: "48",
+      grantDate: "",
+      vestingStartDate: "",
+      vestingCliff: "",
+      vestingPeriod: "",
     },
   });
 

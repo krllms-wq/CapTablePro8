@@ -76,7 +76,7 @@ export default function ConvertibleNoteDialog({ open, onOpenChange, companyId }:
       maturityDate: "",
       discountRate: "",
       valuationCap: "",
-      issueDate: new Date().toISOString().split('T')[0],
+      issueDate: "",
     },
   });
 
