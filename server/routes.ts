@@ -1598,10 +1598,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "User not authenticated" });
       }
 
-      if (!userId) {
-        return res.status(401).json({ error: "User not authenticated" });
-      }
-
       // Find the share ledger entry to rollback
       const shareEntry = await storage.getShareLedgerEntry(transactionId);
       if (!shareEntry || shareEntry.companyId !== companyId) {
@@ -1610,7 +1606,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if this transaction is from a SAFE conversion
       const conversions = await storage.getConvertibleConversions(companyId);
-      const conversion = conversions.find(c => c.shareEntryId === transactionId && c.status === 'active');
+      console.log('Found conversions:', conversions.length, 'for transaction ID:', transactionId);
+      const conversion = conversions.find(c => c.shareEntryId === transactionId);
+      console.log('Matching conversion:', conversion);
 
       if (conversion) {
         // This is a SAFE conversion transaction - use the conversion rollback

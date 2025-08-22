@@ -1447,15 +1447,10 @@ export class DatabaseStorage implements IStorage {
         return { success: false, error: "Conversion has already been rolled back" };
       }
 
-      // Mark conversion as rolled back
-      await this.updateConvertibleConversion(conversionId, {
-        status: 'rolled_back',
-        rolledBackAt: new Date(),
-        rolledBackBy: userId,
-        rollbackReason: reason || 'Manual rollback'
-      });
+      // First, delete the conversion record to remove the foreign key constraint
+      await db.delete(convertibleConversions).where(eq(convertibleConversions.id, conversionId));
 
-      // Remove the associated share ledger entry if it exists
+      // Then remove the associated share ledger entry if it exists
       if (conversion.shareEntryId) {
         await db.delete(shareLedgerEntries).where(eq(shareLedgerEntries.id, conversion.shareEntryId));
       }
