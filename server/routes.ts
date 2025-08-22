@@ -1211,8 +1211,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create stakeholder map for computeCapTable
       const stakeholderMap = new Map(stakeholders.map((s: any) => [s.id, { name: s.name }]));
 
+      // Get company details for incorporation date
+      const company = await storage.getCompany(companyId);
+      
       // Identify milestone dates from all transaction types
       const milestoneSet = new Set<string>();
+      
+      // Always include incorporation date as first milestone
+      if (company?.incorporationDate) {
+        milestoneSet.add(company.incorporationDate.toISOString().split('T')[0]);
+      }
       
       // Add share issuance dates
       shareLedger.forEach(entry => {
@@ -1313,6 +1321,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         });
         
+        // For historical computation, use end-of-day to ensure all transactions on this date are included
+        const endOfDay = new Date(asOfDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
         const result = computeCapTable(
           shareLedger,
           equityAwards, 
@@ -1320,7 +1332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           securityClasses,
           optionPlans || [],
           stakeholderMap,
-          asOfDate,
+          endOfDay,  // Use end-of-day instead of asOfDate
           'FullyDiluted'
         );
         
