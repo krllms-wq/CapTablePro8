@@ -1106,21 +1106,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getConvertibleConversions(req.params.companyId)
       ]);
 
-      // Filter out converted instruments
+      // Get show all parameter
+      const showAll = req.query.showAll === 'true';
+
+      // Create map of converted instruments
       const activeConversions = conversions.filter(c => c.status === 'active');
       const convertedIds = new Set(activeConversions.map(c => c.convertibleId));
-      const activeInstruments = instruments.filter(instrument => !convertedIds.has(instrument.id));
-
-      // Add stakeholder names to active instruments
-      const instrumentsWithNames = activeInstruments.map(instrument => {
+      
+      // Add stakeholder names and status to all instruments
+      const instrumentsWithNamesAndStatus = instruments.map(instrument => {
         const stakeholder = stakeholders.find(s => s.id === instrument.holderId);
+        const isConverted = convertedIds.has(instrument.id);
+        const conversion = activeConversions.find(c => c.convertibleId === instrument.id);
+        
         return {
           ...instrument,
-          holderName: stakeholder?.name || 'Unknown'
+          holderName: stakeholder?.name || 'Unknown',
+          status: isConverted ? 'converted' : 'active',
+          conversionDate: conversion?.conversionDate || null
         };
       });
 
-      res.json(instrumentsWithNames);
+      // Filter based on showAll parameter
+      const result = showAll 
+        ? instrumentsWithNamesAndStatus 
+        : instrumentsWithNamesAndStatus.filter(instrument => instrument.status === 'active');
+
+      res.json(result);
     } catch (error) {
       console.error("Error fetching convertibles:", error);
       res.status(500).json({ error: "Failed to fetch convertibles" });
@@ -1197,12 +1209,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { companyId } = req.params;
       
       // Fetch all the data needed for cap table calculation
-      const [stakeholders, securityClasses, shareLedger, equityAwards, convertibles] = await Promise.all([
+      const [stakeholders, securityClasses, shareLedger, equityAwards, convertibles, conversions] = await Promise.all([
         storage.getStakeholders(companyId),
         storage.getSecurityClasses(companyId),
         storage.getShareLedgerEntries(companyId),
         storage.getEquityAwards(companyId),
-        storage.getConvertibleInstruments(companyId)
+        storage.getConvertibleInstruments(companyId),
+        storage.getConvertibleConversions(companyId)
       ]);
 
 
@@ -1323,12 +1336,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Also add detailed convertibles data with stakeholder names
-      const convertiblesWithNames = convertibles.map(convertible => {
+      // Also add detailed convertibles data with stakeholder names and status
+      const activeConversions = conversions.filter(c => c.status === 'active');
+      const convertedIds = new Set(activeConversions.map(c => c.convertibleId));
+      
+      const convertiblesWithNamesAndStatus = convertibles.map(convertible => {
         const stakeholder = stakeholders.find(s => s.id === convertible.holderId);
+        const isConverted = convertedIds.has(convertible.id);
+        const conversion = activeConversions.find(c => c.convertibleId === convertible.id);
+        
         return {
           ...convertible,
-          holderName: stakeholder?.name || 'Unknown'
+          holderName: stakeholder?.name || 'Unknown',
+          status: isConverted ? 'converted' : 'active',
+          conversionDate: conversion?.conversionDate || null
         };
       });
 
@@ -1347,7 +1368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rsuInclusionMode: 'granted'
         },
         capTable,
-        convertibles: convertiblesWithNames,
+        convertibles: convertiblesWithNamesAndStatus,
         valuationInfo: {
           pricePerShare: currentValuationInfo.pricePerShare, // Use correct PPS
           sharesOutstanding: totalShares, // Use actual total shares

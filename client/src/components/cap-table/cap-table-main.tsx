@@ -20,7 +20,18 @@ interface CapTableRow {
 
 interface CapTableMainProps {
   capTable?: CapTableRow[];
-  convertibles?: Array<{ id: string; type: string; holderName: string; principal: number; framework?: string; discountRate?: number; valuationCap?: number; issueDate: string }>;
+  convertibles?: Array<{ 
+    id: string; 
+    type: string; 
+    holderName: string; 
+    principal: number; 
+    framework?: string; 
+    discountRate?: number; 
+    valuationCap?: number; 
+    issueDate: string;
+    status?: 'active' | 'converted';
+    conversionDate?: string | null;
+  }>;
   isLoading: boolean;
   onConvertSafe?: (convertible: any) => void;
 }
@@ -132,6 +143,7 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
 export default function CapTableMain({ capTable, convertibles, isLoading, onConvertSafe }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
   const [mode, setMode] = useState<"current" | "historical">("current");
+  const [convertibleFilter, setConvertibleFilter] = useState<"active" | "all">("active");
 
   if (isLoading) {
     return (
@@ -212,6 +224,11 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
 
   const totalShares = capTable.reduce((sum, row) => sum + row.shares, 0);
   const totalValue = capTable.reduce((sum, row) => sum + row.value, 0);
+
+  // Filter convertibles based on the selected filter
+  const filteredConvertibles = convertibles?.filter(instrument => 
+    convertibleFilter === "all" || instrument.status === "active"
+  ) || [];
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 mb-6">
@@ -377,8 +394,35 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
       {/* Convertible Instruments Section */}
       {convertibles && convertibles.length > 0 && (
         <div className="border-t border-neutral-200">
-          <div className="px-6 py-4 bg-neutral-50">
+          <div className="px-6 py-4 bg-neutral-50 flex items-center justify-between">
             <h4 className="text-md font-semibold text-neutral-900">Convertible Instruments</h4>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-neutral-600">Show:</span>
+              <div className="flex rounded-lg border border-neutral-300 overflow-hidden">
+                <button
+                  onClick={() => setConvertibleFilter("active")}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    convertibleFilter === "active"
+                      ? "bg-primary text-white"
+                      : "bg-white text-neutral-600 hover:bg-neutral-50"
+                  }`}
+                  data-testid="filter-active-convertibles"
+                >
+                  Active Only
+                </button>
+                <button
+                  onClick={() => setConvertibleFilter("all")}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    convertibleFilter === "all"
+                      ? "bg-primary text-white"
+                      : "bg-white text-neutral-600 hover:bg-neutral-50"
+                  }`}
+                  data-testid="filter-all-convertibles"
+                >
+                  All
+                </button>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -402,13 +446,16 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
                   <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
                     Issue Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Status
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
-                {convertibles.map((instrument, index) => (
+                {filteredConvertibles.map((instrument, index) => (
                   <tr key={index} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -447,11 +494,33 @@ export default function CapTableMain({ capTable, convertibles, isLoading, onConv
                         {new Date(instrument.issueDate).toLocaleDateString()}
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          instrument.status === 'converted' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`} data-testid={`status-${instrument.status}`}>
+                          {instrument.status === 'converted' ? 'Converted' : 'Active'}
+                        </span>
+                        {instrument.status === 'converted' && instrument.conversionDate && (
+                          <div className="text-xs text-neutral-500 mt-1">
+                            {new Date(instrument.conversionDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-center">
                       {(instrument.type === 'SAFE' || instrument.type === 'safe') && onConvertSafe && (
                         <button
                           onClick={() => onConvertSafe(instrument)}
-                          className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded transition-colors"
+                          disabled={instrument.status === 'converted'}
+                          className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded transition-colors ${
+                            instrument.status === 'converted'
+                              ? 'text-neutral-400 bg-neutral-100 cursor-not-allowed'
+                              : 'text-white bg-orange-600 hover:bg-orange-700'
+                          }`}
+                          data-testid={`button-convert-${instrument.status === 'converted' ? 'disabled' : 'enabled'}`}
                         >
                           Convert
                         </button>
