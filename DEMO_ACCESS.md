@@ -8,6 +8,11 @@ The cap table application now includes a fully functional demo company called **
 - **Email**: `demo@example.com`
 - **Password**: `hello`
 
+### Alternative Test Account
+- **Email**: `work@me.com` (if needed)
+- **Password**: `hello`
+- **Note**: Use demo@example.com for testing - it has complete sample data
+
 ### What's Included in the Demo
 - **Company**: Example LLC (Delaware C-Corp)
 - **Stakeholders**: 
