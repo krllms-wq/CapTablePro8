@@ -103,9 +103,40 @@ export function formatDateOnlyUTC(dateString: string, locale: string = 'en-US'):
 /**
  * Transform date input for form handling - ensures consistent date-only format
  */
-export function transformDateInput(input: Date | string | undefined): string {
-  if (!input) return getCurrentDateUTC();
-  return toDateOnlyUTC(input);
+export function transformDateInput(input: Date | string | undefined): Date {
+  console.log(`transformDateInput called with:`, input, typeof input);
+  
+  if (!input) {
+    const defaultDate = new Date();
+    console.log(`No input, using current date:`, defaultDate.toISOString());
+    return defaultDate;
+  }
+  
+  if (input instanceof Date) {
+    console.log(`Already a Date object:`, input.toISOString());
+    return input;
+  }
+  
+  if (typeof input === 'string') {
+    // Handle YYYY-MM-DD format (common from HTML date inputs)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      const result = new Date(input + 'T00:00:00.000Z');
+      console.log(`Converted "${input}" to Date:`, result.toISOString());
+      return result;
+    }
+    
+    // Handle other date formats
+    const parsed = new Date(input);
+    if (isNaN(parsed.getTime())) {
+      console.error(`Invalid date format: ${input}, using current date`);
+      return new Date();
+    }
+    console.log(`Parsed "${input}" to Date:`, parsed.toISOString());
+    return parsed;
+  }
+  
+  console.error(`Expected date or string, got ${typeof input}:`, input, `using current date`);
+  return new Date();
 }
 
 /**

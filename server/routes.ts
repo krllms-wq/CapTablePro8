@@ -751,7 +751,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure price per share is computed if missing but derivable
       const withPricePerShare = ensurePricePerShare(sanitizedBody);
 
+      console.log("About to validate with Zod:", withPricePerShare);
       const validated = insertShareLedgerEntrySchema.parse(withPricePerShare);
+      console.log("Zod validation result:", validated);
       
       const entry = await storage.createShareLedgerEntry(validated);
       
