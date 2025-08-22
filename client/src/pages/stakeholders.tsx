@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/formatters";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navigation from "@/components/layout/navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pencil, Trash2, Plus } from "lucide-react";
 
 export default function StakeholdersPage() {
   const { companyId } = useParams();
@@ -29,12 +31,20 @@ export default function StakeholdersPage() {
   const [editingStakeholder, setEditingStakeholder] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showSecurityClassDialog, setShowSecurityClassDialog] = useState(false);
+  const [editingSecurityClass, setEditingSecurityClass] = useState<any>(null);
   const [newStakeholder, setNewStakeholder] = useState({
     name: "",
     email: "",
     title: "",
     type: "individual",
     address: ""
+  });
+  const [newSecurityClass, setNewSecurityClass] = useState({
+    name: "",
+    liquidationPreferenceMultiple: "1.0",
+    participating: false,
+    votingRights: "1.0"
   });
 
   const { data: stakeholders, isLoading } = useQuery({
@@ -44,6 +54,11 @@ export default function StakeholdersPage() {
 
   const { data: capTableData } = useQuery({
     queryKey: ["/api/companies", companyId, "cap-table"],
+    enabled: !!companyId,
+  });
+
+  const { data: securityClasses } = useQuery({
+    queryKey: ["/api/companies", companyId, "security-classes"],
     enabled: !!companyId,
   });
 
@@ -145,6 +160,81 @@ export default function StakeholdersPage() {
     }
   };
 
+  const createSecurityClassMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/companies/${companyId}/security-classes`, {
+        method: "POST",
+        body: data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "security-classes"] });
+      toast({
+        title: "Success",
+        description: "Security class created successfully",
+        variant: "success",
+      });
+      setShowSecurityClassDialog(false);
+      setNewSecurityClass({ name: "", liquidationPreferenceMultiple: "1.0", participating: false, votingRights: "1.0" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create security class",
+        variant: "error",
+      });
+    }
+  });
+
+  const updateSecurityClassMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/companies/${companyId}/security-classes/${editingSecurityClass?.id}`, {
+        method: "PUT",
+        body: data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "security-classes"] });
+      toast({
+        title: "Success", 
+        description: "Security class updated successfully",
+        variant: "success",
+      });
+      setShowSecurityClassDialog(false);
+      setEditingSecurityClass(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update security class",
+        variant: "error",
+      });
+    }
+  });
+
+  const deleteSecurityClassMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/companies/${companyId}/security-classes/${id}`, {
+        method: "DELETE"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "security-classes"] });
+      toast({
+        title: "Success",
+        description: "Security class deleted successfully",
+        variant: "success",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete security class",
+        variant: "error",
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-50">
@@ -186,17 +276,25 @@ export default function StakeholdersPage() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders</h1>
-            <Button onClick={() => setShowAddDialog(true)}>
-              <i className="fas fa-plus mr-2"></i>
-              Add Stakeholder
-            </Button>
+            <h1 className="text-2xl font-semibold text-neutral-900">Stakeholders & Security Classes</h1>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="px-6 py-4 border-b border-neutral-200">
-              <h3 className="text-lg font-semibold text-neutral-900">All Stakeholders</h3>
-            </div>
+          <Tabs defaultValue="stakeholders" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
+              <TabsTrigger value="security-classes">Security Classes</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="stakeholders" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-neutral-800">All Stakeholders</h2>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Stakeholder
+                </Button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-neutral-50">

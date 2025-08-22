@@ -201,14 +201,25 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
           throw new Error("Security class name is required");
         }
         
-        const securityClass = await createSecurityClassMutation.mutateAsync({
-          name: newSecurityClass.name,
-          liquidationPreferenceMultiple: newSecurityClass.liquidationPreferenceMultiple,
-          participating: newSecurityClass.participating,
-          votingRights: newSecurityClass.votingRights,
-          companyId: companyId,
-        });
-        classId = securityClass.id;
+        // Check if security class with same name already exists
+        const existingClass = securityClasses?.find(sc => 
+          sc.name.toLowerCase().trim() === newSecurityClass.name.toLowerCase().trim()
+        );
+        
+        if (existingClass) {
+          // Use existing security class instead of creating a new one
+          classId = existingClass.id;
+        } else {
+          // Create new security class
+          const securityClass = await createSecurityClassMutation.mutateAsync({
+            name: newSecurityClass.name,
+            liquidationPreferenceMultiple: newSecurityClass.liquidationPreferenceMultiple,
+            participating: newSecurityClass.participating,
+            votingRights: newSecurityClass.votingRights,
+            companyId: companyId,
+          });
+          classId = securityClass.id;
+        }
       }
 
       // Create share ledger entry
@@ -589,6 +600,62 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 )}
               />
 
+              {/* New Security Class Form */}
+              {showNewSecurityClass && (
+                <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-medium text-sm">New Security Class Details</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Class Name *</Label>
+                      <Input
+                        value={newSecurityClass.name}
+                        onChange={(e) => setNewSecurityClass({...newSecurityClass, name: e.target.value})}
+                        placeholder="e.g., Series A Preferred"
+                      />
+                    </div>
+                    <div>
+                      <Label>Liquidation Preference</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={newSecurityClass.liquidationPreferenceMultiple}
+                        onChange={(e) => setNewSecurityClass({...newSecurityClass, liquidationPreferenceMultiple: e.target.value})}
+                        placeholder=""
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Participating</Label>
+                      <Select 
+                        value={newSecurityClass.participating ? "true" : "false"} 
+                        onValueChange={(value) => 
+                          setNewSecurityClass({...newSecurityClass, participating: value === "true"})
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="false">Non-participating</SelectItem>
+                          <SelectItem value="true">Participating</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Voting Rights</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={newSecurityClass.votingRights}
+                        onChange={(e) => setNewSecurityClass({...newSecurityClass, votingRights: e.target.value})}
+                        placeholder=""
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Quantity */}
               <FormField
                 control={form.control}
@@ -824,64 +891,6 @@ export default function IssueSharesDialog({ open, onOpenChange, companyId }: Iss
                 </div>
               )}
             </div>
-
-
-
-            {/* New Security Class Form */}
-            {showNewSecurityClass && (
-              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
-                <h4 className="font-medium text-sm">New Security Class Details</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Class Name *</Label>
-                    <Input
-                      value={newSecurityClass.name}
-                      onChange={(e) => setNewSecurityClass({...newSecurityClass, name: e.target.value})}
-                      placeholder="e.g., Series A Preferred"
-                    />
-                  </div>
-                  <div>
-                    <Label>Liquidation Preference</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={newSecurityClass.liquidationPreferenceMultiple}
-                      onChange={(e) => setNewSecurityClass({...newSecurityClass, liquidationPreferenceMultiple: e.target.value})}
-                      placeholder=""
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Participating</Label>
-                    <Select 
-                      value={newSecurityClass.participating ? "true" : "false"} 
-                      onValueChange={(value) => 
-                        setNewSecurityClass({...newSecurityClass, participating: value === "true"})
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="false">Non-participating</SelectItem>
-                        <SelectItem value="true">Participating</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Voting Rights</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={newSecurityClass.votingRights}
-                      onChange={(e) => setNewSecurityClass({...newSecurityClass, votingRights: e.target.value})}
-                      placeholder=""
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Additional Settings */}
             <AdditionalSettings
