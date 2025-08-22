@@ -124,39 +124,33 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
   // Get all unique stakeholders from all milestones
   const allStakeholders = new Map<string, { name: string; type?: string }>();
   
-  console.log('🔍 [HISTORICAL] Processing milestones for stakeholders...');
   historicalData.milestones.forEach((milestone: any, mIndex: number) => {
-    console.log(`📊 [HISTORICAL] Milestone ${mIndex} (${milestone.displayDate}):`, {
-      entries: milestone.entries?.length || 0,
-      totalShares: milestone.totalShares,
-      fullyDiluted: milestone.fullyDilutedShares
-    });
-    
     milestone.entries.forEach((entry: any, eIndex: number) => {
-      console.log(`📈 [HISTORICAL] Entry ${eIndex}:`, {
-        stakeholderId: entry.stakeholderId,
-        stakeholder: entry.stakeholder,
-        shares: entry.shares,
-        ownership: entry.ownership,
-        securityClass: entry.securityClass
-      });
-      
       if (entry.stakeholderId && !allStakeholders.has(entry.stakeholderId)) {
         const stakeholderFromAPI = historicalData.stakeholders.find((s: any) => s.id === entry.stakeholderId);
-        console.log(`👤 [HISTORICAL] Found API stakeholder for ${entry.stakeholderId}:`, stakeholderFromAPI);
         
         allStakeholders.set(entry.stakeholderId, { 
           name: entry.stakeholder || stakeholderFromAPI?.name || 'Unknown Stakeholder',
           type: stakeholderFromAPI?.type || 'individual'
         });
-      } else if (!entry.stakeholderId) {
-        console.warn('⚠️ [HISTORICAL] Entry missing stakeholderId:', entry);
       }
     });
   });
 
   const stakeholders = Array.from(allStakeholders.entries()).map(([id, data]) => ({ id, ...data }));
-  console.log('👥 [HISTORICAL] Final processed stakeholders:', stakeholders);
+
+  // Calculate ownership deltas for waterfall view
+  const getOwnershipDelta = (currentMilestone: number, stakeholderId: string) => {
+    if (currentMilestone === 0) return 0;
+    
+    const currentEntry = historicalData.milestones[currentMilestone]?.entries.find((e: any) => e.stakeholderId === stakeholderId);
+    const previousEntry = historicalData.milestones[currentMilestone - 1]?.entries.find((e: any) => e.stakeholderId === stakeholderId);
+    
+    const currentOwnership = currentEntry ? currentEntry.ownership : 0;
+    const previousOwnership = previousEntry ? previousEntry.ownership : 0;
+    
+    return currentOwnership - previousOwnership;
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -167,8 +161,29 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
               Stakeholder
             </th>
             {historicalData.milestones.map((milestone: any, index: number) => (
-              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">
-                {milestone.displayDate}
+              <th key={`header-${milestone.date}-${index}`} className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px] relative group">
+                <div className="flex flex-col">
+                  <span>{milestone.displayDate}</span>
+                  {milestone.events && milestone.events.length > 0 && (
+                    <div className="mt-1">
+                      <i className="fas fa-info-circle text-xs text-slate-400 cursor-help" 
+                         title={milestone.events.map((event: any) => event.description).join('\n')}></i>
+                    </div>
+                  )}
+                </div>
+                {/* Tooltip */}
+                {milestone.events && milestone.events.length > 0 && (
+                  <div className="absolute invisible group-hover:visible bg-slate-800 text-white text-xs rounded-lg px-3 py-2 z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64">
+                    <div className="font-semibold mb-2">Events on {milestone.displayDate}:</div>
+                    {milestone.events.map((event: any, eventIndex: number) => (
+                      <div key={eventIndex} className="mb-1">
+                        • {event.description}
+                      </div>
+                    ))}
+                    {/* Tooltip arrow */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
+                  </div>
+                )}
               </th>
             ))}
           </tr>
@@ -203,6 +218,7 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
                 const entry = milestone.entries.find((e: any) => e.stakeholderId === stakeholder.id);
                 const ownership = entry ? entry.ownership : 0;
                 const shares = entry ? entry.shares : 0;
+                const delta = getOwnershipDelta(index, stakeholder.id);
                 
                 return (
                   <td key={`data-${milestone.date}-${stakeholder.id}-${index}`} className="px-4 py-4 text-center">
@@ -212,6 +228,14 @@ function HistoricalCapTable({ companyId }: { companyId: string }) {
                     <div className="text-xs text-slate-500">
                       {shares.toLocaleString()} shares
                     </div>
+                    {/* Waterfall Delta */}
+                    {delta !== 0 && index > 0 && (
+                      <div className={`text-xs font-medium mt-1 ${
+                        delta > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {delta > 0 ? '+' : ''}{delta.toFixed(2)}%
+                      </div>
+                    )}
                   </td>
                 );
               })}

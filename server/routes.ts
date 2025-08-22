@@ -1209,7 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       // Create stakeholder map for computeCapTable
-      const stakeholderMap = new Map(stakeholders.map(s => [s.id, { name: s.name }]));
+      const stakeholderMap = new Map(stakeholders.map((s: any) => [s.id, { name: s.name }]));
 
       // Identify milestone dates from all transaction types
       const milestoneSet = new Set<string>();
@@ -1247,39 +1247,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🏆 [HISTORICAL API] Equity awards:', equityAwards.length);
       console.log('💰 [HISTORICAL API] Convertibles:', convertibles.length);
       
-      // Debug convertible instruments with conversion dates
-      console.log('🔍 [HISTORICAL API] Convertible details:');
-      convertibles.forEach((conv, index) => {
-        console.log(`  ${index}: ${conv.type} for ${conv.holderId}`, {
-          issueDate: conv.issueDate?.toISOString()?.split('T')[0],
-          conversionDate: conv.conversionDate?.toISOString()?.split('T')[0] || 'NOT_CONVERTED',
-          amount: conv.amount,
-          isConverted: !!conv.conversionDate
-        });
-      });
 
       // Use existing computeCapTable function to calculate historical states
       const { computeCapTable } = await import("./domain/captable/compute");
       
       const historicalData = sortedMilestones.map((asOfDate, index) => {
-        console.log(`🧮 [HISTORICAL API] Computing milestone ${index}: ${asOfDate.toISOString()}`);
         
-        // Check which convertibles should have converted by this date
-        const convertiblesConvertedByDate = convertibles.filter(conv => 
-          conv.conversionDate && conv.conversionDate <= asOfDate
-        );
-        const convertiblesNotConvertedByDate = convertibles.filter(conv => 
-          !conv.conversionDate || conv.conversionDate > asOfDate
-        );
+        // Determine what events happened on this date for tooltip
+        const eventsOnDate: Array<{
+          type: string;
+          description: string;
+          stakeholder?: string;
+          amount?: number;
+          securityClass?: string;
+          instrumentType?: string;
+        }> = [];
         
-        console.log(`🎯 [HISTORICAL API] As of ${asOfDate.toISOString().split('T')[0]}:`);
-        console.log(`  ✅ Converted: ${convertiblesConvertedByDate.length} convertibles`);
-        convertiblesConvertedByDate.forEach(conv => {
-          console.log(`    - ${conv.type} (${conv.holderId}) converted on ${conv.conversionDate?.toISOString()?.split('T')[0]}`);
+        // Check for share issuances
+        const shareIssuances = shareLedger.filter((entry: any) => 
+          entry.issueDate.toDateString() === asOfDate.toDateString()
+        );
+        shareIssuances.forEach((entry: any) => {
+          const stakeholder = stakeholders.find((s: any) => s.id === entry.holderId);
+          const secClass = securityClasses.find((sc: any) => sc.id === entry.classId);
+          eventsOnDate.push({
+            type: 'share_issuance',
+            description: `${stakeholder?.name} issued ${entry.quantity.toLocaleString()} ${secClass?.name || 'shares'}`,
+            stakeholder: stakeholder?.name,
+            amount: entry.quantity,
+            securityClass: secClass?.name
+          });
         });
-        console.log(`  ⏳ Not yet converted: ${convertiblesNotConvertedByDate.length} convertibles`);
-        convertiblesNotConvertedByDate.forEach(conv => {
-          console.log(`    - ${conv.type} (${conv.holderId}) conversion: ${conv.conversionDate?.toISOString()?.split('T')[0] || 'never'}`);
+        
+        // Check for convertible issuances
+        const convertibleIssuances = convertibles.filter((conv: any) =>
+          conv.issueDate.toDateString() === asOfDate.toDateString()
+        );
+        convertibleIssuances.forEach((conv: any) => {
+          const stakeholder = stakeholders.find((s: any) => s.id === conv.holderId);
+          eventsOnDate.push({
+            type: 'convertible_issuance',
+            description: `${stakeholder?.name} issued ${conv.type} for $${conv.amount?.toLocaleString() || '0'}`,
+            stakeholder: stakeholder?.name,
+            amount: conv.amount,
+            instrumentType: conv.type
+          });
+        });
+        
+        // Check for conversions
+        const conversionsOnDate = convertibles.filter((conv: any) =>
+          (conv as any).conversionDate && (conv as any).conversionDate.toDateString() === asOfDate.toDateString()
+        );
+        conversionsOnDate.forEach((conv: any) => {
+          const stakeholder = stakeholders.find((s: any) => s.id === conv.holderId);
+          eventsOnDate.push({
+            type: 'conversion',
+            description: `${stakeholder?.name} converted ${conv.type} to shares`,
+            stakeholder: stakeholder?.name,
+            instrumentType: conv.type
+          });
         });
         
         const result = computeCapTable(
@@ -1293,38 +1319,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'FullyDiluted'
         );
         
-        console.log(`📊 [HISTORICAL API] Cap table result for ${asOfDate.toISOString()}:`, {
-          totalEntries: result.entries.length,
-          totalShares: result.totalShares,
-          fullyDiluted: result.fullyDilutedShares,
-          entries: result.entries.map(e => ({
-            holderId: e.holderId,
-            holderName: e.holderName,
-            shares: e.shares,
-            ownership: e.ownership
-          }))
-        });
         
         return {
           date: asOfDate.toISOString().split('T')[0],
           displayDate: asOfDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-          entries: result.entries.map(entry => {
-            console.log(`📈 [HISTORICAL API] Processing entry: ${entry.holderName} - ${entry.shares} shares (${entry.ownership.toFixed(2)}%)`);
-            return {
-              stakeholderId: entry.holderId,
-              stakeholder: entry.holderName,
-              shares: entry.shares,
-              ownership: entry.ownership,
-              securityClass: entry.securityClass
-            };
-          }),
+          events: eventsOnDate,
+          entries: result.entries.map(entry => ({
+            stakeholderId: entry.holderId,
+            stakeholder: entry.holderName,
+            shares: entry.shares,
+            ownership: entry.ownership,
+            securityClass: entry.securityClass
+          })),
           totalShares: result.totalShares,
           fullyDilutedShares: result.fullyDilutedShares
         };
       });
 
       // Also include current state as the final point
-      console.log('🧮 [HISTORICAL API] Computing current state...');
       const currentResult = computeCapTable(
         shareLedger,
         equityAwards, 
@@ -1335,22 +1347,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new Date(),
         'FullyDiluted'
       );
-      
-      console.log('📊 [HISTORICAL API] Current cap table result:', {
-        totalEntries: currentResult.entries.length,
-        totalShares: currentResult.totalShares,
-        fullyDiluted: currentResult.fullyDilutedShares,
-        entries: currentResult.entries.map(e => ({
-          holderId: e.holderId,
-          holderName: e.holderName,
-          shares: e.shares,
-          ownership: e.ownership
-        }))
-      });
 
       historicalData.push({
         date: new Date().toISOString().split('T')[0],
-        displayDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        displayDate: 'Current',
+        events: [], // Current state has no specific events
         entries: currentResult.entries.map(entry => ({
           stakeholderId: entry.holderId,
           stakeholder: entry.holderName,
@@ -1364,7 +1365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const response = {
         milestones: historicalData,
-        stakeholders: stakeholders.map(s => ({ id: s.id, name: s.name, type: s.type }))
+        stakeholders: stakeholders.map((s: any) => ({ id: s.id, name: s.name, type: s.type }))
       };
       
       res.json(response);
