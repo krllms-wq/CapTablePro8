@@ -18,17 +18,32 @@
   --blue-600: #2563eb;
   --blue-700: #1d4ed8;
 
+  --indigo-50: #eef2ff;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+
   --green-50: #f0fdf4;
   --green-500: #22c55e;
   --green-600: #16a34a;
+
+  --emerald-50: #ecfdf5;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
 
   --red-50: #fef2f2;
   --red-500: #ef4444;
   --red-600: #dc2626;
 
-  --yellow-50: #fefce8;
-  --yellow-500: #eab308;
-  --yellow-600: #ca8a04;
+  --amber-50: #fffbeb;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+
+  --purple-50: #faf5ff;
+  --purple-500: #a855f7;
+  --purple-600: #9333ea;
 
   /* Semantic colors - Light mode */
   --surface: #ffffff;
@@ -45,9 +60,9 @@
   --text-subtle: var(--gray-500);
   --text-inverse: #ffffff;
   
-  --primary: var(--blue-600);
-  --primary-hover: var(--blue-700);
-  --primary-muted: var(--blue-50);
+  --primary: var(--indigo-600);
+  --primary-hover: var(--indigo-700);
+  --primary-muted: var(--indigo-50);
   --primary-text: #ffffff;
   
   --destructive: var(--red-600);
@@ -55,14 +70,14 @@
   --destructive-muted: var(--red-50);
   --destructive-text: #ffffff;
   
-  --warning: var(--yellow-600);
-  --warning-hover: var(--yellow-700);
-  --warning-muted: var(--yellow-50);
+  --warning: var(--amber-600);
+  --warning-hover: var(--amber-700);
+  --warning-muted: var(--amber-50);
   --warning-text: var(--gray-900);
   
-  --success: var(--green-600);
-  --success-hover: var(--green-700);
-  --success-muted: var(--green-50);
+  --success: var(--emerald-600);
+  --success-hover: var(--emerald-700);
+  --success-muted: var(--emerald-50);
   --success-text: #ffffff;
   
   --focus: var(--blue-500);

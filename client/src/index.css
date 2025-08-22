@@ -5,50 +5,50 @@
 
 :root {
   /* Base colors */
-  --bg: 255 255 255;
-  --fg: 17 24 39;
-  --muted: 107 114 128;
-  --border: 229 231 235;
+  --bg: 249 250 251;        /* Warmer light grey background */
+  --fg: 15 23 42;
+  --muted: 100 116 139;
+  --border: 203 213 225;
 
-  /* Primary palette - Calmer finance blue */
-  --primary: 71 85 105;    /* slate-600 - much calmer */
+  /* Primary palette - Vibrant blue/purple */
+  --primary: 79 70 229;     /* indigo-600 - vibrant and modern */
   --primary-foreground: 255 255 255;
 
-  /* Semantic colors - Muted tones */
-  --success: 34 197 94;    /* green-500 - slightly muted */
-  --warning: 217 119 6;    /* amber-600 - more muted */
-  --danger: 220 38 38;     /* red-600 - less aggressive */
-  --info: 71 85 105;       /* slate-600 - calm info */
+  /* Semantic colors - More vibrant */
+  --success: 16 185 129;    /* emerald-500 - bright green */
+  --warning: 245 158 11;    /* amber-500 - bright amber */
+  --danger: 239 68 68;      /* red-500 - clear red */
+  --info: 59 130 246;       /* blue-500 - bright blue */
 
   /* Card backgrounds */
   --card: 255 255 255;
-  --card-foreground: 17 24 39;
+  --card-foreground: 15 23 42;
 
   /* Legacy mapping for existing components */
   --background: rgb(var(--bg));
   --foreground: rgb(var(--fg));
   --destructive: rgb(var(--danger));
   --destructive-foreground: rgb(var(--primary-foreground));
-  --secondary: 248 250 252;  /* slate-50 - very subtle */
-  --secondary-foreground: 51 65 85;  /* slate-700 - calm text */
-  --accent: 248 250 252;     /* slate-50 - very gentle hover */
-  --accent-foreground: 51 65 85;  /* slate-700 - calm text */
+  --secondary: 241 245 249;  /* slate-100 - more noticeable */
+  --secondary-foreground: 30 41 59;  /* slate-800 - darker text */
+  --accent: 236 254 255;     /* cyan-50 - subtle cyan tint */
+  --accent-foreground: 14 116 144;  /* cyan-700 - vibrant accent text */
   --popover: rgb(var(--card));
   --popover-foreground: rgb(var(--card-foreground));
   --input: rgb(var(--border));
   --muted-bg: rgb(var(--muted));
   --muted-foreground: rgb(var(--muted));
 
-  --ring: rgb(var(--info));
-  --radius: 14px;          /* large rounded corners */
-  --shadow: 0 8px 24px rgba(0,0,0,.06);
+  --ring: rgb(var(--primary));
+  --radius: 12px;          /* modern rounded corners */
+  --shadow: 0 10px 25px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
 
-  /* Chart colors */
-  --chart-1: rgb(var(--primary));
-  --chart-2: rgb(var(--success));
-  --chart-3: rgb(var(--warning));
-  --chart-4: rgb(var(--info));
-  --chart-5: rgb(var(--danger));
+  /* Chart colors - More vibrant palette */
+  --chart-1: 99 102 241;   /* indigo-500 */
+  --chart-2: 34 197 94;    /* green-500 */
+  --chart-3: 251 191 36;   /* amber-400 */
+  --chart-4: 168 85 247;   /* purple-500 */
+  --chart-5: 239 68 68;    /* red-500 */
 
   /* Sidebar */
   --sidebar: rgb(var(--card));
@@ -113,7 +113,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(135deg, rgb(var(--bg)) 0%, rgb(245 247 250) 100%);
     font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     font-size: 14px;
@@ -152,6 +153,8 @@
     padding: 20px 24px;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(249,250,251,0.9) 100%);
+    border: 1px solid rgb(226 232 240 / 0.8);
   }
 
   .panel {
