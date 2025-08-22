@@ -1291,9 +1291,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? (holdings.shares + holdings.options) * valuationResult.pricePerShare
           : null;
 
+        // Find the security class for this stakeholder's shares
+        const shareholderEntry = shareLedger.find(entry => entry.holderId === holderId);
+        const securityClass = shareholderEntry ? securityClasses.find(sc => sc.id === shareholderEntry.classId) : null;
+
         return {
           stakeholder: stakeholder?.name || "Unknown",
           stakeholderId: holderId,
+          securityType: securityClass?.name || "Unknown",
           shares: holdings.shares,
           options: holdings.options,
           convertibles: holdings.convertibles || 0,

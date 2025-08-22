@@ -131,7 +131,7 @@ export default function Dashboard() {
         <CapTableMain 
           capTable={capTableData?.capTable?.map(row => ({
             stakeholder: { name: row.stakeholder },
-            securityClass: { name: "Common Stock" }, // Default security class
+            securityClass: { name: row.securityType || "Unknown" },
             shares: row.shares,
             ownership: parseFloat(row.percentage),
             value: row.currentValue || 0,
