@@ -69,17 +69,6 @@ The schema supports complex cap table structures with entities for Companies, Se
 
 ## Recent Bug Fixes & Enhancements - Aug 22, 2025 ✅
 
-### Deterministic Server-Side Cap Table Computation - COMPLETED ✅
-- **Pure Function Implementation**: Created `computeCapTable({companyId, asOf, view})` with stable inputs/outputs
-- **Multiple View Support**: OUTSTANDING vs FULLY_DILUTED views with proper inclusion rules
-- **Date-Only UTC Processing**: All `asOf` parameters are date-only UTC with no timezone drift
-- **Flexible RSU Policies**: Support for none/granted/vested RSU inclusion with policy switching
-- **Comprehensive Validation**: API parameter validation with clear 400 error messages for invalid inputs
-- **Nullable Valuations**: Price per share and current valuation are nullable when no priced rounds exist
-- **Deterministic Results**: Same inputs always produce identical outputs for reliable cap table calculations
-- **API Endpoint**: `GET /api/companies/:id/cap-table?view=FD|OS&asOf=YYYY-MM-DD&rsuPolicy=none|granted|vested`
-- **Comprehensive Testing**: Unit tests for deterministic behavior, integration tests for API stability
-
 ### Enhanced Activity Feed & Event Logging - COMPLETED ✅
 - **Fixed "Unknown Action Unknown undefined" Display**: Implemented comprehensive event formatting with robust fallback handling for all event types
 - **Enhanced Transaction Logging**: Added complete metadata for all transaction types including shares, equity awards, convertibles, and secondary transfers

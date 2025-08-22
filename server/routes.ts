@@ -96,21 +96,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email and password are required" });
       }
       
-      console.log(`Login attempt for email: ${email}`);
-      
       // Find user by email
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
-        console.log(`User not found for email: ${email.toLowerCase()}`);
         return res.status(401).json({ error: "Invalid credentials" });
       }
       
-      console.log(`User found: ${user.id}, hash length: ${user.passwordHash.length}`);
-      
       // Verify password
       const isValidPassword = await comparePassword(password, user.passwordHash);
-      console.log(`Password verification result: ${isValidPassword}`);
-      
       if (!isValidPassword) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -1157,44 +1150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cap table calculation routes
-  // New deterministic cap table endpoint
-  app.get("/api/companies/:companyId/cap-table", requireAuth, async (req, res) => {
-    try {
-      const { companyId } = req.params;
-      const { view = 'FULLY_DILUTED', asOf, rsuPolicy = 'granted' } = req.query;
-      
-      // Validate parameters
-      if (view !== 'OUTSTANDING' && view !== 'FULLY_DILUTED') {
-        return res.status(400).json({ error: "Invalid view parameter. Must be 'OUTSTANDING' or 'FULLY_DILUTED'" });
-      }
-      
-      if (asOf && !/^\d{4}-\d{2}-\d{2}$/.test(asOf as string)) {
-        return res.status(400).json({ error: "Invalid asOf parameter. Must be YYYY-MM-DD format" });
-      }
-      
-      if (rsuPolicy && !['none', 'granted', 'vested'].includes(rsuPolicy as string)) {
-        return res.status(400).json({ error: "Invalid rsuPolicy parameter. Must be 'none', 'granted', or 'vested'" });
-      }
-
-      // Import compute function
-      const { computeCapTable } = await import('./domain/cap-table/computeCapTable');
-      
-      const result = await computeCapTable({
-        companyId,
-        asOf: asOf as string,
-        view: view as 'OUTSTANDING' | 'FULLY_DILUTED',
-        rsuPolicy: rsuPolicy as 'none' | 'granted' | 'vested'
-      });
-      
-      res.json(result);
-    } catch (error) {
-      console.error("Error computing cap table:", error);
-      res.status(500).json({ error: "Failed to compute cap table" });
-    }
-  });
-
-  // Legacy cap table endpoint - preserved for backward compatibility
-  app.get("/api/companies/:companyId/cap-table-legacy", async (req, res) => {
+  app.get("/api/companies/:companyId/cap-table", async (req, res) => {
     try {
       const { companyId } = req.params;
       
