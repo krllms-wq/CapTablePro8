@@ -11,12 +11,13 @@ import {
   type Scenario, type InsertScenario,
   type User, type InsertUser,
   type UserCompanyAccess, type InsertUserCompanyAccess,
-  type CapTableShare, type InsertCapTableShare
+  type CapTableShare, type InsertCapTableShare,
+  type ConvertibleConversion, type InsertConvertibleConversion
 } from "@shared/schema";
 import { 
   companies, securityClasses, stakeholders, shareLedgerEntries, equityAwards,
   convertibleInstruments, rounds, corporateActions, auditLogs, scenarios, users,
-  userCompanyAccess, capTableShares
+  userCompanyAccess, capTableShares, convertibleConversions
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -60,6 +61,12 @@ export interface IStorage {
   getConvertibleInstruments(companyId: string): Promise<ConvertibleInstrument[]>;
   getConvertibleInstrument(id: string): Promise<ConvertibleInstrument | undefined>;
   deleteConvertibleInstrument(id: string): Promise<void>;
+
+  // Convertible Conversions
+  createConvertibleConversion(conversion: InsertConvertibleConversion): Promise<ConvertibleConversion>;
+  getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]>;
+  getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined>;
+  rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }>;
 
   // Rounds
   createRound(round: InsertRound): Promise<Round>;
@@ -115,6 +122,7 @@ export class MemStorage implements IStorage {
   private users: Map<string, User> = new Map();
   private userCompanyAccess: Map<string, UserCompanyAccess> = new Map();
   private capTableShares: Map<string, CapTableShare> = new Map();
+  private convertibleConversions: Map<string, ConvertibleConversion> = new Map();
 
   // Database connection method
   private async getDbConnection() {
@@ -748,6 +756,134 @@ export class MemStorage implements IStorage {
 
   async deleteConvertibleInstrument(id: string): Promise<void> {
     this.convertibleInstruments.delete(id);
+  }
+
+  // Convertible Conversions
+
+  async createConvertibleConversion(insertConversion: InsertConvertibleConversion): Promise<ConvertibleConversion> {
+    const id = randomUUID();
+    const conversion: ConvertibleConversion = {
+      id,
+      companyId: insertConversion.companyId,
+      convertibleId: insertConversion.convertibleId,
+      triggerRoundId: insertConversion.triggerRoundId ?? null,
+      triggerType: insertConversion.triggerType,
+      conversionDate: insertConversion.conversionDate,
+      conversionPrice: insertConversion.conversionPrice,
+      sharesIssued: insertConversion.sharesIssued,
+      securityClassId: insertConversion.securityClassId,
+      priceCalculationDetails: insertConversion.priceCalculationDetails ?? null,
+      shareEntryId: insertConversion.shareEntryId ?? null,
+      status: 'active',
+      rolledBackAt: null,
+      rolledBackBy: null,
+      rollbackReason: null,
+      createdBy: insertConversion.createdBy,
+      createdAt: new Date(),
+    };
+    
+    // Store in database if available
+    if (this.db) {
+      try {
+        const [dbConversion] = await this.db
+          .insert(convertibleConversions)
+          .values({
+            companyId: conversion.companyId,
+            convertibleId: conversion.convertibleId,
+            triggerRoundId: conversion.triggerRoundId,
+            triggerType: conversion.triggerType,
+            conversionDate: conversion.conversionDate,
+            conversionPrice: conversion.conversionPrice,
+            sharesIssued: conversion.sharesIssued,
+            securityClassId: conversion.securityClassId,
+            priceCalculationDetails: conversion.priceCalculationDetails,
+            shareEntryId: conversion.shareEntryId,
+            createdBy: conversion.createdBy,
+          })
+          .returning();
+        return dbConversion;
+      } catch (error) {
+        console.error('Database error creating conversion, using memory storage:', error);
+      }
+    }
+    
+    this.convertibleConversions.set(id, conversion);
+    return conversion;
+  }
+
+  async getConvertibleConversions(companyId: string): Promise<ConvertibleConversion[]> {
+    if (this.db) {
+      try {
+        return await this.db
+          .select()
+          .from(convertibleConversions)
+          .where(eq(convertibleConversions.companyId, companyId));
+      } catch (error) {
+        console.error('Database error fetching conversions, using memory storage:', error);
+      }
+    }
+    
+    return Array.from(this.convertibleConversions.values()).filter(c => c.companyId === companyId);
+  }
+
+  async getConvertibleConversion(id: string): Promise<ConvertibleConversion | undefined> {
+    if (this.db) {
+      try {
+        const [conversion] = await this.db
+          .select()
+          .from(convertibleConversions)
+          .where(eq(convertibleConversions.id, id));
+        return conversion;
+      } catch (error) {
+        console.error('Database error fetching conversion, using memory storage:', error);
+      }
+    }
+    
+    return this.convertibleConversions.get(id);
+  }
+
+  async rollbackConvertibleConversion(conversionId: string, userId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+    const conversion = await this.getConvertibleConversion(conversionId);
+    if (!conversion) {
+      return { success: false, error: 'Conversion not found' };
+    }
+    
+    if (conversion.status !== 'active') {
+      return { success: false, error: 'Conversion is already rolled back' };
+    }
+    
+    // Update conversion status
+    const rolledBackConversion: ConvertibleConversion = {
+      ...conversion,
+      status: 'rolled_back',
+      rolledBackAt: new Date(),
+      rolledBackBy: userId,
+      rollbackReason: reason || null,
+    };
+    
+    if (this.db) {
+      try {
+        await this.db
+          .update(convertibleConversions)
+          .set({
+            status: 'rolled_back',
+            rolledBackAt: new Date(),
+            rolledBackBy: userId,
+            rollbackReason: reason || null,
+          })
+          .where(eq(convertibleConversions.id, conversionId));
+      } catch (error) {
+        console.error('Database error rolling back conversion:', error);
+        return { success: false, error: 'Database error during rollback' };
+      }
+    } else {
+      this.convertibleConversions.set(conversionId, rolledBackConversion);
+    }
+    
+    // TODO: Remove share ledger entry if needed
+    // TODO: Restore original convertible instrument if needed
+    
+    return { success: true };
   }
 
   // Rounds

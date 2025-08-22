@@ -199,6 +199,30 @@ export const auditLogs = pgTable("audit_logs", {
   resourceIdx: index("audit_logs_resource_idx").on(table.resourceType, table.resourceId),
 }));
 
+// Convertible Conversions - track all SAFE/Note conversions with rollback capability
+export const convertibleConversions = pgTable("convertible_conversions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  convertibleId: varchar("convertible_id").notNull().references(() => convertibleInstruments.id),
+  triggerRoundId: varchar("trigger_round_id").references(() => rounds.id), // Round that triggered conversion
+  triggerType: varchar("trigger_type", { length: 30 }).notNull(), // 'priced_round', 'liquidity_event', 'manual'
+  conversionDate: timestamp("conversion_date").notNull(),
+  conversionPrice: decimal("conversion_price", { precision: 10, scale: 4 }).notNull(),
+  sharesIssued: integer("shares_issued").notNull(),
+  securityClassId: varchar("security_class_id").notNull().references(() => securityClasses.id),
+  priceCalculationDetails: jsonb("price_calculation_details"), // Discount vs cap calculation details
+  shareEntryId: varchar("share_entry_id").references(() => shareLedgerEntries.id), // Created share ledger entry
+  status: varchar("status", { length: 20 }).notNull().default("active"), // 'active', 'rolled_back'
+  rolledBackAt: timestamp("rolled_back_at"),
+  rolledBackBy: varchar("rolled_back_by").references(() => users.id),
+  rollbackReason: text("rollback_reason"),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+}, (table) => ({
+  companyConversionIdx: index("convertible_conversions_company_idx").on(table.companyId, table.conversionDate.desc()),
+  convertibleIdx: index("convertible_conversions_convertible_idx").on(table.convertibleId),
+}));
+
 // Scenarios table for saving round modeling scenarios
 export const scenarios = pgTable("scenarios", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -377,6 +401,25 @@ export type InsertEquityAward = z.infer<typeof insertEquityAwardSchema>;
 
 export type ConvertibleInstrument = typeof convertibleInstruments.$inferSelect;
 export type InsertConvertibleInstrument = z.infer<typeof insertConvertibleInstrumentSchema>;
+
+// Convertible Conversions schema
+export const insertConvertibleConversionSchema = createInsertSchema(convertibleConversions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  conversionDate: z.union([z.date(), z.string()]).transform(transformDateInput),
+  conversionPrice: z.union([
+    z.number(),
+    z.string().transform(str => parseFloat(str.replace(/,/g, '')))
+  ]).pipe(z.number().positive()),
+  sharesIssued: z.union([
+    z.number(),
+    z.string().transform(str => parseInt(str.replace(/,/g, ''), 10))
+  ]).pipe(z.number().int().positive()),
+});
+
+export type ConvertibleConversion = typeof convertibleConversions.$inferSelect;
+export type InsertConvertibleConversion = z.infer<typeof insertConvertibleConversionSchema>;
 
 export type Round = typeof rounds.$inferSelect;
 export type InsertRound = z.infer<typeof insertRoundSchema>;

@@ -12,7 +12,9 @@ import {
   insertRoundSchema,
   insertCorporateActionSchema,
   insertUserSchema,
-  insertCapTableShareSchema
+  insertCapTableShareSchema,
+  insertConvertibleConversionSchema,
+  type ConvertibleConversion
 } from "@shared/schema";
 import { z } from "zod";
 import { insertScenarioSchema } from "@shared/schema";
@@ -22,6 +24,7 @@ import demoRoutes from "./routes/demo";
 import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numberParser";
 import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 import { ensurePricePerShare } from "./domain/util/price";
+import { calculateSAFEConversion, validateSAFEConversion, formatConversionSummary } from "./utils/safeConversion";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -1355,6 +1358,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating cap table:", error);
       res.status(500).json({ error: "Failed to calculate cap table" });
+    }
+  });
+
+  // SAFE Conversion endpoints
+  
+  // Calculate potential SAFE conversion
+  app.post("/api/companies/:companyId/convertibles/:convertibleId/calculate-conversion", requireAuth, async (req, res) => {
+    try {
+      const { companyId, convertibleId } = req.params;
+      const { roundPricePerShare, roundPreMoneyValuation } = req.body;
+
+      // Validate inputs
+      if (!roundPricePerShare || !roundPreMoneyValuation) {
+        return res.status(400).json({ error: "Round price per share and pre-money valuation are required" });
+      }
+
+      // Get the convertible instrument
+      const convertible = await storage.getConvertibleInstrument(convertibleId);
+      if (!convertible || convertible.companyId !== companyId) {
+        return res.status(404).json({ error: "Convertible instrument not found" });
+      }
+
+      // Validate conversion eligibility
+      const validation = validateSAFEConversion(convertible);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.reason });
+      }
+
+      // Calculate conversion
+      const calculation = calculateSAFEConversion(
+        convertible,
+        Number(roundPricePerShare),
+        Number(roundPreMoneyValuation)
+      );
+
+      res.json({
+        calculation,
+        summary: formatConversionSummary(calculation),
+        convertible: {
+          id: convertible.id,
+          holderName: (await storage.getStakeholder(convertible.holderId))?.name,
+          principal: convertible.principal,
+          framework: convertible.framework
+        }
+      });
+    } catch (error) {
+      console.error("Error calculating SAFE conversion:", error);
+      res.status(500).json({ error: "Failed to calculate conversion" });
+    }
+  });
+
+  // Execute SAFE conversion
+  app.post("/api/companies/:companyId/convertibles/:convertibleId/convert", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId, convertibleId } = req.params;
+      const { roundPricePerShare, roundPreMoneyValuation, triggerType = 'manual', triggerRoundId, securityClassId } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      // Get the convertible instrument
+      const convertible = await storage.getConvertibleInstrument(convertibleId);
+      if (!convertible || convertible.companyId !== companyId) {
+        return res.status(404).json({ error: "Convertible instrument not found" });
+      }
+
+      // Validate conversion eligibility
+      const validation = validateSAFEConversion(convertible);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.reason });
+      }
+
+      // Calculate conversion
+      const calculation = calculateSAFEConversion(
+        convertible,
+        Number(roundPricePerShare),
+        Number(roundPreMoneyValuation)
+      );
+
+      // Find appropriate security class (default to preferred stock)
+      let targetSecurityClassId = securityClassId;
+      if (!targetSecurityClassId) {
+        const securityClasses = await storage.getSecurityClasses(companyId);
+        const preferredClass = securityClasses.find(sc => sc.name.toLowerCase().includes('preferred'));
+        targetSecurityClassId = preferredClass?.id || securityClasses[0]?.id;
+      }
+
+      if (!targetSecurityClassId) {
+        return res.status(400).json({ error: "No suitable security class found" });
+      }
+
+      // Create share ledger entry for converted shares
+      const shareEntry = await storage.createShareLedgerEntry({
+        companyId,
+        holderId: convertible.holderId,
+        classId: targetSecurityClassId,
+        transactionType: 'issue',
+        quantity: calculation.sharesIssued,
+        pricePerShare: calculation.conversionPrice,
+        consideration: Number(convertible.principal),
+        transactionDate: new Date(),
+        notes: `SAFE conversion: ${formatConversionSummary(calculation)}`
+      });
+
+      // Record conversion in conversion history
+      const conversion = await storage.createConvertibleConversion({
+        companyId,
+        convertibleId,
+        triggerRoundId: triggerRoundId || null,
+        triggerType,
+        conversionDate: new Date(),
+        conversionPrice: calculation.conversionPrice,
+        sharesIssued: calculation.sharesIssued,
+        securityClassId: targetSecurityClassId,
+        priceCalculationDetails: calculation,
+        shareEntryId: shareEntry.id,
+        createdBy: userId
+      });
+
+      // Mark convertible as converted (remove from active convertibles)
+      await storage.deleteConvertibleInstrument(convertibleId);
+
+      // Log activity
+      const stakeholder = await storage.getStakeholder(convertible.holderId);
+      await logTransactionEvent(
+        companyId,
+        'convertible_conversion',
+        {
+          convertibleId,
+          stakeholder: stakeholder?.name,
+          principal: Number(convertible.principal),
+          sharesIssued: calculation.sharesIssued,
+          conversionPrice: calculation.conversionPrice,
+          calculationMethod: calculation.calculationMethod
+        }
+      );
+
+      res.json({
+        success: true,
+        conversion,
+        shareEntry,
+        calculation,
+        summary: formatConversionSummary(calculation)
+      });
+    } catch (error) {
+      console.error("Error executing SAFE conversion:", error);
+      res.status(500).json({ error: "Failed to execute conversion" });
+    }
+  });
+
+  // Get conversion history
+  app.get("/api/companies/:companyId/conversion-history", requireAuth, async (req, res) => {
+    try {
+      const companyId = req.params.companyId;
+      const conversions = await storage.getConvertibleConversions(companyId);
+      
+      // Enrich with stakeholder names
+      const enrichedConversions = await Promise.all(
+        conversions.map(async (conversion) => {
+          const shareEntry = conversion.shareEntryId 
+            ? await storage.getShareLedgerEntry(conversion.shareEntryId)
+            : null;
+          const stakeholder = shareEntry 
+            ? await storage.getStakeholder(shareEntry.holderId)
+            : null;
+          
+          return {
+            ...conversion,
+            stakeholderName: stakeholder?.name || 'Unknown',
+            canRollback: conversion.status === 'active'
+          };
+        })
+      );
+
+      res.json(enrichedConversions);
+    } catch (error) {
+      console.error("Error fetching conversion history:", error);
+      res.status(500).json({ error: "Failed to fetch conversion history" });
+    }
+  });
+
+  // Rollback SAFE conversion
+  app.post("/api/companies/:companyId/conversions/:conversionId/rollback", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { companyId, conversionId } = req.params;
+      const { reason } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const result = await storage.rollbackConvertibleConversion(conversionId, userId, reason);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      // Log rollback activity
+      await logTransactionEvent(
+        companyId,
+        'conversion_rollback',
+        {
+          conversionId,
+          reason,
+          rolledBackBy: userId
+        }
+      );
+
+      res.json({ success: true, message: 'Conversion rolled back successfully' });
+    } catch (error) {
+      console.error("Error rolling back conversion:", error);
+      res.status(500).json({ error: "Failed to rollback conversion" });
     }
   });
 

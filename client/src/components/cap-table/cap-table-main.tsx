@@ -22,6 +22,7 @@ interface CapTableMainProps {
   capTable?: CapTableRow[];
   convertibles?: Array<{ id: string; type: string; holderName: string; principal: number; framework?: string; discountRate?: number; valuationCap?: number; issueDate: string }>;
   isLoading: boolean;
+  onConvertSafe?: (convertible: any) => void;
 }
 
 // Historical Cap Table Component  
@@ -128,7 +129,7 @@ function HistoricalCapTable({ capTable }: { capTable: CapTableRow[] }) {
   );
 }
 
-export default function CapTableMain({ capTable, convertibles, isLoading }: CapTableMainProps) {
+export default function CapTableMain({ capTable, convertibles, isLoading, onConvertSafe }: CapTableMainProps) {
   const [viewType, setViewType] = useState<"fully-diluted" | "outstanding">("fully-diluted");
   const [mode, setMode] = useState<"current" | "historical">("current");
 
@@ -401,6 +402,9 @@ export default function CapTableMain({ capTable, convertibles, isLoading }: CapT
                   <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
                     Issue Date
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
@@ -442,6 +446,16 @@ export default function CapTableMain({ capTable, convertibles, isLoading }: CapT
                       <div className="text-sm text-neutral-600">
                         {new Date(instrument.issueDate).toLocaleDateString()}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {instrument.type === 'SAFE' && onConvertSafe && (
+                        <button
+                          onClick={() => onConvertSafe(instrument)}
+                          className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded transition-colors"
+                        >
+                          Конвертировать
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
