@@ -521,7 +521,7 @@ export default function ModelRoundDialog({ open, onOpenChange, companyId }: Mode
                               type="number"
                               step="0.1"
                               inputMode="numeric"
-                              placeholder="e.g., 15"
+                              placeholder=""
                               {...field}
                             />
                           </FormControl>
