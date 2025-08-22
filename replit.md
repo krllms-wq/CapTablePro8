@@ -79,6 +79,8 @@ The schema supports complex cap table structures with entities for Companies, Se
 ### UI/UX Improvements - COMPLETED ✅  
 - **Percentage Formatting**: All percentages now display with exactly two decimal places (e.g., 22.06% instead of 22.0588%)
 - **Mobile Keyboard Support**: Added `inputMode="numeric"` to all money, shares, and percentage input fields for optimal mobile experience
+- **Mobile Navigation**: Fixed disappearing navigation on mobile devices by adding hamburger menu with slide-out navigation panel
+- **Responsive Design**: Navigation automatically switches between desktop horizontal menu and mobile slide-out menu at md breakpoint (768px)
 - **Cap Table Display**: Fixed stakeholder ownership calculations to properly show convertibles separately from current ownership
 - **Enhanced Form Validation**: Improved numeric field validation and formatting across all dialogs
 
