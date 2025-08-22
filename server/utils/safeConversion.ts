@@ -92,9 +92,7 @@ export function calculateSAFEConversion(
       discountRate: discountRate > 0 ? discountRate : undefined,
       valuationCap: valuationCap > 0 ? valuationCap : undefined,
       effectivePrice: conversionPrice,
-      reasoning,
-      // Key principle: conversion happens pre-money to protect new investors
-      antiDilutionNote: "SAFE converts at pre-money valuation, preserving new investor ownership"
+      reasoning
     }
   };
 }

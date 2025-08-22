@@ -25,8 +25,9 @@ export default function TransactionsPage() {
   // Rollback transaction mutation
   const rollbackMutation = useMutation({
     mutationFn: async (transactionId: string) => {
-      return apiRequest('POST', `/api/companies/${companyId}/transactions/${transactionId}/rollback`, {
-        reason: 'Manual rollback from transactions page'
+      return apiRequest(`/api/companies/${companyId}/transactions/${transactionId}/rollback`, {
+        method: 'POST',
+        body: { reason: 'Manual rollback from transactions page' }
       });
     },
     onSuccess: () => {
@@ -43,6 +44,7 @@ export default function TransactionsPage() {
   });
 
   const handleRollback = (transactionId: string) => {
+    console.log('Attempting rollback for transaction:', transactionId);
     if (confirm('Are you sure you want to rollback this transaction? This action cannot be undone.')) {
       rollbackMutation.mutate(transactionId);
     }

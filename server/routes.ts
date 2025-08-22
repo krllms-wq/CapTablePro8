@@ -18,7 +18,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { insertScenarioSchema } from "@shared/schema";
-import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest } from "./auth";
+import { requireAuth, optionalAuth, generateToken, hashPassword, comparePassword, AuthenticatedRequest, verifyToken } from "./auth";
 import { seedExampleCompany } from "./domain/onboarding/seedExampleCompany";
 import demoRoutes from "./routes/demo";
 import { sanitizeNumber, sanitizeDecimal, sanitizeQuantity } from "./utils/numberParser";
@@ -1588,11 +1588,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Rollback any transaction by ID
-  app.post("/api/companies/:companyId/transactions/:transactionId/rollback", requireAuth, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/companies/:companyId/transactions/:transactionId/rollback", async (req, res) => {
+    console.log('Rollback endpoint hit:', { 
+      companyId: req.params.companyId, 
+      transactionId: req.params.transactionId,
+      cookies: req.cookies,
+      headers: req.headers
+    });
+    
+    // Get user from cookie-based session
+    const token = req.cookies.token;
+    if (!token) {
+      console.log('No token found in cookies');
+      return res.status(401).json({ error: "Authentication required - no token" });
+    }
+    
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+    
+    const userId = decoded.userId;
+    
     try {
       const { companyId, transactionId } = req.params;
       const { reason } = req.body;
-      const userId = req.user?.id;
 
       if (!userId) {
         return res.status(401).json({ error: "User not authenticated" });
