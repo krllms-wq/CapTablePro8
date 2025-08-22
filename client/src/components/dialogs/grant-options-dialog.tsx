@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -93,6 +93,16 @@ export default function GrantOptionsDialog({ open, onOpenChange, companyId }: Gr
       vestingPeriod: "48", // 48 months default vesting period
     },
   });
+
+  // Watch for type changes and clear strike price for RSUs
+  const watchedType = form.watch("type");
+  useEffect(() => {
+    if (watchedType === "RSU") {
+      form.setValue("strikePrice", "");
+    } else if (watchedType === "stock_option" && form.getValues("strikePrice") === "") {
+      form.setValue("strikePrice", "1.00");
+    }
+  }, [watchedType, form]);
 
   const createStakeholderMutation = useMutation({
     mutationFn: async (data: any) => {
