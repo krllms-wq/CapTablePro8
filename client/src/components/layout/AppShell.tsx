@@ -75,9 +75,9 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
 
   return (
     <MobileNavProvider>
-      <div className="min-h-screen bg-neutral-50">
+      <div className="min-h-screen" style={{ backgroundColor: '#fafafa', color: '#171717' }}>
         {/* Header */}
-        <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-neutral-200">
+        <header className="sticky top-0 z-40 w-full backdrop-blur border-b" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#e5e5e5' }}>
         <div className="flex h-16 items-center gap-4 px-4 lg:px-6">
           {/* Mobile menu button */}
           <Button
@@ -103,7 +103,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
           {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 max-w-sm ml-auto">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
               <Input
                 type="search"
                 placeholder="Search... (⌘K)"
@@ -166,12 +166,15 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`
-          fixed inset-y-0 left-0 z-sticky w-64 bg-white border-r border-neutral-200
-          transform transition-transform duration-200 ease-in-out
-          md:relative md:transform-none
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        `}>
+        <aside 
+          className={`
+            fixed inset-y-0 left-0 z-sticky w-64 border-r
+            transform transition-transform duration-200 ease-in-out
+            md:relative md:transform-none
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          `}
+          style={{ backgroundColor: '#ffffff', borderColor: '#e5e5e5' }}
+        >
           <div className="flex h-full flex-col gap-y-5 overflow-y-auto pt-4">
             <nav className="px-4">
               <ul role="list" className="space-y-1">
@@ -208,7 +211,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
         )}
 
         {/* Main content */}
-        <main id="main-content" className="flex-1 md:pl-0">
+        <main id="main-content" className="flex-1 md:pl-0" style={{ backgroundColor: '#fafafa', color: '#171717' }}>
           {children}
         </main>
       </div>

@@ -94,7 +94,7 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-6 py-6 bg-neutral-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-6 min-h-screen bg-neutral-50 text-neutral-900">
 
         
         {/* Company Header */}
