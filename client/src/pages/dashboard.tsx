@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams } from "wouter";
-import { AppShell } from "@/components/layout/AppShell";
+import { useParams, Link, useLocation } from "wouter";
 import CapTableStats from "@/components/cap-table/cap-table-stats";
 import CapTableMain from "@/components/cap-table/cap-table-main";
 import OwnershipChart from "@/components/cap-table/ownership-chart";
@@ -92,9 +91,48 @@ export default function Dashboard() {
 
 
 
+  const [location] = useLocation();
+  
+  const navigation = [
+    { name: 'Companies', href: '/companies', icon: '🏢', current: false },
+    { name: 'Dashboard', href: `/companies/${companyId}`, icon: '📊', current: location === `/companies/${companyId}` },
+    { name: 'Stakeholders', href: `/companies/${companyId}/stakeholders`, icon: '👥', current: location.includes('/stakeholders') },
+    { name: 'Equity Awards', href: `/companies/${companyId}/equity-awards`, icon: '🎁', current: location.includes('/equity-awards') },
+    { name: 'Transactions', href: `/companies/${companyId}/transactions`, icon: '📈', current: location.includes('/transactions') },
+    { name: 'Scenarios', href: `/companies/${companyId}/scenarios`, icon: '🔄', current: location.includes('/scenarios') },
+  ];
+
   return (
-    <AppShell>
-      <div className="max-w-7xl mx-auto px-6 py-6 min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen bg-neutral-50 flex">
+      {/* Left Sidebar */}
+      <div className="w-64 bg-white border-r border-neutral-200 flex flex-col">
+        <div className="p-6 border-b border-neutral-200">
+          <h2 className="text-xl font-bold text-neutral-900">Cap Table</h2>
+        </div>
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            {navigation.map((item) => (
+              <li key={item.name}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    item.current
+                      ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-700'
+                      : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  {item.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="max-w-7xl mx-auto px-6 py-6 bg-neutral-50">
 
         
         {/* Company Header */}
@@ -173,7 +211,7 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Transaction Dialogs */}
+      {/* Dialog components */}
       <IssueSharesDialog
         open={showIssueShares}
         onOpenChange={setShowIssueShares}
@@ -243,6 +281,8 @@ export default function Dashboard() {
           }}
         />
       )}
-    </AppShell>
+        </div>
+      </div>
+    </div>
   );
 }
