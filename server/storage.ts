@@ -1337,5 +1337,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Temporarily use MemStorage to avoid database date conversion issues
-export const storage = new MemStorage();
+// Use PostgreSQL storage for production
+export const storage = new DatabaseStorage();

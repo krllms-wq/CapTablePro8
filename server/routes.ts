@@ -96,14 +96,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email and password are required" });
       }
       
+      console.log(`Login attempt for email: ${email}`);
+      
       // Find user by email
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
+        console.log(`User not found for email: ${email.toLowerCase()}`);
         return res.status(401).json({ error: "Invalid credentials" });
       }
       
+      console.log(`User found: ${user.id}, hash length: ${user.passwordHash.length}`);
+      
       // Verify password
       const isValidPassword = await comparePassword(password, user.passwordHash);
+      console.log(`Password verification result: ${isValidPassword}`);
+      
       if (!isValidPassword) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
