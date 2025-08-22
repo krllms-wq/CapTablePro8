@@ -26,6 +26,7 @@ import { toDateOnlyUTC } from "@shared/utils/dateUtils";
 import { ensurePricePerShare } from "./domain/util/price";
 import { calculateSAFEConversion, validateSAFEConversion, formatConversionSummary } from "./utils/safeConversion";
 import { calculateNoteConversionForUI, validateNoteConversion, formatNoteConversionSummary } from "./utils/noteConversion";
+import { logger } from "./utils/logger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   

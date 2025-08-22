@@ -89,7 +89,7 @@ export default function CompanySettings() {
       toast({
         title: "Error",
         description: "Failed to update company settings. Please try again.",
-        variant: "destructive",
+        variant: "error",
       });
     },
   });

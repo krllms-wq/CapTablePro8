@@ -42,7 +42,7 @@ export class AdvancedLogger {
     
     if (count > 10) {
       this.criticalError(`High error frequency detected: ${errorKey}`, { 
-        errorCount: count,
+        data: { errorCount: count },
         severity: 'critical' 
       });
     }

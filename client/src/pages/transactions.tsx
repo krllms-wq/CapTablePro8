@@ -40,7 +40,7 @@ export default function TransactionsPage() {
       toast({ 
         title: "Failed to rollback transaction", 
         description: error.message || "Unknown error",
-        variant: "destructive"
+        variant: "error"
       });
     }
   });
@@ -333,6 +333,6 @@ export default function TransactionsPage() {
       />
 
       {ConfirmationComponent}
-    </div>
+    </CompanyLayout>
   );
 }

@@ -708,6 +708,7 @@ export default function StakeholdersPage() {
           </Dialog>
 
           {ConfirmationComponent}
+        </div>
     </CompanyLayout>
   );
 }
